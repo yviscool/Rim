@@ -1,0 +1,84 @@
+﻿#Requires AutoHotkey v2.0
+#Warn All, Off
+
+; === Config - 配置管理 (从 RunZ Core/Config.ahk 移植) ===
+
+; 保存自动配置 (历史/输入文本)
+SaveAutoConf() {
+    global g_Conf, g_AutoConf, g_AutoConfFile, g_CurrentInput, g_HistoryCommands
+
+    if (g_Conf["Config"]["SaveInputText"] = "1") {
+        g_AutoConf.DeleteKey("Auto", "InputText")
+        g_AutoConf.AddKey("Auto", "InputText", g_CurrentInput)
+    }
+
+    if (g_Conf["Config"]["SaveHistory"] = "1") {
+        g_AutoConf.DeleteSection("History")
+        g_AutoConf.AddSection("History")
+        for index, element in g_HistoryCommands {
+            if (element != "")
+                g_AutoConf.AddKey("History", index, element)
+        }
+    }
+
+    ; 有界重试: 磁盘/杀软锁定时最多等 300ms, 绝不无限 MsgBox 卡死重启链
+    tries := 0
+    Loop {
+        tries++
+        try g_AutoConf.Save()
+        catch {
+        }
+        if (FileExist(g_AutoConfFile))
+            break
+        if (tries >= 3) {
+            try FileAppend(A_Now . " WARN: auto conf save failed after 3 tries, skip`n", A_ScriptDir . "\Rim.error.log")
+            catch {
+            }
+            break
+        }
+        Sleep(100)
+    }
+}
+
+; 加载历史命令
+LoadHistoryCommands() {
+    global g_Conf, g_AutoConf, g_HistoryCommands
+
+    historySize := g_Conf["Config"]["HistorySize"] + 0
+    index := 0
+    for key, value in g_AutoConf["History"] {
+        if (StrLen(value) > 0) {
+            g_HistoryCommands.Push(value)
+            index++
+            if (index = historySize)
+                return
+        }
+    }
+}
+
+; 更新 SendTo 快捷方式 (引号防空格路径, 删除防缺失)
+UpdateSendTo(create := true, overwrite := false) {
+    lnkFilePath := StrReplace(A_StartMenu, "\Start Menu", "\SendTo\") "RunZ.lnk"
+    if (!create) {
+        try FileDelete(lnkFilePath)
+        return
+    }
+    if (!overwrite && FileExist(lnkFilePath))
+        return
+    FileCreateShortcut(A_ScriptDir "\RunZ.exe", A_ScriptDir "\Core\SendToRunZ.lnk"
+        , , '"' A_ScriptDir '\Core\RunZCmdTool.ahk"', "SendTo RunZ", A_ScriptDir "\RunZ.ico")
+    FileCopy(A_ScriptDir "\Core\SendToRunZ.lnk"
+        , StrReplace(A_StartMenu, "\Start Menu", "\SendTo\") "RunZ.lnk", 1)
+}
+
+; 更新启动快捷方式
+UpdateStartupLnk(create := true, overwrite := false) {
+    lnkFilePath := A_Startup "\RunZ.lnk"
+    if (!create) {
+        try FileDelete(lnkFilePath)
+        return
+    }
+    if (!FileExist(lnkFilePath) || overwrite)
+        FileCreateShortcut(A_ScriptDir "\RunZ.exe", lnkFilePath
+            , A_ScriptDir, "RunZ.ahk --hide", "RunZ", A_ScriptDir "\RunZ.ico")
+}

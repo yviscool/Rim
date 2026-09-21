@@ -1,0 +1,24 @@
+# 运行期生成: 日志 / 索引 / 自动配置 / 临时文件
+*.log
+*.tmp
+*.bak
+nul
+Rim.error.log
+Conf/rim.auto.ini
+Conf/rim.auto.ini.EasyIni.bak
+Conf/SearchFileList.txt
+Conf/UserFileList.txt
+Conf/TCMark.ini
+Conf/TCFileMarks.ini
+
+# 草稿与探针 (不进仓库)
+zz_*
+debug_*
+test_*
+tcspy.txt
+*_out.txt
+Backup/
+
+# 系统
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,7 @@
+* text=auto
+*.ahk text eol=crlf
+*.ini text eol=crlf
+*.png binary
+*.jpg binary
+*.ico binary
+*.lnk binary
