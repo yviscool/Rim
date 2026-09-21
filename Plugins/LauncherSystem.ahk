@@ -8,91 +8,91 @@
 
 RegisterPlugin_LauncherSystem() {
     ; --- Original commands (names preserved from v1 @() registrations) ---
-    RegisterCommand("Clip", "function", "Clip", "显示剪切板内容")
-    RegisterCommand("ClearClipboardFormat", "function", "ClearClipboardFormat", "清除剪切板中文字的格式")
-    RegisterCommand("EmptyRecycle", "function", "EmptyRecycle", "清空回收站")
-    RegisterCommand("Logoff", "function", "Logoff", "注销 登出")
-    RegisterCommand("RestartMachine", "function", "RestartMachine", "重启")
-    RegisterCommand("ShutdownMachine", "function", "ShutdownMachine", "关机")
-    RegisterCommand("SuspendMachine", "function", "SuspendMachine", "挂起 睡眠 待机")
-    RegisterCommand("HibernateMachine", "function", "HibernateMachine", "休眠")
-    RegisterCommand("TurnMonitorOff", "function", "TurnMonitorOff", "关闭显示器")
-    RegisterCommand("ListProcess", "function", "ListProcess", "列出进程 ps")
-    RegisterCommand("DiskSpace", "function", "DiskSpace", "查看磁盘空间 df")
-    RegisterCommand("IncreaseVolume", "function", "IncreaseVolume", "提高音量")
-    RegisterCommand("DecreaseVolume", "function", "DecreaseVolume", "降低音量")
-    RegisterCommand("SystemState", "function", "SystemState", "系统状态 top")
-    RegisterCommand("KillProcess", "function", "KillProcess", "杀死进程")
-    RegisterCommand("SendToClip", "function", "SendToClip", "发送到剪切板")
-    RegisterCommand("ListWindow", "function", "ListWindow", "窗口列表")
-    RegisterCommand("ActivateWindow", "function", "ActivateWindow", "激活窗口")
-    RegisterCommand("ListRunningService", "function", "ListRunningService", "列出运行的服务")
-    RegisterCommand("ListAllService", "function", "ListAllService", "列出所有的服务")
-    RegisterCommand("ShowService", "function", "ShowService", "显示服务详情")
-    RegisterCommand("ShowProcess", "function", "ShowProcess", "显示进程详情")
+    RegisterCommand("Clip", "function", "Clip", T("cmd.LauncherSystem.Clip"))
+    RegisterCommand("ClearClipboardFormat", "function", "ClearClipboardFormat", T("cmd.LauncherSystem.ClearClipboardFormat"))
+    RegisterCommand("EmptyRecycle", "function", "EmptyRecycle", T("cmd.LauncherSystem.EmptyRecycle"))
+    RegisterCommand("Logoff", "function", "Logoff", T("cmd.LauncherSystem.Logoff"))
+    RegisterCommand("RestartMachine", "function", "RestartMachine", T("cmd.LauncherSystem.RestartMachine"))
+    RegisterCommand("ShutdownMachine", "function", "ShutdownMachine", T("cmd.LauncherSystem.ShutdownMachine"))
+    RegisterCommand("SuspendMachine", "function", "SuspendMachine", T("cmd.LauncherSystem.SuspendMachine"))
+    RegisterCommand("HibernateMachine", "function", "HibernateMachine", T("cmd.LauncherSystem.HibernateMachine"))
+    RegisterCommand("TurnMonitorOff", "function", "TurnMonitorOff", T("cmd.LauncherSystem.TurnMonitorOff"))
+    RegisterCommand("ListProcess", "function", "ListProcess", T("cmd.LauncherSystem.ListProcess"))
+    RegisterCommand("DiskSpace", "function", "DiskSpace", T("cmd.LauncherSystem.DiskSpace"))
+    RegisterCommand("IncreaseVolume", "function", "IncreaseVolume", T("cmd.LauncherSystem.IncreaseVolume"))
+    RegisterCommand("DecreaseVolume", "function", "DecreaseVolume", T("cmd.LauncherSystem.DecreaseVolume"))
+    RegisterCommand("SystemState", "function", "SystemState", T("cmd.LauncherSystem.SystemState"))
+    RegisterCommand("KillProcess", "function", "KillProcess", T("cmd.LauncherSystem.KillProcess"))
+    RegisterCommand("SendToClip", "function", "SendToClip", T("cmd.LauncherSystem.SendToClip"))
+    RegisterCommand("ListWindow", "function", "ListWindow", T("cmd.LauncherSystem.ListWindow"))
+    RegisterCommand("ActivateWindow", "function", "ActivateWindow", T("cmd.LauncherSystem.ActivateWindow"))
+    RegisterCommand("ListRunningService", "function", "ListRunningService", T("cmd.LauncherSystem.ListRunningService"))
+    RegisterCommand("ListAllService", "function", "ListAllService", T("cmd.LauncherSystem.ListAllService"))
+    RegisterCommand("ShowService", "function", "ShowService", T("cmd.LauncherSystem.ShowService"))
+    RegisterCommand("ShowProcess", "function", "ShowProcess", T("cmd.LauncherSystem.ShowProcess"))
 
     ; --- Backward-compat aliases (point at the same original funcs) ---
-    RegisterCommand("Clipboard", "function", "Clip", "剪切板")
-    RegisterCommand("EmptyTrash", "function", "EmptyRecycle", "清空回收站")
-    RegisterCommand("Shutdown", "function", "ShutdownMachine", "关机")
-    RegisterCommand("Restart", "function", "RestartMachine", "重启")
-    RegisterCommand("Suspend", "function", "SuspendMachine", "挂起")
-    RegisterCommand("Hibernate", "function", "HibernateMachine", "休眠")
-    RegisterCommand("MonitorOff", "function", "TurnMonitorOff", "关闭显示器")
-    RegisterCommand("Top", "function", "SystemState", "系统状态")
-    RegisterCommand("VolumeUp", "function", "IncreaseVolume", "音量增加")
-    RegisterCommand("VolumeDown", "function", "DecreaseVolume", "音量减少")
-    RegisterCommand("ProcessList", "function", "ListProcess", "进程列表")
-    RegisterCommand("Sleep", "function", "SuspendMachine", "挂起")
+    RegisterCommand("Clipboard", "function", "Clip", T("cmd.LauncherSystem.Clipboard"))
+    RegisterCommand("EmptyTrash", "function", "EmptyRecycle", T("cmd.LauncherSystem.EmptyRecycle"))
+    RegisterCommand("Shutdown", "function", "ShutdownMachine", T("cmd.LauncherSystem.ShutdownMachine"))
+    RegisterCommand("Restart", "function", "RestartMachine", T("cmd.LauncherSystem.RestartMachine"))
+    RegisterCommand("Suspend", "function", "SuspendMachine", T("cmd.LauncherSystem.Suspend"))
+    RegisterCommand("Hibernate", "function", "HibernateMachine", T("cmd.LauncherSystem.HibernateMachine"))
+    RegisterCommand("MonitorOff", "function", "TurnMonitorOff", T("cmd.LauncherSystem.TurnMonitorOff"))
+    RegisterCommand("Top", "function", "SystemState", T("cmd.LauncherSystem.Top"))
+    RegisterCommand("VolumeUp", "function", "IncreaseVolume", T("cmd.LauncherSystem.VolumeUp"))
+    RegisterCommand("VolumeDown", "function", "DecreaseVolume", T("cmd.LauncherSystem.VolumeDown"))
+    RegisterCommand("ProcessList", "function", "ListProcess", T("cmd.LauncherSystem.ProcessList"))
+    RegisterCommand("Sleep", "function", "SuspendMachine", T("cmd.LauncherSystem.Suspend"))
 
     ; --- Pure gain (kept): lock screen + mute toggle ---
-    RegisterCommand("Lock", "function", "LockScreen", "锁屏")
-    RegisterCommand("VolumeMute", "function", "VolumeMute", "静音")
+    RegisterCommand("Lock", "function", "LockScreen", T("cmd.LauncherSystem.Lock"))
+    RegisterCommand("VolumeMute", "function", "VolumeMute", T("cmd.LauncherSystem.VolumeMute"))
 
     ; --- Invented cmd/file shortcuts (kept, all runnable via Run) ---
-    RegisterCommand("ControlPanel", "cmd", "control", "控制面板")
-    RegisterCommand("DeviceManager", "cmd", "devmgmt.msc", "设备管理器")
-    RegisterCommand("TaskManager", "cmd", "taskmgr", "任务管理器")
-    RegisterCommand("SystemInfo", "cmd", "msinfo32", "系统信息")
-    RegisterCommand("RegEdit", "cmd", "regedit", "注册表编辑器")
-    RegisterCommand("Cmd", "cmd", "cmd", "命令提示符")
+    RegisterCommand("ControlPanel", "cmd", "control", T("cmd.LauncherSystem.ControlPanel"))
+    RegisterCommand("DeviceManager", "cmd", "devmgmt.msc", T("cmd.LauncherSystem.DeviceManager"))
+    RegisterCommand("TaskManager", "cmd", "taskmgr", T("cmd.LauncherSystem.TaskManager"))
+    RegisterCommand("SystemInfo", "cmd", "msinfo32", T("cmd.LauncherSystem.SystemInfo"))
+    RegisterCommand("RegEdit", "cmd", "regedit", T("cmd.LauncherSystem.RegEdit"))
+    RegisterCommand("Cmd", "cmd", "cmd", T("cmd.LauncherSystem.Cmd"))
     RegisterCommand("PowerShell", "cmd", "powershell", "PowerShell")
-    RegisterCommand("Notepad", "file", "notepad", "记事本")
-    RegisterCommand("Paint", "file", "mspaint", "画图")
-    RegisterCommand("WordPad", "file", "write", "写字板")
-    RegisterCommand("Magnifier", "file", "magnify", "放大镜")
-    RegisterCommand("OnScreenKeyboard", "file", "osk", "屏幕键盘")
-    RegisterCommand("SnippingTool", "file", "snippingtool", "截图工具")
-    RegisterCommand("ResourceMonitor", "cmd", "resmon", "资源监视器")
-    RegisterCommand("PerformanceMonitor", "cmd", "perfmon", "性能监视器")
-    RegisterCommand("EventViewer", "cmd", "eventvwr", "事件查看器")
-    RegisterCommand("Services", "cmd", "services.msc", "服务")
-    RegisterCommand("DiskManagement", "cmd", "diskmgmt.msc", "磁盘管理")
-    RegisterCommand("ComputerManagement", "cmd", "compmgmt.msc", "计算机管理")
-    RegisterCommand("LocalGroupPolicy", "cmd", "gpedit.msc", "本地组策略")
-    RegisterCommand("CertificateManager", "cmd", "certmgr.msc", "证书管理")
-    RegisterCommand("DirectX", "cmd", "dxdiag", "DirectX诊断工具")
-    RegisterCommand("WindowsUpdate", "cmd", "wuapp", "Windows更新")
-    RegisterCommand("Firewall", "cmd", "firewall.cpl", "Windows防火墙")
-    RegisterCommand("NetworkConnections", "cmd", "ncpa.cpl", "网络连接")
-    RegisterCommand("Sound", "cmd", "mmsys.cpl", "声音设置")
-    RegisterCommand("Display", "cmd", "desk.cpl", "显示设置")
-    RegisterCommand("System", "cmd", "sysdm.cpl", "系统属性")
-    RegisterCommand("Programs", "cmd", "appwiz.cpl", "程序和功能")
-    RegisterCommand("PowerOptions", "cmd", "powercfg.cpl", "电源选项")
-    RegisterCommand("DateAndTime", "cmd", "timedate.cpl", "日期和时间")
-    RegisterCommand("RegionAndLanguage", "cmd", "intl.cpl", "区域和语言")
-    RegisterCommand("Mouse", "cmd", "main.cpl", "鼠标属性")
-    RegisterCommand("Keyboard", "cmd", "control keyboard", "键盘属性")
-    RegisterCommand("Fonts", "cmd", "fonts", "字体")
-    RegisterCommand("AdministrativeTools", "cmd", "control admintools", "管理工具")
+    RegisterCommand("Notepad", "file", "notepad", T("cmd.LauncherSystem.Notepad"))
+    RegisterCommand("Paint", "file", "mspaint", T("cmd.LauncherSystem.Paint"))
+    RegisterCommand("WordPad", "file", "write", T("cmd.LauncherSystem.WordPad"))
+    RegisterCommand("Magnifier", "file", "magnify", T("cmd.LauncherSystem.Magnifier"))
+    RegisterCommand("OnScreenKeyboard", "file", "osk", T("cmd.LauncherSystem.OnScreenKeyboard"))
+    RegisterCommand("SnippingTool", "file", "snippingtool", T("cmd.LauncherSystem.SnippingTool"))
+    RegisterCommand("ResourceMonitor", "cmd", "resmon", T("cmd.LauncherSystem.ResourceMonitor"))
+    RegisterCommand("PerformanceMonitor", "cmd", "perfmon", T("cmd.LauncherSystem.PerformanceMonitor"))
+    RegisterCommand("EventViewer", "cmd", "eventvwr", T("cmd.LauncherSystem.EventViewer"))
+    RegisterCommand("Services", "cmd", "services.msc", T("cmd.LauncherSystem.Services"))
+    RegisterCommand("DiskManagement", "cmd", "diskmgmt.msc", T("cmd.LauncherSystem.DiskManagement"))
+    RegisterCommand("ComputerManagement", "cmd", "compmgmt.msc", T("cmd.LauncherSystem.ComputerManagement"))
+    RegisterCommand("LocalGroupPolicy", "cmd", "gpedit.msc", T("cmd.LauncherSystem.LocalGroupPolicy"))
+    RegisterCommand("CertificateManager", "cmd", "certmgr.msc", T("cmd.LauncherSystem.CertificateManager"))
+    RegisterCommand("DirectX", "cmd", "dxdiag", T("cmd.LauncherSystem.DirectX"))
+    RegisterCommand("WindowsUpdate", "cmd", "wuapp", T("cmd.LauncherSystem.WindowsUpdate"))
+    RegisterCommand("Firewall", "cmd", "firewall.cpl", T("cmd.LauncherSystem.Firewall"))
+    RegisterCommand("NetworkConnections", "cmd", "ncpa.cpl", T("cmd.LauncherSystem.NetworkConnections"))
+    RegisterCommand("Sound", "cmd", "mmsys.cpl", T("cmd.LauncherSystem.Sound"))
+    RegisterCommand("Display", "cmd", "desk.cpl", T("cmd.LauncherSystem.Display"))
+    RegisterCommand("System", "cmd", "sysdm.cpl", T("cmd.LauncherSystem.System"))
+    RegisterCommand("Programs", "cmd", "appwiz.cpl", T("cmd.LauncherSystem.Programs"))
+    RegisterCommand("PowerOptions", "cmd", "powercfg.cpl", T("cmd.LauncherSystem.PowerOptions"))
+    RegisterCommand("DateAndTime", "cmd", "timedate.cpl", T("cmd.LauncherSystem.DateAndTime"))
+    RegisterCommand("RegionAndLanguage", "cmd", "intl.cpl", T("cmd.LauncherSystem.RegionAndLanguage"))
+    RegisterCommand("Mouse", "cmd", "main.cpl", T("cmd.LauncherSystem.Mouse"))
+    RegisterCommand("Keyboard", "cmd", "control keyboard", T("cmd.LauncherSystem.Keyboard"))
+    RegisterCommand("Fonts", "cmd", "fonts", T("cmd.LauncherSystem.Fonts"))
+    RegisterCommand("AdministrativeTools", "cmd", "control admintools", T("cmd.LauncherSystem.AdministrativeTools"))
 }
 
 ; === Original behavior (same names as v1 labels) ===
 
 Clip() {
     ActivateRunZ()
-    DisplayResult("剪切板内容长度 " . StrLen(A_Clipboard) . " ：`n`n" . A_Clipboard)
+    DisplayResult(T("sys.clip_len", StrLen(A_Clipboard)) . "`n`n" . A_Clipboard)
 }
 
 ClearClipboardFormat() {
@@ -100,25 +100,25 @@ ClearClipboardFormat() {
 }
 
 Logoff() {
-    if (MsgBox("将要注销，是否执行？", , 4) = "Yes") {
+    if (MsgBox(T("sys.confirm_logoff"), , 4) = "Yes") {
         Shutdown(0)
     }
 }
 
 ShutdownMachine() {
-    if (MsgBox("将要关机，是否执行？", , 4) = "Yes") {
+    if (MsgBox(T("sys.confirm_shutdown"), , 4) = "Yes") {
         Shutdown(1)
     }
 }
 
 RestartMachine() {
-    if (MsgBox("将要重启机器，是否执行？", , 4) = "Yes") {
+    if (MsgBox(T("sys.confirm_restart"), , 4) = "Yes") {
         Shutdown(2)
     }
 }
 
 HibernateMachine() {
-    if (MsgBox("将要休眠，是否执行？", , 4) = "Yes") {
+    if (MsgBox(T("sys.confirm_hibernate"), , 4) = "Yes") {
         ; 参数 #1: 使用 1 代替 0 来进行休眠而不是挂起。
         ; 参数 #2: 使用 1 代替 0 来立即挂起而不询问每个应用程序以获得许可。
         ; 参数 #3: 使用 1 而不是 0 来禁止所有的唤醒事件。
@@ -127,7 +127,7 @@ HibernateMachine() {
 }
 
 SuspendMachine() {
-    if (MsgBox("将要待机，是否执行？", , 4) = "Yes") {
+    if (MsgBox(T("sys.confirm_suspend"), , 4) = "Yes") {
         DllCall("PowrProf\SetSuspendState", "int", 0, "int", 0, "int", 0)
     }
 }
@@ -143,7 +143,7 @@ TurnMonitorOff() {
 
 EmptyRecycle() {
     Items := ComObjCreate("Shell.Application").Namespace(10).Items()
-    Text := "回收站中共有 " . Items.Count . " 项 （取消可以管理回收站文件）：`n`n"
+    Text := T("sys.recycle_count", Items.Count) . "`n`n"
 
     Lines := 0
     for F in Items {
@@ -154,15 +154,15 @@ EmptyRecycle() {
 
         Lines += 1
 
-        Text .= F.Name . " （" . (F.IsFolder == 0 ? F.Size . " 字节）" : "目录）") . "`n"
+        Text .= F.Name . (F.IsFolder == 0 ? T("sys.recycle_size_paren", F.Size) : T("sys.recycle_dir_paren")) . "`n"
     }
 
     if (Lines == 0) {
-        DisplayResult("回收站是空的，将自动关闭")
+        DisplayResult(T("sys.recycle_empty"))
         return
     }
 
-    choice := MsgBox(Text . "`n将要清空回收站，是否执行？", "清空回收站", 3)
+    choice := MsgBox(Text . "`n" . T("sys.recycle_confirm"), T("sys.recycle_title"), 3)
 
     if (choice = "Yes") {
         FileRecycleEmpty()
@@ -185,7 +185,7 @@ ListProcess() {
         } catch {
             cmd := ""
         }
-        result .= "* | 进程 | " . process.Name . " | " . cmd . "`n"
+        result .= "* | " . T("sys.row_process") . " | " . process.Name . " | " . cmd . "`n"
     }
     result := Sort(result)
 
@@ -207,7 +207,7 @@ DiskSpace() {
         capGB := Round(cap / 1024, 2)
         freeGB := Round(free / 1024, 2)
         usedGB := Round(used / 1024, 2)
-        result .= "* | " . drive . " | 总共: " . capGB . " G  可用: " . freeGB . " G | 已用：" . usedGB . "  卷标: " . label . "`n"
+        result .= "* | " . drive . " | " . T("sys.row_disk", capGB, freeGB) . " | " . T("sys.disk_used", usedGB, label) . "`n"
     }
 
     DisplayResult(AlignText(result))
@@ -227,12 +227,12 @@ SystemState() {
     }
 
     GMSEx := GlobalMemoryStatusEx()
-    result := "* | 状态 | 运行时间 | " . Round(A_TickCount / 1000 / 3600, 3) . " 小时`n"
-    result .= "* | 状态 | CPU 占用 | " . CPULoad() . "% `n"
-    result .= "* | 状态 | 内存占用 | " . Round(100 * (GMSEx[2] - GMSEx[3]) / GMSEx[2], 2) . "% `n"
-    result .= "* | 状态 | 进程总数 | " . GetProcessCount() . "`n"
-    result .= "* | 状态 | 内存总量 | " . Round(GMSEx[2] / 1024**2, 2) . "MB `n"
-    result .= "* | 状态 | 可用内存 | " . Round(GMSEx[3] / 1024**2, 2) . "MB `n"
+    result := "* | " . T("sys.row_state") . " | " . T("sys.uptime") . " | " . Round(A_TickCount / 1000 / 3600, 3) . " " . T("sys.hours") . "`n"
+    result .= "* | " . T("sys.row_state") . " | " . T("sys.cpu") . " | " . CPULoad() . "% `n"
+    result .= "* | " . T("sys.row_state") . " | " . T("sys.mem") . " | " . Round(100 * (GMSEx[2] - GMSEx[3]) / GMSEx[2], 2) . "% `n"
+    result .= "* | " . T("sys.row_state") . " | " . T("sys.procs") . " | " . GetProcessCount() . "`n"
+    result .= "* | " . T("sys.row_state") . " | " . T("sys.mem_total") . " | " . Round(GMSEx[2] / 1024**2, 2) . "MB `n"
+    result .= "* | " . T("sys.row_state") . " | " . T("sys.mem_free") . " | " . Round(GMSEx[3] / 1024**2, 2) . "MB `n"
     DisplayResult(AlignText(result))
 }
 
@@ -246,7 +246,7 @@ KillProcess() {
         ProcessClose(argument)
     }
 
-    DisplayResult("已尝试杀死 " . Arg . " 进程")
+    DisplayResult(T("sys.killed", Arg))
 }
 
 SendToClip() {
@@ -265,7 +265,7 @@ ListWindow() {
         if (title = "") {
             continue
         }
-        result .= "* | 窗口 | " . name . " | " . title . "`n"
+        result .= "* | " . T("sys.row_window") . " | " . name . " | " . title . "`n"
     }
 
     SetCommandFilter("ActivateWindow|KillProcess")
@@ -302,7 +302,7 @@ ListAllService() {
     global Arg
     result := ""
     for service in ComObjGet("winmgmts:").ExecQuery("select * from Win32_Service") {
-        result .= "* | 服务 | " . service.Name . " | " . service.DisplayName . "`n"
+        result .= "* | " . T("sys.row_service") . " | " . service.Name . " | " . service.DisplayName . "`n"
     }
     result := Sort(result)
 
@@ -316,7 +316,7 @@ ListRunningService() {
     result := ""
     for service in ComObjGet("winmgmts:").ExecQuery("select * from Win32_Service") {
         if (service.Started != 0) {
-            result .= "* | 服务 | " . service.Name . " | " . service.DisplayName . "`n"
+            result .= "* | " . T("sys.row_service") . " | " . service.Name . " | " . service.DisplayName . "`n"
         }
     }
     result := Sort(result)
@@ -334,12 +334,12 @@ ShowService() {
     ; 暂时只支持一个，选得多了查起来太慢
     for service in ComObjGet("winmgmts:").ExecQuery("select * from Win32_Service where Name = '" . first . "'") {
         ; https://msdn.microsoft.com/en-us/library/windows/desktop/aa394418%28v=vs.85%29.aspx
-        result .= "* | 服务 | 名称 | " . service.Name . "`n"
-        result .= "* | 服务 | 描述 | " . service.Description . "`n"
-        result .= "* | 服务 | 是否在运行 | " . service.Started . "`n"
-        result .= "* | 服务 | 路径 | " . service.PathName . "`n"
-        result .= "* | 服务 | 进程 ID | " . service.ProcessId . "`n"
-        result .= "* | 服务 | 类型 | " . service.ServiceType . "`n"
+        result .= "* | " . T("sys.row_service") . " | " . T("sys.svc_name") . " | " . service.Name . "`n"
+        result .= "* | " . T("sys.row_service") . " | " . T("sys.svc_desc") . " | " . service.Description . "`n"
+        result .= "* | " . T("sys.row_service") . " | " . T("sys.svc_running") . " | " . service.Started . "`n"
+        result .= "* | " . T("sys.row_service") . " | " . T("sys.svc_path") . " | " . service.PathName . "`n"
+        result .= "* | " . T("sys.row_service") . " | " . T("sys.svc_pid") . " | " . service.ProcessId . "`n"
+        result .= "* | " . T("sys.row_service") . " | " . T("sys.svc_type") . " | " . service.ServiceType . "`n"
         break
     }
 
@@ -354,11 +354,11 @@ ShowProcess() {
     ; 暂时只支持一个，选得多了查起来太慢
     for process in ComObjGet("winmgmts:").ExecQuery("select * from Win32_Process where Name = '" . first . "'") {
         ; https://msdn.microsoft.com/en-us/library/windows/desktop/aa394372%28v=vs.85%29.aspx
-        result .= "* | 服务 | 名称 | " . process.Name . "`n"
-        result .= "* | 服务 | 描述 | " . process.Description . "`n"
-        result .= "* | 服务 | 命令行 | " . process.CommandLine . "`n"
-        result .= "* | 服务 | 启动时间 | " . process.CreationDate . "`n"
-        result .= "* | 服务 | ID | " . process.ProcessId . "`n"
+        result .= "* | " . T("sys.row_service") . " | " . T("sys.svc_name") . " | " . process.Name . "`n"
+        result .= "* | " . T("sys.row_service") . " | " . T("sys.svc_desc") . " | " . process.Description . "`n"
+        result .= "* | " . T("sys.row_service") . " | " . T("sys.proc_cmd") . " | " . process.CommandLine . "`n"
+        result .= "* | " . T("sys.row_service") . " | " . T("sys.proc_start") . " | " . process.CreationDate . "`n"
+        result .= "* | " . T("sys.row_service") . " | " . T("sys.proc_id") . " | " . process.ProcessId . "`n"
         break
     }
 

@@ -38,15 +38,15 @@ GesturePreview_ChainInfo(key) {
     up := StrUpper(key)
     up := StrReplace(up, " ", "")
     if InStr(up, "WHEEL") {
-        desc := "滚轮手势"
+        desc := T("gesture.prev_wheel")
         if InStr(up, "WHEELUP")
-            desc := "滚轮: 上滚"
+            desc := T("gesture.prev_up")
         else if InStr(up, "WHEELDOWN")
-            desc := "滚轮: 下滚"
+            desc := T("gesture.prev_down")
         else if InStr(up, "WHEELLEFT")
-            desc := "滚轮: 左滚"
+            desc := T("gesture.prev_left")
         else if InStr(up, "WHEELRIGHT")
-            desc := "滚轮: 右滚"
+            desc := T("gesture.prev_right")
         if InStr(up, "CTRL+")
             desc .= " (Ctrl)"
         if InStr(up, "ALT+")

@@ -212,7 +212,7 @@ GesturePkg_Export(path) {
     if (Trim(path) = "" || !IsObject(g_Conf))
         return false
     try {
-        out := "; Rim 手势包`r`n; 导入: 托盘手势管理 -> 设置 -> 导入`r`n`r`n"
+        out := StrReplace(T("gesture.pkg_header"), "`n", "`r`n")
         for sectionName, section in g_Conf.GetSections() {
             if (!GesturePkg_IsPkgSection(sectionName))
                 continue

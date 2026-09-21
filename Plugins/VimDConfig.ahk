@@ -5,27 +5,27 @@
 ; 插件一览 (左插件右动作, 过滤, 双击定位源码) + 按键一览 (窗/模式/映射三栏)
 
 RegisterPlugin_VimDConfig() {
-    RegisterAction("<VimDConfig_Plugin>", "显示插件信息")
-    RegisterAction("<VimDConfig_Keymap>", "显示热键信息")
-    RegisterAction("<VimDConfig_EditConfig>", "打开配置文件")
-    RegisterCommand("VimPlugins", "function", "VimDConfig_ShowPlugin", "插件浏览器")
-    RegisterCommand("VimKeymap", "function", "VimDConfig_ShowKeymap", "按键浏览器")
+    RegisterAction("<VimDConfig_Plugin>", T("act.VimDConfig.VimDConfig_Plugin"))
+    RegisterAction("<VimDConfig_Keymap>", T("act.VimDConfig.VimDConfig_Keymap"))
+    RegisterAction("<VimDConfig_EditConfig>", T("act.VimDConfig.VimDConfig_EditConfig"))
+    RegisterCommand("VimPlugins", "function", "VimDConfig_ShowPlugin", T("cmd.VimDConfig.VimPlugins"))
+    RegisterCommand("VimKeymap", "function", "VimDConfig_ShowKeymap", T("cmd.VimDConfig.VimKeymap"))
 }
 
 ; ==================== 插件浏览器 ====================
 VimDConfig_ShowPlugin(*) {
     st := Map("plugin", "", "file", "", "lines", [], "lv", "", "ed", "")
-    g := Gui("+Resize", "VimDConfig - 插件")
+    g := Gui("+Resize", T("vmd.plugin_title"))
     g.SetFont("s10", "Microsoft YaHei")
-    g.Add("GroupBox", "x10 y10 w170 h440", "插件 &&P")
+    g.Add("GroupBox", "x10 y10 w170 h440", T("vmd.group_plugins"))
     names := VimDConfig_PluginNames()
     lb := g.Add("ListBox", "x20 y35 w150 h400", names)
-    g.Add("GroupBox", "x190 y10 w650 h520", "动作 &&A")
-    lv := g.Add("ListView", "x200 y35 w630 h482 grid", ["序号", "动作", "描述"])
+    g.Add("GroupBox", "x190 y10 w650 h520", T("vmd.group_actions"))
+    lv := g.Add("ListView", "x200 y35 w630 h482 grid", [T("vmd.col_idx"), T("vmd.col_action"), T("vmd.col_desc")])
     lv.ModifyCol(1, 60)
     lv.ModifyCol(2, 250)
     lv.ModifyCol(3, 320)
-    g.Add("GroupBox", "x10 y460 w170 h70", "过滤 &&F")
+    g.Add("GroupBox", "x10 y460 w170 h70", T("vmd.group_filter"))
     ed := g.Add("Edit", "x20 y490 w150 h25")
     st["lv"] := lv
     st["ed"] := ed
@@ -60,10 +60,16 @@ VimDConfig_PluginPick(lb, st) {
     lines := []
     if FileExist(st["file"]) {
         for _line in ReadFileLines(st["file"]) {
-            if RegExMatch(_line, 'RegisterAction\("([^"]+)"(?:\s*,\s*"([^"]*)")?', &mm) {
-                lines.Push(Map("action", mm[1], "desc", mm[2]))
-            } else if RegExMatch(_line, '(?:Host\s*\(\s*"RegisterCommand"\s*,\s*|RegisterCommand\s*\(\s*)"([^"]+)"\s*,\s*"([^"]+)"(?:\s*,\s*"[^"]*")?(?:\s*,\s*"([^"]*)")?', &mc) {
-                lines.Push(Map("action", mc[1] " [" mc[2] "]", "desc", mc[3]))
+            if RegExMatch(_line, 'RegisterAction\("([^"]+)"(?:\s*,\s*(?:"([^"]*)"|T\("([^"]+)"\)))?', &mm) {
+                desc := mm[2]
+                if (desc = "" && mm[3] != "")
+                    desc := T(mm[3])
+                lines.Push(Map("action", mm[1], "desc", desc))
+            } else if RegExMatch(_line, '(?:Host\s*\(\s*"RegisterCommand"\s*,\s*|RegisterCommand\s*\(\s*)"([^"]+)"\s*,\s*"([^"]+)"(?:\s*,\s*"[^"]*")?(?:\s*,\s*(?:"([^"]*)"|T\("([^"]+)"\)))?', &mc) {
+                desc := mc[3]
+                if (desc = "" && mc[4] != "")
+                    desc := T(mc[4])
+                lines.Push(Map("action", mc[1] " [" mc[2] "]", "desc", desc))
             }
         }
     }
@@ -99,9 +105,9 @@ VimDConfig_PluginGoto(ctrl, row, st) {
 VimDConfig_ShowKeymap(*) {
     global g_VimEngine
     st := Map("win", "", "mode", "", "lines", [], "lv", "", "ed", "", "lbm", "")
-    g := Gui("+Resize", "VimDConfig - 按键")
+    g := Gui("+Resize", T("vmd.keymap_title"))
     g.SetFont("s10", "Microsoft YaHei")
-    g.Add("GroupBox", "x10 y10 w200 h269", "窗口 &&P")
+    g.Add("GroupBox", "x10 y10 w200 h269", T("vmd.group_windows"))
     wins := [""]
     if IsObject(g_VimEngine) {
         for wname, wobj in g_VimEngine.WinList {
@@ -111,12 +117,12 @@ VimDConfig_ShowKeymap(*) {
         }
     }
     lbw := g.Add("ListBox", "x20 y35 w180 R12", wins)
-    g.Add("GroupBox", "x10 y290 w200 h135", "模式 &&M")
+    g.Add("GroupBox", "x10 y290 w200 h135", T("vmd.group_modes"))
     lbm := g.Add("ListBox", "x20 y315 w180 R5", [])
-    g.Add("GroupBox", "x10 y435 w200 h61", "过滤 &&F")
+    g.Add("GroupBox", "x10 y435 w200 h61", T("vmd.group_filter"))
     ed := g.Add("Edit", "x20 y460 w180 h25")
-    g.Add("GroupBox", "x225 y10 w650 h486", "映射 &&K")
-    lv := g.Add("ListView", "x235 y36 w630 h450 grid", ["热键", "动作", "描述"])
+    g.Add("GroupBox", "x225 y10 w650 h486", T("vmd.group_map"))
+    lv := g.Add("ListView", "x235 y36 w630 h450 grid", [T("vmd.col_hotkey"), T("vmd.col_action"), T("vmd.col_desc")])
     lv.ModifyCol(1, 100)
     lv.ModifyCol(2, 250)
     lv.ModifyCol(3, 259)

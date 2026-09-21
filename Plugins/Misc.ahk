@@ -6,57 +6,57 @@
 
 RegisterPlugin_Misc() {
     ; 搜索引擎
-    RegisterCommand("Google", "url", "https://www.google.com/search?q={query}", "Google搜索")
-    RegisterCommand("Baidu", "url", "https://www.baidu.com/s?wd={query}", "百度搜索")
-    RegisterCommand("Bing", "url", "https://www.bing.com/search?q={query}", "Bing搜索")
-    RegisterCommand("GitHub", "url", "https://github.com/search?q={query}", "GitHub搜索")
-    RegisterCommand("Npm", "url", "https://www.npmjs.com/search?q={query}", "Npm搜索")
-    RegisterCommand("Zhihu", "url", "https://www.zhihu.com/search?q={query}", "知乎搜索")
-    RegisterCommand("Bilibili", "url", "https://search.bilibili.com/all?keyword={query}", "B站搜索")
-    RegisterCommand("Taobao", "url", "https://s.taobao.com/search?q={query}", "淘宝搜索")
-    RegisterCommand("JD", "url", "https://search.jd.com/Search?keyword={query}", "京东搜索")
+    RegisterCommand("Google", "url", "https://www.google.com/search?q={query}", T("cmd.Misc.Google"))
+    RegisterCommand("Baidu", "url", "https://www.baidu.com/s?wd={query}", T("cmd.Misc.Baidu"))
+    RegisterCommand("Bing", "url", "https://www.bing.com/search?q={query}", T("cmd.Misc.Bing"))
+    RegisterCommand("GitHub", "url", "https://github.com/search?q={query}", T("cmd.Misc.GitHub"))
+    RegisterCommand("Npm", "url", "https://www.npmjs.com/search?q={query}", T("cmd.Misc.Npm"))
+    RegisterCommand("Zhihu", "url", "https://www.zhihu.com/search?q={query}", T("cmd.Misc.Zhihu"))
+    RegisterCommand("Bilibili", "url", "https://search.bilibili.com/all?keyword={query}", T("cmd.Misc.Bilibili"))
+    RegisterCommand("Taobao", "url", "https://s.taobao.com/search?q={query}", T("cmd.Misc.Taobao"))
+    RegisterCommand("JD", "url", "https://search.jd.com/Search?keyword={query}", T("cmd.Misc.JD"))
 
     ; 翻译
-    RegisterCommand("Translate", "function", "TranslateWord", "有道翻译")
-    RegisterCommand("En2Cn", "function", "EnToCn", "英译中")
-    RegisterCommand("Cn2En", "function", "CnToEn", "中译英")
+    RegisterCommand("Translate", "function", "TranslateWord", T("cmd.Misc.Translate"))
+    RegisterCommand("En2Cn", "function", "EnToCn", T("cmd.Misc.En2Cn"))
+    RegisterCommand("Cn2En", "function", "CnToEn", T("cmd.Misc.Cn2En"))
 
     ; 计算器
-    RegisterCommand("Calc", "function", "CalcExpression", "计算器")
-    RegisterCommand("Eval", "function", "EvalExpression", "计算表达式")
+    RegisterCommand("Calc", "function", "CalcExpression", T("cmd.Misc.Calc"))
+    RegisterCommand("Eval", "function", "EvalExpression", T("cmd.Misc.Eval"))
 
     ; 剪切板工具
-    RegisterCommand("ClipShow", "function", "Misc_ShowClipboard", "显示剪切板")
-    RegisterCommand("ClipClear", "function", "ClearClipboard", "清空剪切板")
-    RegisterCommand("ClipSave", "function", "SaveClipboard", "保存剪切板到文件")
+    RegisterCommand("ClipShow", "function", "Misc_ShowClipboard", T("cmd.Misc.ClipShow"))
+    RegisterCommand("ClipClear", "function", "ClearClipboard", T("cmd.Misc.ClipClear"))
+    RegisterCommand("ClipSave", "function", "SaveClipboard", T("cmd.Misc.ClipSave"))
 
     ; 日期时间
-    RegisterCommand("Date", "function", "InsertDate", "插入当前日期")
-    RegisterCommand("Time", "function", "InsertTime", "插入当前时间")
-    RegisterCommand("DateTime", "function", "InsertDateTime", "插入日期时间")
+    RegisterCommand("Date", "function", "InsertDate", T("cmd.Misc.Date"))
+    RegisterCommand("Time", "function", "InsertTime", T("cmd.Misc.Time"))
+    RegisterCommand("DateTime", "function", "InsertDateTime", T("cmd.Misc.DateTime"))
 
     ; 颜色工具
-    RegisterCommand("ColorPicker", "function", "PickColor", "拾色器")
-    RegisterCommand("ColorInfo", "function", "PickColor", "颜色信息")
+    RegisterCommand("ColorPicker", "function", "PickColor", T("cmd.Misc.ColorPicker"))
+    RegisterCommand("ColorInfo", "function", "PickColor", T("cmd.Misc.ColorInfo"))
 
     ; 原版别名 (SearchOn*/Dictionary/CNY/USD/IP/日历/URL编解码/运行剪切板)
-    RegisterCommand("SearchOnGoogle", "url", "https://www.google.com/search?q={query}", "谷歌搜索")
-    RegisterCommand("SearchOnBaidu", "url", "https://www.baidu.com/s?wd={query}", "百度搜索")
-    RegisterCommand("SearchOnBing", "url", "https://cn.bing.com/search?q={query}", "必应搜索")
-    RegisterCommand("SearchOnZhihu", "url", "https://www.zhihu.com/search?type=content&q={query}", "知乎搜索")
-    RegisterCommand("SearchOnNpm", "url", "https://www.npmjs.com/search?q={query}", "Npm搜索")
-    RegisterCommand("SearchOnGithub", "url", "https://github.com/search?q={query}", "GitHub搜索")
-    RegisterCommand("SearchOnBilibili", "url", "https://search.bilibili.com/all?keyword={query}", "B站搜索")
-    RegisterCommand("SearchOnTaobao", "url", "https://s.taobao.com/search?q={query}", "淘宝搜索")
-    RegisterCommand("SearchOnJD", "url", "https://search.jd.com/Search?keyword={query}", "京东搜索")
-    RegisterCommand("Dictionary", "function", "TranslateWord", "词典")
-    RegisterCommand("CNY2USD", "function", "CNY2USD", "人民币转美元")
-    RegisterCommand("USD2CNY", "function", "USD2CNY", "美元转人民币")
-    RegisterCommand("CurrencyRate", "function", "CurrencyRate", "汇率 (示例: CurrencyRate USD CNY 2)")
-    RegisterCommand("ShowIp", "function", "ShowIp", "本机IP")
-    RegisterCommand("Calendar", "function", "Calendar", "万年历")
-    RegisterCommand("UrlEncode", "function", "UrlEncodeCmd", "URL编码")
-    RegisterCommand("UrlDecode", "function", "UrlDecodeCmd", "URL解码")
+    RegisterCommand("SearchOnGoogle", "url", "https://www.google.com/search?q={query}", T("cmd.Misc.SearchOnGoogle"))
+    RegisterCommand("SearchOnBaidu", "url", "https://www.baidu.com/s?wd={query}", T("cmd.Misc.Baidu"))
+    RegisterCommand("SearchOnBing", "url", "https://cn.bing.com/search?q={query}", T("cmd.Misc.SearchOnBing"))
+    RegisterCommand("SearchOnZhihu", "url", "https://www.zhihu.com/search?type=content&q={query}", T("cmd.Misc.Zhihu"))
+    RegisterCommand("SearchOnNpm", "url", "https://www.npmjs.com/search?q={query}", T("cmd.Misc.Npm"))
+    RegisterCommand("SearchOnGithub", "url", "https://github.com/search?q={query}", T("cmd.Misc.GitHub"))
+    RegisterCommand("SearchOnBilibili", "url", "https://search.bilibili.com/all?keyword={query}", T("cmd.Misc.Bilibili"))
+    RegisterCommand("SearchOnTaobao", "url", "https://s.taobao.com/search?q={query}", T("cmd.Misc.Taobao"))
+    RegisterCommand("SearchOnJD", "url", "https://search.jd.com/Search?keyword={query}", T("cmd.Misc.JD"))
+    RegisterCommand("Dictionary", "function", "TranslateWord", T("cmd.Misc.Dictionary"))
+    RegisterCommand("CNY2USD", "function", "CNY2USD", T("cmd.Misc.CNY2USD"))
+    RegisterCommand("USD2CNY", "function", "USD2CNY", T("cmd.Misc.USD2CNY"))
+    RegisterCommand("CurrencyRate", "function", "CurrencyRate", T("cmd.Misc.CurrencyRate"))
+    RegisterCommand("ShowIp", "function", "ShowIp", T("cmd.Misc.ShowIp"))
+    RegisterCommand("Calendar", "function", "Calendar", T("cmd.Misc.Calendar"))
+    RegisterCommand("UrlEncode", "function", "UrlEncodeCmd", T("cmd.Misc.UrlEncode"))
+    RegisterCommand("UrlDecode", "function", "UrlDecodeCmd", T("cmd.Misc.UrlDecode"))
     ; 注: RunClipboard 由 LauncherCore 提供(Arg 感知), 此处不重复注册避免同名
 }
 
@@ -77,14 +77,14 @@ MiscPipeInput(prompt, title) {
 
 ; === 翻译功能 (Arg > 剪切板 > InputBox) ===
 TranslateWord() {
-    word := MiscPipeInput("输入要翻译的单词:", "翻译")
+    word := MiscPipeInput(T("misc.prompt_translate"), T("misc.title_translate"))
     if (word = "")
         return
 
     ; 使用必应翻译完整解析 (9维度), 结果进显示区不弹新窗
     result := BingFanyiFull(word)
     if (result != "") {
-        DisplayResult("翻译 - " word "`n`n" result)
+        DisplayResult(T("misc.translate_title", word) . "`n`n" . result)
     } else {
         ; 失败则打开网页
         url := "https://dict.youdao.com/w?le=en&q=" UriEncode(word)
@@ -93,13 +93,13 @@ TranslateWord() {
 }
 
 EnToCn() {
-    word := MiscPipeInput("输入英文:", "英译中")
+    word := MiscPipeInput(T("misc.prompt_en"), T("misc.title_en2cn"))
     if (word = "")
         return
 
     result := BingDictLookup(word, "en-zh")
     if (result != "") {
-        DisplayResult("英译中 - " word "`n`n" result)
+        DisplayResult(T("misc.en2cn_title", word) . "`n`n" . result)
     } else {
         url := "https://dict.youdao.com/w?le=en&q=" UriEncode(word)
         Run url
@@ -107,13 +107,13 @@ EnToCn() {
 }
 
 CnToEn() {
-    word := MiscPipeInput("输入中文:", "中译英")
+    word := MiscPipeInput(T("misc.prompt_cn"), T("misc.title_cn2en"))
     if (word = "")
         return
 
     result := BingDictLookup(word, "zh-en")
     if (result != "") {
-        DisplayResult("中译英 - " word "`n`n" result)
+        DisplayResult(T("misc.cn2en_title", word) . "`n`n" . result)
     } else {
         url := "https://dict.youdao.com/w?le=zh&q=" UriEncode(word)
         Run url
@@ -170,10 +170,10 @@ ParseBingResponse(response, word) {
 
     ; 提取音标
     if RegExMatch(response, 'UsPhonetic.*?:.*?"([^"]+)"', &phonetic) {
-        result .= "`n美式: [" phonetic[1] "]"
+        result .= "`n" . T("misc.label_us", phonetic[1])
     }
     if RegExMatch(response, 'UkPhonetic.*?:.*?"([^"]+)"', &phonetic) {
-        result .= " 英式: [" phonetic[1] "]"
+        result .= " " . T("misc.label_uk", phonetic[1])
     }
 
     return result
@@ -185,7 +185,7 @@ ParseBingHtml(html, word) {
 
     ; 提取音标
     if RegExMatch(html, 'class="phonetic"[^>]*>([^<]+)<', &phonetic) {
-        result .= "音标: " phonetic[1] "`n"
+        result .= T("misc.label_phonetic", phonetic[1]) . "`n"
     }
 
     ; 提取基本释义
@@ -207,7 +207,7 @@ ParseBingHtml(html, word) {
 
     ; 提取例句
     if RegExMatch(html, 'class="的例子例句"[^>]*>([^<]+)<', &example) {
-        result .= "`n例句: " example[1]
+        result .= "`n" . T("misc.label_example", example[1])
     }
 
     return result
@@ -262,10 +262,10 @@ ParseYouDaoResponse(response, word) {
 
     ; 提取音标
     if RegExMatch(response, 'us-phonetic.*?"([^"]+)"', &phonetic) {
-        result .= "`n美式: [" phonetic[1] "]"
+        result .= "`n" . T("misc.label_us", phonetic[1])
     }
     if RegExMatch(response, 'uk-phonetic.*?"([^"]+)"', &phonetic) {
-        result .= " 英式: [" phonetic[1] "]"
+        result .= " " . T("misc.label_uk", phonetic[1])
     }
 
     ; 提取词性
@@ -283,10 +283,10 @@ ParseYouDaoResponse(response, word) {
 
     ; 提取例句
     if RegExMatch(response, 'eng-sent.*?sentence.*?sentence.*?"([^"]+)"', &engSent) {
-        result .= "`n`n例句: " engSent[1]
+        result .= "`n`n" . T("misc.label_example", engSent[1])
     }
     if RegExMatch(response, 'chn-sent.*?sentence.*?sentence.*?"([^"]+)"', &chnSent) {
-        result .= "`n翻译: " chnSent[1]
+        result .= "`n" . T("misc.label_trans", chnSent[1])
     }
 
     return result
@@ -344,9 +344,9 @@ ParseYouDaoHtml(html, word) {
                 break
             enSent := RegExReplace(sentMatch[1], "<[^>]+>", "")
             cnSent := RegExReplace(sentMatch[2], "<[^>]+>", "")
-            result .= "`n例句: " enSent
+            result .= "`n" . T("misc.label_example", enSent)
             if (cnSent != "")
-                result .= "`n翻译: " cnSent
+                result .= "`n" . T("misc.label_trans", cnSent)
         }
     }
 
@@ -390,11 +390,11 @@ BaiduFanyi(word) {
             ; 解析 JSON
             result := BaiduFanyi_ParseResponse(response, word)
             if (result != "") {
-                DisplayResult("百度翻译 - " word "`n`n" result)
+                DisplayResult(T("misc.baidu_title", word) . "`n`n" . result)
             }
         }
     } catch as e {
-        DisplayResult("翻译失败: " e.Message)
+        DisplayResult(T("misc.translate_failed", e.Message))
     }
 }
 
@@ -463,7 +463,7 @@ MD5Hash(str) {
 
 ; === 计算器 (原版: 结果进剪切板 + 实时执行) ===
 CalcExpression() {
-    input := MiscPipeInput("输入表达式:`n支持: +, -, *, /, ^, %, (), sin, cos, tan, sqrt, abs, log, ln, pi, e", "计算器")
+    input := MiscPipeInput(T("misc.prompt_calc"), T("misc.title_calc"))
     if (input = "")
         return
 
@@ -493,9 +493,9 @@ Misc_ShowClipboard() {
     clipText := A_Clipboard
     ActivateRunZ()
     if (clipText = "")
-        DisplayResult("剪切板为空")
+        DisplayResult(T("misc.clip_empty"))
     else
-        DisplayResult("长度: " StrLen(clipText) "`n" clipText)
+        DisplayResult(T("misc.clip_len", StrLen(clipText)) . "`n" . clipText)
 }
 
 ClearClipboard() {
@@ -505,19 +505,19 @@ ClearClipboard() {
 
 SaveClipboard() {
     if (A_Clipboard = "") {
-        DisplayResult("剪切板为空")
+        DisplayResult(T("misc.clip_empty"))
         return
     }
 
-    filePath := FileSelect("S16", , "保存剪切板", "文本文件 (*.txt)")
+    filePath := FileSelect("S16", , T("misc.title_clip_save"), T("misc.filter_text"))
     if (filePath != "") {
         try {
             f := FileOpen(filePath, "w")
             f.Write(A_Clipboard)
             f.Close()
-            DisplayResult("已保存到: " filePath)
+            DisplayResult(T("misc.saved_to", filePath))
         } catch as e {
-            DisplayResult("保存失败: " e.Message)
+            DisplayResult(T("misc.save_failed", e.Message))
         }
     }
 }
@@ -602,7 +602,7 @@ ShowIp() {
             }
         }
     } catch as e {
-        result .= "`n`n获取网卡明细失败: " e.Message
+        result .= "`n`n" . T("misc.net_failed", e.Message)
     }
 
     DisplayResult(result)
@@ -610,35 +610,35 @@ ShowIp() {
 
 ; === 汇率查询 (原版: CurrencyRate USD CNY amount 三段式 + CNY2USD/USD2CNY 单发) ===
 CurrencyRate() {
-    input := MiscPipeInput("使用示例：`nCurrencyRate USD CNY 2", "汇率查询")
+    input := MiscPipeInput(T("misc.fx_hint"), T("misc.title_fx"))
     if (input = "")
         return
     args := StrSplit(RegExReplace(Trim(input), "\s+", " "), " ")
     if (args.Length = 3) {
-        DisplayResult("查询中，可能会比较慢或者查询失败，请稍后...")
+        DisplayResult(T("misc.querying"))
         DisplayResult(QueryCurrencyRate(args[1], args[2], args[3]))
     } else if (args.Length >= 1 && RegExMatch(args[1], "^([A-Z]{3})/([A-Z]{3})$", &match)) {
         amount := args.Length >= 2 ? args[2] : 1
-        DisplayResult("查询中，可能会比较慢或者查询失败，请稍后...")
+        DisplayResult(T("misc.querying"))
         DisplayResult(QueryCurrencyRate(match[1], match[2], amount))
     } else {
-        DisplayResult("使用示例：`nCurrencyRate USD CNY 2")
+        DisplayResult(T("misc.fx_hint"))
     }
 }
 
 CNY2USD() {
-    amount := MiscPipeInput("输入人民币金额:", "人民币转美元")
+    amount := MiscPipeInput(T("misc.prompt_cny"), T("misc.title_cny2usd"))
     if (amount = "")
         return
-    DisplayResult("查询中，可能会比较慢或者查询失败，请稍后...")
+    DisplayResult(T("misc.querying"))
     DisplayResult(QueryCurrencyRate("CNY", "USD", amount))
 }
 
 USD2CNY() {
-    amount := MiscPipeInput("输入美元金额:", "美元转人民币")
+    amount := MiscPipeInput(T("misc.prompt_usd"), T("misc.title_usd2cny"))
     if (amount = "")
         return
-    DisplayResult("查询中，可能会比较慢或者查询失败，请稍后...")
+    DisplayResult(T("misc.querying"))
     DisplayResult(QueryCurrencyRate("USD", "CNY", amount))
 }
 
@@ -647,13 +647,13 @@ QueryCurrencyRate(fromCurrency, toCurrency, amount := 1) {
     fromCurrency := Trim(fromCurrency)
     toCurrency := Trim(toCurrency)
     if (fromCurrency = "" || toCurrency = "")
-        return "使用示例：`nCurrencyRate USD CNY 2"
+        return T("misc.fx_hint")
     if (amount = "" || !IsNumber(amount))
         amount := 1
     url := "https://finance.baidu.com/api/ExchangeRate/getrate?from=" fromCurrency "&to=" toCurrency
     jsonText := UrlDownloadToString(url)
     if (jsonText = "")
-        return "查询失败：无法获取汇率数据"
+        return T("misc.fx_nodata")
     rate := ""
     try {
         data := JSON.Load(jsonText)
@@ -673,8 +673,8 @@ QueryCurrencyRate(fromCurrency, toCurrency, amount := 1) {
     if (rate = "" && RegExMatch(jsonText, 'rate.*?"([\d.]+)"', &rateMatch))
         rate := rateMatch[1]
     if (rate = "" || !IsNumber(rate))
-        return "查询失败，错误信息：`n`n" jsonText
-    result := fromCurrency " 兑换 " toCurrency " 当前汇率：`n`n" rate "`n`n`n"
+        return T("misc.fx_failed") . "`n`n" . jsonText
+    result := T("misc.fx_result", fromCurrency, toCurrency) . "`n`n" . rate . "`n`n`n"
     result .= amount " " fromCurrency " = " Round(amount * rate, 4) " " toCurrency
     return result
 }
@@ -683,7 +683,7 @@ QueryAndShowRate(pair, amount := "") {
     if RegExMatch(pair, "^([A-Z]{3})/([A-Z]{3})$", &match) {
         DisplayResult(QueryCurrencyRate(match[1], match[2], amount = "" ? 1 : amount))
     } else {
-        DisplayResult("格式错误，请使用 XXX/YYY 格式")
+        DisplayResult(T("misc.fx_badformat"))
     }
 }
 
@@ -695,7 +695,7 @@ Calendar() {
 
 ; === URL 编码/解码 (原版: Arg > 剪切板, 结果进剪切板 + DisplayResult) ===
 UrlEncodeCmd() {
-    input := MiscPipeInput("输入要编码的文本:", "URL编码")
+    input := MiscPipeInput(T("misc.prompt_urlenc"), T("misc.title_urlenc"))
     if (input = "")
         return
 
@@ -705,7 +705,7 @@ UrlEncodeCmd() {
 }
 
 UrlDecodeCmd() {
-    input := MiscPipeInput("输入要解码的URL:", "URL解码")
+    input := MiscPipeInput(T("misc.prompt_urldec"), T("misc.title_urldec"))
     if (input = "")
         return
 
@@ -740,35 +740,18 @@ RunClipboard() {
         try {
             Run A_Clipboard
         } catch as e {
-            DisplayResult("无法运行: " A_Clipboard "`n" e.Message)
+            DisplayResult(T("misc.cannot_run", A_Clipboard) . "`n" . e.Message)
         }
     } else {
-        DisplayResult("剪切板为空")
+        DisplayResult(T("misc.clip_empty"))
     }
 }
 
-; === 显示帮助 ===
+; === 显示帮助 (双语文本见 Lang/*.ini help.misc) ===
 ShowHelp() {
-    helpText := "Rim 快捷键帮助`n`n"
-    helpText .= "通用:`n"
-    helpText .= "  i        - 进入 insert 模式`n"
-    helpText .= "  Esc      - 返回 normal 模式`n"
-    helpText .= "  j/k/h/l  - 下/上/左/右移动`n"
-    helpText .= "  t        - 新建标签页`n"
-    helpText .= "  x        - 关闭标签页`n"
-    helpText .= "  gn/gp    - 下/上一个标签页`n"
-    helpText .= "  g1-g9    - 切换到标签页 1-9`n"
-    helpText .= "  zj/zk    - 移动窗口下/上`n"
-    helpText .= "  zh/zl    - 移动窗口左/右`n"
-    helpText .= "  zm/zn    - 最大化/最小化窗口`n"
-    helpText .= "  za       - 窗口置顶`n"
-    helpText .= "`n"
-    helpText .= "快速启动:`n"
-    helpText .= "  Win+J    - 打开快速启动器`n"
-    helpText .= "`n"
-    helpText .= "右键托盘图标查看更多选项"
+    helpText := T("help.misc")
 
-    MsgBox helpText, "Rim 帮助"
+    MsgBox(helpText, T("misc.help_title"))
 }
 
 ; === HTML 清理函数 ===
@@ -843,7 +826,7 @@ BingFanyiFull(word) {
                 hdHtml := SubStr(raw, hdIfIdx, hdIfEnd - hdIfIdx)
                 hdText := BingFanyi_StripHtml(hdHtml)
                 if (hdText != "")
-                    result .= "[词形] " . hdText . "`n"
+                    result .= T("misc.dict_form", hdText) . "`n"
             }
         }
 
@@ -888,7 +871,7 @@ BingFanyiFull(word) {
             colHtml := SubStr(raw, colIdx, Min(colEndSearch - colIdx, 20000))
 
             if (InStr(colHtml, 'class="df_div2"')) {
-                result .= "[搭配]`n"
+                result .= T("misc.dict_coll") . "`n"
                 searchStart := 1
                 Loop {
                     tIdx := InStr(colHtml, 'class="de_title2"', false, searchStart)
@@ -921,7 +904,7 @@ BingFanyiFull(word) {
         if (synoIdx > 0) {
             synoHtml := SubStr(raw, synoIdx, Min(20000, StrLen(raw) - synoIdx))
             if (InStr(synoHtml, 'class="df_div2"')) {
-                result .= "[同义词]`n"
+                result .= T("misc.dict_syn") . "`n"
                 searchStart := 1
                 Loop {
                     tIdx := InStr(synoHtml, 'class="de_title1"', false, searchStart)
@@ -954,7 +937,7 @@ BingFanyiFull(word) {
         if (authIdx > 0) {
             authHtml := SubStr(raw, authIdx, Min(50000, StrLen(raw) - authIdx))
             if (InStr(authHtml, 'class="def_pa"')) {
-                result .= "[双解]`n"
+                result .= T("misc.dict_dual") . "`n"
                 searchStart := 1
                 Loop {
                     paIdx := InStr(authHtml, 'class="def_pa"', false, searchStart)
@@ -981,7 +964,7 @@ BingFanyiFull(word) {
                         idsEnd := InStr(authHtml, "</span>", false, idsIdx)
                         if (idsEnd > idsIdx) {
                             idmText := BingFanyi_StripHtml(SubStr(authHtml, idsIdx, idsEnd - idsIdx + 7))
-                            result .= "  [习语] " . idmText . "`n"
+                            result .= "  " . T("misc.dict_idiom", idmText) . "`n"
                         }
                     }
                 }
@@ -993,7 +976,7 @@ BingFanyiFull(word) {
         if (homoIdx > 0) {
             homoHtml := SubStr(raw, homoIdx, Min(20000, StrLen(raw) - homoIdx))
             if (InStr(homoHtml, 'class="df_cr_w"')) {
-                result .= "[英英]`n"
+                result .= T("misc.dict_enen") . "`n"
                 searchStart := 1
                 Loop {
                     posIdx := InStr(homoHtml, 'class="pos pos1"', false, searchStart)
@@ -1025,7 +1008,7 @@ BingFanyiFull(word) {
         if (webIdx > 0) {
             webHtml := SubStr(raw, webIdx, Min(20000, StrLen(raw) - webIdx))
             if (InStr(webHtml, 'class="df_hm_w1"')) {
-                result .= "[网络释义]`n"
+                result .= T("misc.dict_web") . "`n"
                 searchStart := 1
                 Loop {
                     wIdx := InStr(webHtml, 'class="df_hm_w1"', false, searchStart)
@@ -1047,7 +1030,7 @@ BingFanyiFull(word) {
         if (senIdx > 0) {
             senHtml := SubStr(raw, senIdx, Min(50000, StrLen(raw) - senIdx))
             sentCount := 0
-            result .= "[例句]`n"
+            result .= T("misc.dict_sent") . "`n"
             searchStart := 1
             Loop {
                 liIdx := InStr(senHtml, 'class="se_li"', false, searchStart)
@@ -1088,6 +1071,6 @@ BingFanyiFull(word) {
 
         return result
     } catch as e {
-        return "翻译失败: " e.Message
+        return T("misc.translate_failed", e.Message)
     }
 }

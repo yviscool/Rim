@@ -10,27 +10,27 @@ RegisterPlugin_Explorer() {
     g_VimEngine.SetBeforeActionDoForWin("CabinetWClass", Explorer_ForceInsertMode)
 
     ; 注册动作
-    RegisterAction("<Exp_Back>", "返回上级目录")
-    RegisterAction("<Exp_Forward>", "前进")
-    RegisterAction("<Exp_Up>", "上层目录")
-    RegisterAction("<Exp_Refresh>", "刷新")
-    RegisterAction("<Exp_Rename>", "重命名")
-    RegisterAction("<Exp_Delete>", "删除")
-    RegisterAction("<Exp_NewFolder>", "新建文件夹")
-    RegisterAction("<Exp_ToggleView>", "切换视图")
-    RegisterAction("<Exp_ToggleTree>", "切换目录树")
-    RegisterAction("<Exp_CopyPath>", "复制路径")
-    RegisterAction("<Exp_OpenInTC>", "用TC打开")
-    RegisterAction("<Exp_OpenInTCX>", "用TC打开并关闭")
-    RegisterAction("<Exp_OpenInTCNewTab>", "用TC新标签打开")
-    RegisterAction("<Exp_GoHome>", "跳到主目录")
-    RegisterAction("<Exp_GoEnd>", "跳到末尾")
-    RegisterAction("<Exp_FocusTree>", "定位到目录树")
-    RegisterAction("<Exp_FocusFiles>", "定位到文件栏")
-    RegisterAction("<Exp_TreeBack>", "目录树返回")
-    RegisterAction("<Exp_TreeForward>", "目录树前进")
-    RegisterAction("<Exp_TreeUp>", "目录树上层")
-    RegisterAction("<Exp_TreeDown>", "目录树下层")
+    RegisterAction("<Exp_Back>", T("act.Explorer.Exp_Back"))
+    RegisterAction("<Exp_Forward>", T("act.Explorer.Exp_Forward"))
+    RegisterAction("<Exp_Up>", T("act.Explorer.Exp_Up"))
+    RegisterAction("<Exp_Refresh>", T("act.Explorer.Exp_Refresh"))
+    RegisterAction("<Exp_Rename>", T("act.Explorer.Exp_Rename"))
+    RegisterAction("<Exp_Delete>", T("act.Explorer.Exp_Delete"))
+    RegisterAction("<Exp_NewFolder>", T("act.Explorer.Exp_NewFolder"))
+    RegisterAction("<Exp_ToggleView>", T("act.Explorer.Exp_ToggleView"))
+    RegisterAction("<Exp_ToggleTree>", T("act.Explorer.Exp_ToggleTree"))
+    RegisterAction("<Exp_CopyPath>", T("act.Explorer.Exp_CopyPath"))
+    RegisterAction("<Exp_OpenInTC>", T("act.Explorer.Exp_OpenInTC"))
+    RegisterAction("<Exp_OpenInTCX>", T("act.Explorer.Exp_OpenInTCX"))
+    RegisterAction("<Exp_OpenInTCNewTab>", T("act.Explorer.Exp_OpenInTCNewTab"))
+    RegisterAction("<Exp_GoHome>", T("act.Explorer.Exp_GoHome"))
+    RegisterAction("<Exp_GoEnd>", T("act.Explorer.Exp_GoEnd"))
+    RegisterAction("<Exp_FocusTree>", T("act.Explorer.Exp_FocusTree"))
+    RegisterAction("<Exp_FocusFiles>", T("act.Explorer.Exp_FocusFiles"))
+    RegisterAction("<Exp_TreeBack>", T("act.Explorer.Exp_TreeBack"))
+    RegisterAction("<Exp_TreeForward>", T("act.Explorer.Exp_TreeForward"))
+    RegisterAction("<Exp_TreeUp>", T("act.Explorer.Exp_TreeUp"))
+    RegisterAction("<Exp_TreeDown>", T("act.Explorer.Exp_TreeDown"))
 
     ; 设置 insert 模式映射 (所有键传递)
     MapKey("<enter>", "<enter>", "CabinetWClass", "insert")
@@ -167,7 +167,7 @@ Exp_CopyPath() {
     path := Explorer_GetPath()
     if (path != "") {
         A_Clipboard := path
-        ToolTip("已复制路径: " path)
+        ToolTip(T("exp.copied_path", path))
         SetTimer () => ToolTip(), -1500
     } else {
         ; 回退方案：从标题获取
@@ -175,7 +175,7 @@ Exp_CopyPath() {
             title := WinGetTitle("A")
             if RegExMatch(title, "^([^:]+:)", &match) {
                 A_Clipboard := match[1]
-                ToolTip("已复制路径: " match[1])
+                ToolTip(T("exp.copied_path", match[1]))
                 SetTimer () => ToolTip(), -1500
             }
         }

@@ -9,7 +9,7 @@ RegisterPlugin_TCDialog() {
     global g_TCDialog, g_Conf
     if (g_Conf.Get("Plugins", "TCDialog", "1") = "0")
         return
-    g_TCDialog := Plugin_TCDialog("TCDialog", "", "", "TC文件对话框替代")
+    g_TCDialog := Plugin_TCDialog("TCDialog", "", "", T("tcdlg.title"))
     g_TCDialog.Setup()
 }
 
@@ -52,7 +52,7 @@ TCD_OpenTCDialog() {
 
 class Plugin_TCDialog extends Plugin {
     name := "TCDialog"
-    title := "TC文件对话框替代"
+    title := T("tcdlg.title")
 
     Callers := Map()  ; 窗体ID -> 调用者ID
     IsDialogMode := Map()  ; 窗体ID -> 是否在对话框模式
@@ -87,13 +87,13 @@ class Plugin_TCDialog extends Plugin {
         }
 
         ; 注册动作
-        RegisterAction("<TCD_Select>", "TC选择文件")
-        RegisterAction("<TCD_Cancel>", "TC取消选择")
-        RegisterAction("<TCD_PreSelected>", "TC进入目录")
-        RegisterAction("<TCD_Selected>", "TC选择并返回")
-        RegisterAction("<TCD_SelectedCurrentDir>", "TC选择当前目录")
-        RegisterAction("<TCD_ReturnToCaller>", "TC返回调用者")
-        RegisterAction("<TCD_OpenTCDialog>", "TC打开对话框")
+        RegisterAction("<TCD_Select>", T("act.TCDialog.TCD_Select"))
+        RegisterAction("<TCD_Cancel>", T("act.TCDialog.TCD_Cancel"))
+        RegisterAction("<TCD_PreSelected>", T("act.TCDialog.TCD_PreSelected"))
+        RegisterAction("<TCD_Selected>", T("act.TCDialog.TCD_Selected"))
+        RegisterAction("<TCD_SelectedCurrentDir>", T("act.TCDialog.TCD_SelectedCurrentDir"))
+        RegisterAction("<TCD_ReturnToCaller>", T("act.TCDialog.TCD_ReturnToCaller"))
+        RegisterAction("<TCD_OpenTCDialog>", T("act.TCDialog.TCD_OpenTCDialog"))
 
         ; 启动定时检测
         this.CheckTimer := ObjBindMethod(this, "CheckFileDialog")

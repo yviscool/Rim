@@ -8,23 +8,23 @@ RegisterPlugin_Foobar2000() {
     RegisterWin("Foobar2000", "BaseWindow_Root2", "foobar2000.exe")
 
     ; 注册动作
-    RegisterAction("<FB_Next>", "下一首")
-    RegisterAction("<FB_Prev>", "上一首")
-    RegisterAction("<FB_Stop>", "停止")
-    RegisterAction("<FB_Play>", "播放/暂停")
-    RegisterAction("<FB_NextTab>", "下一个标签页")
-    RegisterAction("<FB_PrevTab>", "上一个标签页")
-    RegisterAction("<FB_Search>", "搜索")
-    RegisterAction("<FB_Home>", "跳到开头")
-    RegisterAction("<FB_End>", "跳到结尾")
-    RegisterAction("<FB_PgUp>", "上一页")
-    RegisterAction("<FB_PgDn>", "下一页")
-    RegisterAction("<FB_VolUp>", "音量增加")
-    RegisterAction("<FB_VolDown>", "音量减少")
-    RegisterAction("<FB_VolMute>", "静音")
-    RegisterAction("<FB_FocusTree>", "定位到目录窗口")
-    RegisterAction("<FB_FocusList>", "定位到播放列表")
-    RegisterAction("<FB_ShowHelp>", "显示帮助")
+    RegisterAction("<FB_Next>", T("act.Foobar2000.FB_Next"))
+    RegisterAction("<FB_Prev>", T("act.Foobar2000.FB_Prev"))
+    RegisterAction("<FB_Stop>", T("act.Foobar2000.FB_Stop"))
+    RegisterAction("<FB_Play>", T("act.Foobar2000.FB_Play"))
+    RegisterAction("<FB_NextTab>", T("act.Foobar2000.FB_NextTab"))
+    RegisterAction("<FB_PrevTab>", T("act.Foobar2000.FB_PrevTab"))
+    RegisterAction("<FB_Search>", T("act.Foobar2000.FB_Search"))
+    RegisterAction("<FB_Home>", T("act.Foobar2000.FB_Home"))
+    RegisterAction("<FB_End>", T("act.Foobar2000.FB_End"))
+    RegisterAction("<FB_PgUp>", T("act.Foobar2000.FB_PgUp"))
+    RegisterAction("<FB_PgDn>", T("act.Foobar2000.FB_PgDn"))
+    RegisterAction("<FB_VolUp>", T("act.Foobar2000.FB_VolUp"))
+    RegisterAction("<FB_VolDown>", T("act.Foobar2000.FB_VolDown"))
+    RegisterAction("<FB_VolMute>", T("act.Foobar2000.FB_VolMute"))
+    RegisterAction("<FB_FocusTree>", T("act.Foobar2000.FB_FocusTree"))
+    RegisterAction("<FB_FocusList>", T("act.Foobar2000.FB_FocusList"))
+    RegisterAction("<FB_ShowHelp>", T("act.Foobar2000.FB_ShowHelp"))
 
     ; insert 模式映射
     MapKey("<enter>", "<enter>", "Foobar2000", "insert")
@@ -142,28 +142,8 @@ FB_FocusList() {
 }
 
 FB_ShowHelp() {
-    helpText := "Foobar2000 快捷键帮助`n`n"
-    helpText .= "播放控制:`n"
-    helpText .= "  <Space>  - 播放/暂停`n"
-    helpText .= "  n        - 下一首`n"
-    helpText .= "  p        - 上一首`n"
-    helpText .= "  s        - 停止`n`n"
-    helpText .= "音量控制:`n"
-    helpText .= "  +        - 音量增加`n"
-    helpText .= "  -        - 音量减少`n"
-    helpText .= "  z        - 静音`n`n"
-    helpText .= "导航:`n"
-    helpText .= "  gg       - 跳到开头`n"
-    helpText .= "  G        - 跳到结尾`n"
-    helpText .= "  <C-u>    - 上一页`n"
-    helpText .= "  <C-d>    - 下一页`n`n"
-    helpText .= "标签页:`n"
-    helpText .= "  t        - 下一个标签`n"
-    helpText .= "  m        - 上一个标签`n`n"
-    helpText .= "其他:`n"
-    helpText .= "  /        - 搜索`n"
-    helpText .= "  <C-w>h   - 定位到目录窗口`n"
-    helpText .= "  <C-w>l   - 定位到播放列表`n"
+    ; 双语文本见 Lang/*.ini help.foobar
+    helpText := T("help.foobar")
 
     ToolTip(helpText)
     SetTimer () => ToolTip(), -5000

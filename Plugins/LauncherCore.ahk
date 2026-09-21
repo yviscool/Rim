@@ -35,25 +35,25 @@ RegisterPlugin_LauncherCore() {
 
 ; ---- 原版 Core 标签 ----
 Core() {
-    Host("RegisterCommand", "Help", "function", "Help", "帮助信息")
-    Host("RegisterCommand", "KeyHelp", "function", "KeyHelp", "置顶的按键帮助信息")
-    Host("RegisterCommand", "AhkRun", "function", "AhkRun", "使用 Ahk 的 Run() 运行 `; command")
-    Host("RegisterCommand", "CmdRun", "function", "CmdRun", "使用 cmd 运行 : command")
-    Host("RegisterCommand", "CmdRunOnly", "function", "CmdRunOnly", "只使用 cmd 运行")
-    Host("RegisterCommand", "WinRRun", "function", "WinRRun", "使用 win + r 运行")
-    Host("RegisterCommand", "RunAndDisplay", "function", "RunAndDisplay", "使用 cmd 运行，并显示结果")
-    Host("RegisterCommand", "ReindexFiles", "function", "ReindexFiles", "重新索引待搜索文件")
-    Host("RegisterCommand", "EditConfig", "function", "EditConfig", "编辑配置文件")
-    Host("RegisterCommand", "RunClipboard", "function", "RunClipboard", "使用 ahk 的 Run 运行剪切板内容")
-    Host("RegisterCommand", "CleanupRank", "function", "CleanupRank", "清理命令权重中的无效命令")
-    Host("RegisterCommand", "ShowArg", "function", "ShowArg", "显示参数：ShowArg arg1 arg2 ...")
-    Host("RegisterCommand", "AhkTest", "function", "AhkTest", "运行参数或者剪切板中的 AHK 代码")
-    Host("RegisterCommand", "InstallPlugin", "function", "InstallPlugin", "安装插件")
-    Host("RegisterCommand", "RemovePlugin", "function", "RemovePlugin", "卸载插件")
-    Host("RegisterCommand", "ListPlugin", "function", "ListPlugin", "列出插件")
-    Host("RegisterCommand", "CleanupPlugin", "function", "CleanupPlugin", "清理插件")
-    Host("RegisterCommand", "CountNumber", "function", "CountNumber", "计算数量 wc")
-    Host("RegisterCommand", "Open", "function", "Open", "打开")
+    Host("RegisterCommand", "Help", "function", "Help", T("cmd.LauncherCore.Help"))
+    Host("RegisterCommand", "KeyHelp", "function", "KeyHelp", T("cmd.LauncherCore.KeyHelp"))
+    Host("RegisterCommand", "AhkRun", "function", "AhkRun", T("cmd.LauncherCore.AhkRun"))
+    Host("RegisterCommand", "CmdRun", "function", "CmdRun", T("cmd.LauncherCore.CmdRun"))
+    Host("RegisterCommand", "CmdRunOnly", "function", "CmdRunOnly", T("cmd.LauncherCore.CmdRunOnly"))
+    Host("RegisterCommand", "WinRRun", "function", "WinRRun", T("cmd.LauncherCore.WinRRun"))
+    Host("RegisterCommand", "RunAndDisplay", "function", "RunAndDisplay", T("cmd.LauncherCore.RunAndDisplay"))
+    Host("RegisterCommand", "ReindexFiles", "function", "ReindexFiles", T("cmd.LauncherCore.ReindexFiles"))
+    Host("RegisterCommand", "EditConfig", "function", "EditConfig", T("cmd.LauncherCore.EditConfig"))
+    Host("RegisterCommand", "RunClipboard", "function", "RunClipboard", T("cmd.LauncherCore.RunClipboard"))
+    Host("RegisterCommand", "CleanupRank", "function", "CleanupRank", T("cmd.LauncherCore.CleanupRank"))
+    Host("RegisterCommand", "ShowArg", "function", "ShowArg", T("cmd.LauncherCore.ShowArg"))
+    Host("RegisterCommand", "AhkTest", "function", "AhkTest", T("cmd.LauncherCore.AhkTest"))
+    Host("RegisterCommand", "InstallPlugin", "function", "InstallPlugin", T("cmd.LauncherCore.InstallPlugin"))
+    Host("RegisterCommand", "RemovePlugin", "function", "RemovePlugin", T("cmd.LauncherCore.RemovePlugin"))
+    Host("RegisterCommand", "ListPlugin", "function", "ListPlugin", T("cmd.LauncherCore.ListPlugin"))
+    Host("RegisterCommand", "CleanupPlugin", "function", "CleanupPlugin", T("cmd.LauncherCore.CleanupPlugin"))
+    Host("RegisterCommand", "CountNumber", "function", "CountNumber", T("cmd.LauncherCore.CountNumber"))
+    Host("RegisterCommand", "Open", "function", "Open", T("cmd.LauncherCore.Open"))
 }
 
 ; ---- 输入链 Arg 大于剪切板大于 InputBox ----
@@ -78,14 +78,14 @@ CoreInput(prompt, title) {
 
 ; ---- 原版 CmdRun ----
 CmdRun() {
-    input := CoreInput("输入 CMD 命令:", "Cmd 运行")
+    input := CoreInput(T("core.prompt_cmd"), T("core.title_cmd"))
     if (input != "")
         Host("RunWithCmd", input)
 }
 
 ; ---- 原版 CmdRunOnly ----
 CmdRunOnly() {
-    input := CoreInput("输入 CMD 命令:", "Cmd 运行")
+    input := CoreInput(T("core.prompt_cmd"), T("core.title_cmd"))
     if (input != "")
         Host("RunWithCmd", input, true)
 }
@@ -93,7 +93,7 @@ CmdRunOnly() {
 ; ---- 原版 AhkRun ----
 AhkRun() {
     global g_Conf
-    input := CoreInput("输入要运行的命令:", "Ahk 运行")
+    input := CoreInput(T("core.prompt_ahk"), T("core.title_ahk"))
     if (input = "")
         return
     debugMode := "0"
@@ -107,7 +107,7 @@ AhkRun() {
         try {
             Run(input)
         } catch {
-            errMsg := "运行命令 " . input . " 失败`n设置配置文件中 DebugMode 为 1 可查看错误详情"
+            errMsg := T("core.run_failed", input)
         }
         if (errMsg != "")
             Host("DisplayResult", errMsg)
@@ -118,14 +118,14 @@ AhkRun() {
 
 ; ---- 原版 RunAndDisplay ----
 RunAndDisplay() {
-    input := CoreInput("输入命令:", "运行并显示")
+    input := CoreInput(T("core.prompt_rundisplay"), T("core.title_rundisplay"))
     if (input != "")
         Host("DisplayResult", Host("RunAndGetOutput", input))
 }
 
 ; ---- 原版 WinRRun ----
 WinRRun() {
-    input := CoreInput("输入运行内容:", "Win+R 运行")
+    input := CoreInput(T("core.prompt_winr"), T("core.title_winr"))
     if (input = "")
         return
     Send("#r")
@@ -136,7 +136,7 @@ WinRRun() {
 
 ; ---- 原版 AhkTest ----
 AhkTest() {
-    input := CoreInput("输入要测试的 AHK 代码:", "Ahk 测试")
+    input := CoreInput(T("core.prompt_ahktest"), T("core.title_ahktest"))
     if (input = "")
         return
     testFile := A_Temp . "\RunZ.AhkTest.ahk"
@@ -155,7 +155,7 @@ Open() {
     if (FullPipeArg != "")
         target := StrSplit(FullPipeArg, "`r")[1]
     else
-        target := CoreInput("输入要打开的路径:", "打开")
+        target := CoreInput(T("core.prompt_open"), T("core.title_open"))
     target := Trim(target)
     if (target != "")
         Run(target)
@@ -168,8 +168,8 @@ CountNumber() {
     lineCount := StrSplit(FullPipeArg, "`n").Length
     if (SubStr(FullPipeArg, -1) = "`n")
         lineCount := lineCount - 1
-    result := "* | 数量 | " . spaceCount . " | 以空格为分隔符`n"
-    result .= "* | 数量 | " . lineCount . " | 以换行为分隔符`n"
+    result := "* | " . T("core.count_type") . " | " . spaceCount . " | " . T("core.count_space") . "`n"
+    result .= "* | " . T("core.count_type") . " | " . lineCount . " | " . T("core.count_line") . "`n"
     Host("DisplayResult", Host("AlignText", result))
 }
 
@@ -186,7 +186,7 @@ InstallPlugin() {
     }
     if (pluginPath = "") {
         try {
-            pluginPath := Trim(InputBox("输入插件路径或 URL:", "安装插件").Value)
+            pluginPath := Trim(InputBox(T("core.prompt_install"), T("core.title_install")).Value)
         } catch {
             pluginPath := ""
         }
@@ -194,7 +194,7 @@ InstallPlugin() {
     if (pluginPath = "")
         return
     if (InStr(pluginPath, "http") == 1) {
-        Host("DisplayResult", "下载中，请稍后...")
+        Host("DisplayResult", T("core.downloading"))
         pluginPath := StrReplace(pluginPath, "\", "/")
         tmpFile := A_Temp . "\RunZ.Plugin.txt"
         dlOk := true
@@ -204,11 +204,11 @@ InstallPlugin() {
             dlOk := false
         }
         if (!dlOk) {
-            Host("DisplayResult", "下载失败: " . pluginPath)
+            Host("DisplayResult", T("core.download_failed", pluginPath))
             return
         }
         if (!FileExist(tmpFile)) {
-            Host("DisplayResult", "下载失败: " . pluginPath)
+            Host("DisplayResult", T("core.download_failed", pluginPath))
             return
         }
         pluginPath := tmpFile
@@ -221,7 +221,7 @@ InstallPlugin() {
             content := ""
         }
         if (content = "") {
-            Host("DisplayResult", pluginPath . " 并不是有效的 RunZ 插件")
+            Host("DisplayResult", T("core.invalid_plugin", pluginPath))
             return
         }
         if (SubStr(content, 1, 1) = Chr(0xFEFF))
@@ -241,12 +241,12 @@ InstallPlugin() {
             }
         }
         if (pluginName = "") {
-            Host("DisplayResult", pluginPath . " 并不是有效的 RunZ 插件")
+            Host("DisplayResult", T("core.invalid_plugin", pluginPath))
             return
         }
         destFile := A_ScriptDir . "\Plugins\" . pluginName . ".ahk"
         if (FileExist(destFile)) {
-            Host("DisplayResult", "该插件已存在")
+            Host("DisplayResult", T("core.plugin_exists"))
             return
         }
         moved := false
@@ -269,26 +269,26 @@ InstallPlugin() {
             }
         }
         if (!moved) {
-            Host("DisplayResult", "安装失败，无法复制到 " . destFile)
+            Host("DisplayResult", T("core.install_failed", destFile))
             return
         }
-        Host("DisplayResult", pluginName . " 插件安装成功，RunZ 将重启并启用该插件")
+        Host("DisplayResult", T("core.install_ok", pluginName))
         Sleep(1000)
         Host("RestartRunZ")
     } else {
-        Host("DisplayResult", pluginPath . " 文件不存在")
+        Host("DisplayResult", T("core.file_missing", pluginPath))
     }
 }
 
 ; ---- 原版 RemovePlugin ----
 RemovePlugin() {
-    pluginName := Trim(CoreInput("输入插件名称:", "卸载插件"))
+    pluginName := Trim(CoreInput(T("core.prompt_remove"), T("core.title_remove")))
     pluginName := RegExReplace(pluginName, "i)\.ahk$", "")
     if (pluginName = "")
         return
     pluginFile := A_ScriptDir . "\Plugins\" . pluginName . ".ahk"
     if (!FileExist(pluginFile)) {
-        Host("DisplayResult", "未安装该插件")
+        Host("DisplayResult", T("core.not_installed"))
         return
     }
     delOk := true
@@ -298,10 +298,10 @@ RemovePlugin() {
         delOk := false
     }
     if (!delOk) {
-        Host("DisplayResult", pluginName . " 插件删除失败")
+        Host("DisplayResult", T("core.remove_failed", pluginName))
         return
     }
-    Host("DisplayResult", pluginName . " 插件删除成功，RunZ 将重启以生效")
+    Host("DisplayResult", T("core.remove_ok", pluginName))
     Sleep(1000)
     Host("RestartRunZ")
 }
@@ -323,14 +323,14 @@ ListPlugin() {
         } catch {
             descLine := ""
         }
-        state := "已启用"
+        state := T("core.state_on")
         try {
             if (g_Conf.GetValue("Plugins", pname, "1") = "0")
-                state := "已禁用"
+                state := T("core.state_off")
         } catch {
-            state := "已启用"
+            state := T("core.state_on")
         }
-        result .= "* | 插件 | " . pname . " | " . state . "  描述：" . SubStr(descLine, 3) . "`n"
+        result .= "* | " . T("core.row_plugin") . " | " . pname . " | " . state . "  " . T("core.row_desc") . SubStr(descLine, 3) . "`n"
     }
     Host("DisplayResult", Host("AlignText", result))
     Host("TurnOnResultFilter")
@@ -353,73 +353,33 @@ CleanupPlugin() {
         if (disabled) {
             try {
                 FileDelete(A_LoopFileFullPath)
-                result .= pname . " 插件已被清理，下次运行 RunZ 将不再引入`n"
+                result .= T("core.cleaned", pname) . "`n"
             } catch {
-                result .= pname . " 插件清理失败`n"
+                result .= T("core.clean_failed", pname) . "`n"
             }
         }
     }
     Loop Files, A_ScriptDir . "\Plugins\*.bak" {
         try {
             FileDelete(A_LoopFileFullPath)
-            result .= A_LoopFileName . " 已清理`n"
+            result .= T("core.file_cleaned", A_LoopFileName) . "`n"
         } catch {
         }
     }
     if (result != "")
         Host("DisplayResult", result)
     else
-        Host("DisplayResult", "无可清理插件")
+        Host("DisplayResult", T("core.nothing_to_clean"))
 }
 
 ; ---- 保留的前版帮助文本, 已按实际绑定修正, 走 DisplayResult ----
 ; 注 Help 与 KeyHelp 命令透传给主程序同名函数, 下面两个仅保留内容备用, 未注册
 LauncherCore_ShowHelp() {
-    helpText := "Rim 帮助`n`n"
-    helpText .= "热键:`n"
-    helpText .= "  Enter - 执行选中命令`n"
-    helpText .= "  Up Down 或 Ctrl+J K - 上下移动选择`n"
-    helpText .= "  Ctrl+F B - 下翻 上翻页`n"
-    helpText .= "  Alt+字母 - 按首字母执行`n"
-    helpText .= "  Ctrl+Enter - 保存为管道参数`n"
-    helpText .= "  Space - 结果过滤模式`n"
-    helpText .= "  Ctrl+H - 显示历史`n"
-    helpText .= "  Ctrl+N P - 增加 减少权重`n"
-    helpText .= "  Ctrl+D - 打开文件目录`n"
-    helpText .= "  Ctrl+X - 删除文件`n"
-    helpText .= "  Ctrl+S - 显示完整路径`n"
-    helpText .= "  Ctrl+L U - 清空输入`n"
-    helpText .= "  Ctrl+I O - 光标到行首 行尾`n"
-    helpText .= "  F1 - 帮助`n"
-    helpText .= "  Shift+F1 - 按键帮助`n"
-    helpText .= "  F2 F3 - 编辑配置 自动配置`n"
-    helpText .= "  Ctrl+R - 重建索引`n"
-    helpText .= "  Ctrl+Q - 重启`n"
-    helpText .= "  Esc - 清空 关闭`n`n"
-    helpText .= "命令前缀:`n"
-    helpText .= "  `; - AHK运行`n"
-    helpText .= "  : - CMD运行`n"
-    helpText .= "  | - 管道参数`n"
-    helpText .= "  @ - 跳转`n"
-    helpText .= "  直接输入 URL - 打开浏览器`n"
-    Host("DisplayResult", helpText)
+    ; 双语文本见 Lang/*.ini help.launcher
+    Host("DisplayResult", T("help.launcher"))
 }
 
 LauncherCore_ShowKeyHelp() {
-    keyHelpText := "Rim 按键帮助`n`n"
-    keyHelpText .= "  Shift+F1 - 显示置顶按键帮助`n"
-    keyHelpText .= "  Alt+F4 - 关闭`n"
-    keyHelpText .= "  Enter - 执行当前命令`n"
-    keyHelpText .= "  Esc - 关闭窗口`n"
-    keyHelpText .= "  Alt+字母 - 按首字母执行`n"
-    keyHelpText .= "  Ctrl+J K - 下 上一个命令`n"
-    keyHelpText .= "  Ctrl+F B - 下翻 上翻页`n"
-    keyHelpText .= "  Ctrl+H - 显示历史`n"
-    keyHelpText .= "  Ctrl+N P - 增加 减少权重`n"
-    keyHelpText .= "  Ctrl+L - 清空输入框`n"
-    keyHelpText .= "  Ctrl+R - 重建文件索引`n"
-    keyHelpText .= "  Ctrl+Q - 重启`n"
-    keyHelpText .= "  F2 - 编辑配置文件`n"
-    keyHelpText .= "  F3 - 编辑自动配置`n"
-    Host("DisplayResult", keyHelpText)
+    ; 双语文本见 Lang/*.ini help.keyhelp
+    Host("DisplayResult", T("help.keyhelp"))
 }

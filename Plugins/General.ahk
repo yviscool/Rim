@@ -8,111 +8,111 @@ RegisterPlugin_General() {
     RegisterWin("General", "", "")
 
     ; 注册动作
-    RegisterAction("<Gen_Toggle>", "切换通用模式")
-    RegisterAction("<Gen_InsertMode>", "进入插入模式")
-    RegisterAction("<Gen_NormalMode>", "返回正常模式")
-    RegisterAction("<down>", "向下移动")
-    RegisterAction("<up>", "向上移动")
-    RegisterAction("<left>", "向左移动")
-    RegisterAction("<right>", "向右移动")
-    RegisterAction("<enter>", "回车")
-    RegisterAction("<bs>", "退格")
-    RegisterAction("<tab>", "制表")
-    RegisterAction("<space>", "空格")
-    RegisterAction("<home>", "行首")
-    RegisterAction("<end>", "行尾")
-    RegisterAction("<pgup>", "上一页")
-    RegisterAction("<pgdn>", "下一页")
-    RegisterAction("<del>", "删除")
-    RegisterAction("<c-a>", "全选")
-    RegisterAction("<c-c>", "复制")
-    RegisterAction("<c-v>", "粘贴")
-    RegisterAction("<c-x>", "剪切")
-    RegisterAction("<c-z>", "撤销")
-    RegisterAction("<c-y>", "重做")
-    RegisterAction("<c-s>", "保存")
-    RegisterAction("<c-f>", "查找")
-    RegisterAction("<c-h>", "替换")
-    RegisterAction("<c-w>", "关闭窗口")
+    RegisterAction("<Gen_Toggle>", T("act.General.Gen_Toggle"))
+    RegisterAction("<Gen_InsertMode>", T("act.General.Gen_InsertMode"))
+    RegisterAction("<Gen_NormalMode>", T("act.General.Gen_NormalMode"))
+    RegisterAction("<down>", T("act.General.down"))
+    RegisterAction("<up>", T("act.General.up"))
+    RegisterAction("<left>", T("act.General.left"))
+    RegisterAction("<right>", T("act.General.right"))
+    RegisterAction("<enter>", T("act.General.enter"))
+    RegisterAction("<bs>", T("act.General.bs"))
+    RegisterAction("<tab>", T("act.General.tab"))
+    RegisterAction("<space>", T("act.General.space"))
+    RegisterAction("<home>", T("act.General.home"))
+    RegisterAction("<end>", T("act.General.end"))
+    RegisterAction("<pgup>", T("act.General.pgup"))
+    RegisterAction("<pgdn>", T("act.General.pgdn"))
+    RegisterAction("<del>", T("act.General.del"))
+    RegisterAction("<c-a>", T("act.General.c_a"))
+    RegisterAction("<c-c>", T("act.General.c_c"))
+    RegisterAction("<c-v>", T("act.General.c_v"))
+    RegisterAction("<c-x>", T("act.General.c_x"))
+    RegisterAction("<c-z>", T("act.General.c_z"))
+    RegisterAction("<c-y>", T("act.General.c_y"))
+    RegisterAction("<c-s>", T("act.General.c_s"))
+    RegisterAction("<c-f>", T("act.General.c_f"))
+    RegisterAction("<c-h>", T("act.General.c_h"))
+    RegisterAction("<c-w>", T("act.General.c_w"))
 
     ; 窗口管理动作
-    RegisterAction("<wm_left>", "移动窗口到左侧")
-    RegisterAction("<wm_right>", "移动窗口到右侧")
-    RegisterAction("<wm_up>", "移动窗口到上方")
-    RegisterAction("<wm_down>", "移动窗口到下方")
-    RegisterAction("<wm_max>", "最大化窗口")
-    RegisterAction("<wm_min>", "最小化窗口")
-    RegisterAction("<wm_restore>", "还原窗口")
-    RegisterAction("<wm_center>", "居中窗口")
-    RegisterAction("<wm_full>", "全屏窗口")
+    RegisterAction("<wm_left>", T("act.General.wm_left"))
+    RegisterAction("<wm_right>", T("act.General.wm_right"))
+    RegisterAction("<wm_up>", T("act.General.wm_up"))
+    RegisterAction("<wm_down>", T("act.General.wm_down"))
+    RegisterAction("<wm_max>", T("act.General.wm_max"))
+    RegisterAction("<wm_min>", T("act.General.wm_min"))
+    RegisterAction("<wm_restore>", T("act.General.wm_restore"))
+    RegisterAction("<wm_center>", T("act.General.wm_center"))
+    RegisterAction("<wm_full>", T("act.General.wm_full"))
 
     ; 标签页管理
-    RegisterAction("<Gen_NewTab>", "新建标签页")
-    RegisterAction("<Gen_CloseTab>", "关闭标签页")
-    RegisterAction("<Gen_NextTab>", "下一个标签页")
-    RegisterAction("<Gen_PrevTab>", "上一个标签页")
-    RegisterAction("<Gen_Tab1>", "切换到标签页1")
-    RegisterAction("<Gen_Tab2>", "切换到标签页2")
-    RegisterAction("<Gen_Tab3>", "切换到标签页3")
-    RegisterAction("<Gen_Tab4>", "切换到标签页4")
-    RegisterAction("<Gen_Tab5>", "切换到标签页5")
-    RegisterAction("<Gen_Tab6>", "切换到标签页6")
-    RegisterAction("<Gen_Tab7>", "切换到标签页7")
-    RegisterAction("<Gen_Tab8>", "切换到标签页8")
-    RegisterAction("<Gen_Tab9>", "切换到标签页9")
-    RegisterAction("<Gen_Tab0>", "切换到最后一个标签页")
+    RegisterAction("<Gen_NewTab>", T("act.General.Gen_NewTab"))
+    RegisterAction("<Gen_CloseTab>", T("act.General.Gen_CloseTab"))
+    RegisterAction("<Gen_NextTab>", T("act.General.Gen_NextTab"))
+    RegisterAction("<Gen_PrevTab>", T("act.General.Gen_PrevTab"))
+    RegisterAction("<Gen_Tab1>", T("act.General.Gen_Tab1"))
+    RegisterAction("<Gen_Tab2>", T("act.General.Gen_Tab2"))
+    RegisterAction("<Gen_Tab3>", T("act.General.Gen_Tab3"))
+    RegisterAction("<Gen_Tab4>", T("act.General.Gen_Tab4"))
+    RegisterAction("<Gen_Tab5>", T("act.General.Gen_Tab5"))
+    RegisterAction("<Gen_Tab6>", T("act.General.Gen_Tab6"))
+    RegisterAction("<Gen_Tab7>", T("act.General.Gen_Tab7"))
+    RegisterAction("<Gen_Tab8>", T("act.General.Gen_Tab8"))
+    RegisterAction("<Gen_Tab9>", T("act.General.Gen_Tab9"))
+    RegisterAction("<Gen_Tab0>", T("act.General.Gen_Tab0"))
 
     ; 鼠标操作
-    RegisterAction("<MouseUp>", "鼠标向上移动")
-    RegisterAction("<MouseDown>", "鼠标向下移动")
-    RegisterAction("<MouseLeft>", "鼠标向左移动")
-    RegisterAction("<MouseRight>", "鼠标向右移动")
-    RegisterAction("<MouseClick>", "鼠标左键点击")
-    RegisterAction("<MouseRightClick>", "鼠标右键点击")
-    RegisterAction("<MouseDoubleClick>", "鼠标双击")
+    RegisterAction("<MouseUp>", T("act.General.MouseUp"))
+    RegisterAction("<MouseDown>", T("act.General.MouseDown"))
+    RegisterAction("<MouseLeft>", T("act.General.MouseLeft"))
+    RegisterAction("<MouseRight>", T("act.General.MouseRight"))
+    RegisterAction("<MouseClick>", T("act.General.MouseClick"))
+    RegisterAction("<MouseRightClick>", T("act.General.MouseRightClick"))
+    RegisterAction("<MouseDoubleClick>", T("act.General.MouseDoubleClick"))
 
     ; IME 切换
-    RegisterAction("<Gen_SwitchIME>", "切换输入法")
-    RegisterAction("<Gen_EnglishIME>", "切换到英文输入法")
+    RegisterAction("<Gen_SwitchIME>", T("act.General.Gen_SwitchIME"))
+    RegisterAction("<Gen_EnglishIME>", T("act.General.Gen_EnglishIME"))
 
     ; 诊断命令 (启动器输入 VimDiag, 在目标窗口聚焦时执行)
-    RegisterCommand("VimDiag", "function", "VimDiagCmd", "vim 状态诊断")
+    RegisterCommand("VimDiag", "function", "VimDiagCmd", T("cmd.General.VimDiag"))
 
     ; 媒体动作
-    RegisterAction("<media_next>", "下一首")
-    RegisterAction("<media_prev>", "上一首")
-    RegisterAction("<media_play>", "播放/暂停")
-    RegisterAction("<media_stop>", "停止")
+    RegisterAction("<media_next>", T("act.General.media_next"))
+    RegisterAction("<media_prev>", T("act.General.media_prev"))
+    RegisterAction("<media_play>", T("act.General.media_play"))
+    RegisterAction("<media_stop>", T("act.General.media_stop"))
 
     ; 编辑器通用动作 (记事本类 ini 引用, 按键直达编辑器)
-    RegisterAction("<word>", "下个词首")
-    RegisterAction("<wordb>", "上个词首")
-    RegisterAction("<wordend>", "词尾")
-    RegisterAction("<deletedLine>", "删除整行")
-    RegisterAction("<copyLine>", "复制整行")
-    RegisterAction("<paste>", "粘贴")
-    RegisterAction("<undo>", "撤销")
-    RegisterAction("<redo>", "重做")
-    RegisterAction("<deletechar>", "删除字符")
-    RegisterAction("<insertBefore>", "光标前插入")
-    RegisterAction("<insertAfter>", "光标后插入")
-    RegisterAction("<insertNewLine>", "下方开新行")
-    RegisterAction("<insertLineStart>", "行首插入")
-    RegisterAction("<insertLineEnd>", "行尾插入")
-    RegisterAction("<insertLineAbove>", "上方开新行")
-    RegisterAction("<visualMode>", "可视选择")
-    RegisterAction("<search>", "查找")
-    RegisterAction("<nextMatch>", "下个匹配")
-    RegisterAction("<prevMatch>", "上个匹配")
+    RegisterAction("<word>", T("act.General.word"))
+    RegisterAction("<wordb>", T("act.General.wordb"))
+    RegisterAction("<wordend>", T("act.General.wordend"))
+    RegisterAction("<deletedLine>", T("act.General.deletedLine"))
+    RegisterAction("<copyLine>", T("act.General.copyLine"))
+    RegisterAction("<paste>", T("act.General.c_v"))
+    RegisterAction("<undo>", T("act.General.c_z"))
+    RegisterAction("<redo>", T("act.General.c_y"))
+    RegisterAction("<deletechar>", T("act.General.deletechar"))
+    RegisterAction("<insertBefore>", T("act.General.insertBefore"))
+    RegisterAction("<insertAfter>", T("act.General.insertAfter"))
+    RegisterAction("<insertNewLine>", T("act.General.insertNewLine"))
+    RegisterAction("<insertLineStart>", T("act.General.insertLineStart"))
+    RegisterAction("<insertLineEnd>", T("act.General.insertLineEnd"))
+    RegisterAction("<insertLineAbove>", T("act.General.insertLineAbove"))
+    RegisterAction("<visualMode>", T("act.General.visualMode"))
+    RegisterAction("<search>", T("act.General.c_f"))
+    RegisterAction("<nextMatch>", T("act.General.nextMatch"))
+    RegisterAction("<prevMatch>", T("act.General.prevMatch"))
 
     ; 窗口控制
-    RegisterAction("<Gen_AlwaysOnTop>", "窗口置顶")
-    RegisterAction("<Gen_CancelAlwaysOnTop>", "取消窗口置顶")
-    RegisterAction("<Gen_ToggleTitleBar>", "切换标题栏")
-    RegisterAction("<Gen_Suspend>", "挂起机器")
-    RegisterAction("<Reload>", "重新加载脚本")
-    RegisterAction("<Gen_ShowHelp>", "显示帮助")
-    RegisterAction("<Gen_SearchInWeb>", "网络搜索")
+    RegisterAction("<Gen_AlwaysOnTop>", T("act.General.Gen_AlwaysOnTop"))
+    RegisterAction("<Gen_CancelAlwaysOnTop>", T("act.General.Gen_CancelAlwaysOnTop"))
+    RegisterAction("<Gen_ToggleTitleBar>", T("act.General.Gen_ToggleTitleBar"))
+    RegisterAction("<Gen_Suspend>", T("act.General.Gen_Suspend"))
+    RegisterAction("<Reload>", T("act.General.Reload"))
+    RegisterAction("<Gen_ShowHelp>", T("act.General.Gen_ShowHelp"))
+    RegisterAction("<Gen_SearchInWeb>", T("act.General.Gen_SearchInWeb"))
 
     ; 设置 normal 模式映射
     MapKey("j", "<down>", "General", "normal")
@@ -611,7 +611,7 @@ Gen_ToggleTitleBar() {
 }
 
 Gen_Suspend() {
-    if ShowConfirm("确定要挂起机器吗？", "挂起") {
+    if ShowConfirm(T("gen.confirm_suspend"), T("gen.suspend_title")) {
         DllCall("PowrProf\SetSuspendState", "int", 0, "int", 0, "int", 0)
     }
 }
@@ -623,32 +623,8 @@ Reload() {
 }
 
 Gen_ShowHelp() {
-    ; 显示帮助信息
-    helpText := "Rim 快捷键帮助`n`n"
-    helpText .= "模式切换:`n"
-    helpText .= "  i        - 进入插入模式`n"
-    helpText .= "  <Esc>    - 返回正常模式`n`n"
-    helpText .= "方向键:`n"
-    helpText .= "  h/j/k/l  - 左/下/上/右`n"
-    helpText .= "  <C-j/k>  - 鼠标上/下移动`n"
-    helpText .= "  <C-h/l>  - 鼠标左/右移动`n`n"
-    helpText .= "窗口管理:`n"
-    helpText .= "  zc       - 居中窗口`n"
-    helpText .= "  zf       - 全屏窗口`n"
-    helpText .= "  zm       - 最大化窗口`n"
-    helpText .= "  zn       - 最小化窗口`n"
-    helpText .= "  zr       - 还原窗口`n"
-    helpText .= "  za/zA    - 置顶/取消置顶`n"
-    helpText .= "  zt       - 切换标题栏`n`n"
-    helpText .= "标签页:`n"
-    helpText .= "  t        - 新建标签页`n"
-    helpText .= "  x        - 关闭标签页`n"
-    helpText .= "  gn/gp    - 下一个/上一个`n"
-    helpText .= "  g1-g9    - 切换到标签1-9`n`n"
-    helpText .= "其他:`n"
-    helpText .= "  F5       - 重新加载`n"
-    helpText .= "  zw       - 网络搜索`n"
-    helpText .= "  zs       - 挂起机器`n"
+    ; 显示帮助信息 (双语文本见 Lang/*.ini help.general)
+    helpText := T("help.general")
 
     ToolTip(helpText)
     SetTimer () => ToolTip(), -5000
@@ -658,7 +634,7 @@ Gen_SearchInWeb() {
     ; 网络搜索剪贴板内容
     A_Clipboard := Trim(A_Clipboard)
     if (A_Clipboard = "") {
-        ToolTip("请先复制要搜索的内容")
+        ToolTip(T("gen.search_empty"))
         SetTimer () => ToolTip(), -2000
         return
     }

@@ -4,11 +4,11 @@
 ; 移植自 RunZ 的 Kanji 插件 (查 Lib\Kanji\Kanji.txt 字表, 非桩)
 
 RegisterPlugin_Kanji() {
-    RegisterCommand("Kanji2S", "function", "KanjiToSimple", "繁体转简体")
-    RegisterCommand("Kanji2T", "function", "KanjiToTraditional", "简体转繁体")
+    RegisterCommand("Kanji2S", "function", "KanjiToSimple", T("cmd.Kanji.Kanji2S"))
+    RegisterCommand("Kanji2T", "function", "KanjiToTraditional", T("cmd.Kanji.Kanji2T"))
     ; 原版别名
-    RegisterCommand("T2S", "function", "KanjiToSimple", "繁体转简体")
-    RegisterCommand("S2T", "function", "KanjiToTraditional", "简体转繁体")
+    RegisterCommand("T2S", "function", "KanjiToSimple", T("cmd.Kanji.Kanji2S"))
+    RegisterCommand("S2T", "function", "KanjiToTraditional", T("cmd.Kanji.Kanji2T"))
 }
 
 KanjiPipeInput(prompt, title) {
@@ -23,7 +23,7 @@ KanjiPipeInput(prompt, title) {
 
 ; 原版语义: 转换后写回剪切板 + DisplayResult
 KanjiToSimple() {
-    text := KanjiPipeInput("输入繁体文本:", "繁转简")
+    text := KanjiPipeInput(T("kanji.prompt_trad"), T("kanji.title_trad"))
     if (text = "")
         return
     result := Kanji_Convert(text, false)
@@ -32,7 +32,7 @@ KanjiToSimple() {
 }
 
 KanjiToTraditional() {
-    text := KanjiPipeInput("输入简体文本:", "简转繁")
+    text := KanjiPipeInput(T("kanji.prompt_simp"), T("kanji.title_simp"))
     if (text = "")
         return
     result := Kanji_Convert(text, true)

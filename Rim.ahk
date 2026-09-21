@@ -11,8 +11,10 @@ catch {
 }
 ; 防洪阈值对齐 v1 (#MaxHotkeysPerInterval 200 等价)
 A_MaxHotkeysPerInterval := 200
+; i18n 抢跑: g_Conf 尚未加载, 先按 OS 语言起 (备份提示/配置失败提示要用)
+I18nBoot()
 ; 构建号 (配置中心帮助页显示, 日志 BUILD 行同源)
-global g_BuildTag := "20260921-VDTRAY1"
+global g_BuildTag := "20260921-I18N2"
 
 ; ==================== 兼容层: 供插件引用 Rim.xxx ====================
 class Rim {
@@ -31,13 +33,10 @@ global g_AutoConfFile := A_ScriptDir . "\Conf\rim.auto.ini"
 
 ; 备份恢复
 if (FileExist(g_AutoConfFile ".EasyIni.bak")) {
-    MsgBox("发现上次写入配置的备份文件：`n"
-        . g_AutoConfFile ".EasyIni.bak"
-        . "`n确定则将其恢复，否则请手动检查文件内容再继续")
+    MsgBox(T("msg.backup_found", g_AutoConfFile . ".EasyIni.bak"))
     FileMove(g_AutoConfFile ".EasyIni.bak", g_AutoConfFile)
 } else if (!FileExist(g_AutoConfFile)) {
-    FileAppend("; 此文件由 Rim 自动写入，如需手动修改请先关闭 Rim ！`n`n"
-        . "[Auto]`n[Rank]`n[History]", g_AutoConfFile)
+    FileAppend(T("app.auto_header"), g_AutoConfFile)
 }
 
 ; 配置对象
@@ -50,12 +49,15 @@ if (!IsObject(g_Conf) || !g_Conf.HasSection("Config")) {
     try FileAppend(A_Now . " FATAL: 配置加载失败 " . g_ConfFile . "`n", A_ScriptDir . "\Rim.error.log")
     catch {
     }
-    MsgBox("配置文件加载失败, 可能是文件被占用, 稍后重试.`n" . g_ConfFile)
+    MsgBox(T("msg.config_load_failed", g_ConfFile))
     ExitApp(1)
 }
 try FileAppend(A_Now . " STARTUP config-ok`n", A_ScriptDir . "\Rim.error.log")
 catch {
 }
+
+; 语言初始化 (尊重 [Config] Language, auto 跟系统; 此前 I18nBoot 已按 OS 语言兜底)
+I18nInit()
 
 ; 皮肤配置
 if (g_Conf["Gui"]["Skin"] != "")
@@ -157,6 +159,7 @@ global g_CommandArea := "Edit4"
 #Include Lib\TCMatch.ahk
 #Include Lib\MonsterEval.ahk
 #Include Core\Common.ahk
+#Include Core\I18n.ahk
 
 ; ==================== 加载 Core 模块 ====================
 #Include Core\Config.ahk
@@ -214,16 +217,16 @@ Loop Files, pluginDir "\*.ahk" {
 if (g_SkinConf["ShowTrayIcon"] = "1") {
     A_TrayMenu.Delete()
     if (g_Conf["Config"]["RunInBackground"] = "1") {
-        A_TrayMenu.Add("显示 &S", ActivateRunZ)
-        A_TrayMenu.Default := "显示 &S"
+        A_TrayMenu.Add(T("tray.show"), ActivateRunZ)
+        A_TrayMenu.Default := T("tray.show")
         A_TrayMenu.ClickCount := 1
     }
-    A_TrayMenu.Add("手势 &G", ShowGestureManager)
-    A_TrayMenu.Add("配置 &C", VimConfig_Show)
+    A_TrayMenu.Add(T("tray.gesture"), ShowGestureManager)
+    A_TrayMenu.Add(T("tray.config"), VimConfig_Show)
     A_TrayMenu.Add()
-    A_TrayMenu.Add("禁用 &S", ToggleSuspend)
-    A_TrayMenu.Add("重启 &R", RestartRunZ)
-    A_TrayMenu.Add("退出 &X", ExitRunZ)
+    A_TrayMenu.Add(T("tray.suspend"), ToggleSuspend)
+    A_TrayMenu.Add(T("tray.restart"), RestartRunZ)
+    A_TrayMenu.Add(T("tray.exit"), ExitRunZ)
 }
 
 ; ==================== 加载文件 ====================
@@ -470,18 +473,18 @@ class LauncherCompat {
 
 ShowPluginInfo(*) {
     global g_Plugins
-    msg := "已加载插件:`n"
+    msg := T("plugin.list_header")
     for i, name in g_Plugins
         msg .= "  - " name "`n"
-    MsgBox(msg, "插件列表")
+    MsgBox(msg, T("plugin.list_title"))
 }
 
 ToggleSuspend(*) {
     Suspend()
     if (A_IsSuspended)
-        ToolTip("已禁用")
+        ToolTip(T("state.disabled"))
     else
-        ToolTip("已启用")
+        ToolTip(T("state.enabled"))
     SetTimer(RemoveToolTip, -1000)
 }
 

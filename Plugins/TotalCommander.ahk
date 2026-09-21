@@ -575,523 +575,523 @@ RegisterPlugin_TotalCommander() {
 
 
     ; 中文注释表 (517 条, 抽自原版 vim.Comment, 供 g 提示面板显示; 后续特化注册可覆盖措辞)
-    RegisterAction("<cm_100Percent>", "窗口分隔栏位于 100% TC 8.0+")
-    RegisterAction("<cm_50Percent>", "窗口分隔栏位于 50%")
-    RegisterAction("<cm_About>", "关于 Total Commander")
-    RegisterAction("<cm_AddPathToCmdline>", "将路径复制到命令行")
-    RegisterAction("<cm_AdministerServer>", "显示系统共享文件夹")
-    RegisterAction("<cm_Associate>", "文件关联")
-    RegisterAction("<cm_ButtonConfig>", "更改工具栏")
-    RegisterAction("<cm_CDtree>", "更改文件夹")
-    RegisterAction("<cm_ChangeStartMenu>", "更改开始菜单")
-    RegisterAction("<cm_ClearAll>", "全部取消: 文件和文件夹")
-    RegisterAction("<cm_ClearAllCfg>", "全部取消: 文件和/或文件夹(视配置而定)")
-    RegisterAction("<cm_ClearAllFiles>", "全部取消: 仅文件")
-    RegisterAction("<cm_ClearAllFolders>", "全部取消: 仅文件夹")
-    RegisterAction("<cm_ClearCmdLine>", "清除命令行")
-    RegisterAction("<cm_ClearFiles>", "不选一组: 仅文件")
-    RegisterAction("<cm_ClearFolders>", "不选一组: 仅文件夹")
-    RegisterAction("<cm_ClearSelCfg>", "不选一组: 文件和/或文件夹(视配置而定)")
-    RegisterAction("<cm_CloseAllTabs>", "关闭所有标签")
-    RegisterAction("<cm_CloseCurrentTab>", "关闭当前标签")
-    RegisterAction("<cm_ColorConfig>", "配置: 颜色")
-    RegisterAction("<cm_Combine>", "合并文件")
-    RegisterAction("<cm_CommandBrowser>", "浏览内部命令")
-    RegisterAction("<cm_CompareDirs>", "比较文件夹")
-    RegisterAction("<cm_CompareDirsWithSubdirs>", "比较文件夹(同时标出另一窗口没有的子文件夹)")
-    RegisterAction("<cm_CompareFilesByContent>", "比较文件内容")
-    RegisterAction("<cm_Config>", "配置: 布局")
-    RegisterAction("<cm_Config2>", "配置: 操作方式")
-    RegisterAction("<cm_ConfigChangeIniFiles>", "直接修改配置文件")
-    RegisterAction("<cm_ConfigSaveDirHistory>", "保存文件夹历史记录")
-    RegisterAction("<cm_ConfigSavePos>", "保存位置")
-    RegisterAction("<cm_ConfigSaveSettings>", "保存设置")
-    RegisterAction("<cm_Confirmation>", "配置: 其他/确认")
-    RegisterAction("<cm_ConfTabChange>", "配置: 制表符")
-    RegisterAction("<cm_ContentStopLoadFields>", "停止后台加载备注")
-    RegisterAction("<cm_ContextMenu>", "显示快捷菜单")
-    RegisterAction("<cm_ContextMenuInternal>", "显示快捷菜单(内部关联)")
-    RegisterAction("<cm_ContextMenuInternalCursor>", "显示光标处文件的内部关联快捷菜单")
-    RegisterAction("<cm_Copy>", "复制")
-    RegisterAction("<cm_CopyConfig>", "配置: 复制/删除")
-    RegisterAction("<cm_CopyFileDetailsToClip>", "复制文件详细信息")
-    RegisterAction("<cm_CopyFpFileDetailsToClip>", "复制文件详细信息及完整路径")
-    RegisterAction("<cm_CopyFullNamesToClip>", "复制文件名及完整路径")
-    RegisterAction("<cm_CopyNamesToClip>", "复制文件名")
-    RegisterAction("<cm_CopyNetFileDetailsToClip>", "复制文件详细信息及网络路径")
-    RegisterAction("<cm_CopyNetNamesToClip>", "复制文件名及网络路径")
-    RegisterAction("<cm_CopyOtherpanel>", "复制到另一窗口(F5)")
-    RegisterAction("<cm_CopySamepanel>", "复制到当前窗口")
-    RegisterAction("<cm_CopySrcPathToClip>", "复制来源路径")
-    RegisterAction("<cm_CopyToClipboard>", "复制选中的文件到剪贴板")
-    RegisterAction("<cm_CopyTrgPathToClip>", "复制目标路径")
-    RegisterAction("<cm_CountDirContent>", "计算所有文件夹占用的空间")
-    RegisterAction("<cm_CRCcheck>", "验证校验和")
-    RegisterAction("<cm_CRCcreate>", "创建校验文件")
-    RegisterAction("<cm_CreateShortcut>", "创建快捷方式")
-    RegisterAction("<cm_CustomColumnConfig>", "配置: 自定义列")
-    RegisterAction("<cm_CustomColumnDlg>", "更改当前自定义列")
-    RegisterAction("<cm_CutToClipboard>", "剪切选中的文件到剪贴板")
-    RegisterAction("<cm_Decode>", "解码文件(MIME/UUE/XXE/BinHex 格式)")
-    RegisterAction("<cm_Delete>", "删除")
-    RegisterAction("<cm_DirBranch>", "展开所有文件夹")
-    RegisterAction("<cm_DirBranchSel>", "只展开选中的文件夹")
-    RegisterAction("<cm_DirectCableConnect>", "直接电缆连接")
-    RegisterAction("<cm_DirectoryHistory>", "文件夹历史记录")
-    RegisterAction("<cm_DirectoryHotlist>", "常用文件夹")
-    RegisterAction("<cm_DirMatch>", "标出新文件, 隐藏相同者")
-    RegisterAction("<cm_DirTabsConfig>", "配置: 文件夹标签")
-    RegisterAction("<cm_DirTabsShowMenu>", "显示标签菜单")
-    RegisterAction("<cm_DisplayConfig>", "配置: 显示")
-    RegisterAction("<cm_Edit>", "编辑")
-    RegisterAction("<cm_EditAuditInfo>", "审核文件(NTFS)")
-    RegisterAction("<cm_EditComment>", "编辑文件备注")
-    RegisterAction("<cm_EditConfig>", "配置: 编辑/查看")
-    RegisterAction("<cm_EditOwnerInfo>", "获取所有权(NTFS)")
-    RegisterAction("<cm_EditPath>", "编辑来源窗口的路径")
-    RegisterAction("<cm_EditPermissionInfo>", "设置权限(NTFS)")
-    RegisterAction("<cm_Encode>", "编码文件(MIME/UUE/XXE 格式)")
-    RegisterAction("<cm_Exchange>", "交换左右窗口")
-    RegisterAction("<cm_ExchangeSelBoth>", "反向选择: 文件和文件夹")
-    RegisterAction("<cm_ExchangeSelection>", "反向选择")
-    RegisterAction("<cm_ExchangeSelFiles>", "反向选择: 仅文件")
-    RegisterAction("<cm_ExchangeSelFolders>", "反向选择: 仅文件夹")
-    RegisterAction("<cm_ExchangeWithTabs>", "交换左右窗口及其标签")
-    RegisterAction("<cm_ExecuteDOS>", "打开命令提示符窗口")
-    RegisterAction("<cm_Exit>", "退出 Total Commander")
-    RegisterAction("<cm_FileSync>", "同步文件夹")
-    RegisterAction("<cm_FocusButtonBar>", "焦点置于工具栏")
-    RegisterAction("<cm_FocusCmdLine>", "焦点置于命令行")
-    RegisterAction("<cm_FocusLeft>", "焦点置于左窗口")
-    RegisterAction("<cm_FocusRight>", "焦点置于右窗口")
-    RegisterAction("<cm_FocusSrc>", "光标切换至源面板")
-    RegisterAction("<cm_FocusTrg>", "光标切换至目标面板")
-    RegisterAction("<cm_FontConfig>", "配置: 字体")
-    RegisterAction("<cm_FtpAbort>", "中止当前 FTP 命令")
-    RegisterAction("<cm_FtpAddToList>", "添加到下载列表")
-    RegisterAction("<cm_FtpConfig>", "配置: FTP")
-    RegisterAction("<cm_FtpConnect>", "FTP 连接")
-    RegisterAction("<cm_FtpDisconnect>", "断开 FTP 连接")
-    RegisterAction("<cm_FtpDownloadList>", "按列表下载")
-    RegisterAction("<cm_FtpHiddenFiles>", "显示隐藏文件")
-    RegisterAction("<cm_FtpNew>", "新建 FTP 连接")
-    RegisterAction("<cm_FtpResumeDownload>", "续传")
-    RegisterAction("<cm_FtpSelectTransferMode>", "选择传输模式")
-    RegisterAction("<cm_GetFileSpace>", "计算占用空间")
-    RegisterAction("<cm_GoToDir>", "打开光标处的文件夹或压缩包")
-    RegisterAction("<cm_GotoDriveA>", "转到驱动器 A")
-    RegisterAction("<cm_GotoDriveC>", "转到驱动器 C")
-    RegisterAction("<cm_GotoDriveD>", "转到驱动器 D")
-    RegisterAction("<cm_GotoDriveE>", "转到驱动器 E")
-    RegisterAction("<cm_GotoDriveF>", "可自定义其他驱动器")
-    RegisterAction("<cm_GotoDriveZ>", "最多 26 个")
-    RegisterAction("<cm_GoToFirstEntry>", "光标移到列表中的第一个文件或目录")
-    RegisterAction("<cm_GoToFirstFile>", "光标移到列表中的第一个文件")
-    RegisterAction("<cm_GoToLockedDir>", "转到锁定标签的根文件夹")
-    RegisterAction("<cm_GotoNextDir>", "前进")
-    RegisterAction("<cm_GotoNextDrive>", "转到下一个驱动器")
-    RegisterAction("<cm_GotoNextLocalDir>", "前进(非 FTP)")
-    RegisterAction("<cm_GotoNextSelected>", "转到下一个选中的文件")
-    RegisterAction("<cm_GoToParent>", "转到上层文件夹")
-    RegisterAction("<cm_GotoPreviousDir>", "后退")
-    RegisterAction("<cm_GotoPreviousDrive>", "转到上一个驱动器")
-    RegisterAction("<cm_GotoPreviousLocalDir>", "后退(非 FTP)")
-    RegisterAction("<cm_GotoPrevSelected>", "转到上一个选中的文件")
-    RegisterAction("<cm_GoToRoot>", "转到根文件夹")
-    RegisterAction("<cm_HelpIndex>", "帮助索引")
-    RegisterAction("<cm_IconConfig>", "配置: 图标")
-    RegisterAction("<cm_IgnoreConfig>", "配置: 隐藏文件")
-    RegisterAction("<cm_IntCompareFilesByContent>", "使用内部比较程序")
-    RegisterAction("<cm_InternalAssociate>", "定义内部关联")
-    RegisterAction("<cm_Keyboard>", "快捷键列表")
-    RegisterAction("<cm_LanguageConfig>", "配置: 语言")
-    RegisterAction("<cm_LeftActivateTab1>", "左窗口: 激活标签 1")
-    RegisterAction("<cm_LeftActivateTab10>", "左窗口: 激活标签 10")
-    RegisterAction("<cm_LeftActivateTab2>", "左窗口: 激活标签 2")
-    RegisterAction("<cm_LeftActivateTab3>", "左窗口: 激活标签 3")
-    RegisterAction("<cm_LeftActivateTab4>", "左窗口: 激活标签 4")
-    RegisterAction("<cm_LeftActivateTab5>", "左窗口: 激活标签 5")
-    RegisterAction("<cm_LeftActivateTab6>", "左窗口: 激活标签 6")
-    RegisterAction("<cm_LeftActivateTab7>", "左窗口: 激活标签 7")
-    RegisterAction("<cm_LeftActivateTab8>", "左窗口: 激活标签 8")
-    RegisterAction("<cm_LeftActivateTab9>", "左窗口: 激活标签 9")
-    RegisterAction("<cm_LeftAllFiles>", "左窗口: 所有文件")
-    RegisterAction("<cm_LeftByDateTime>", "左窗口: 按日期时间排序")
-    RegisterAction("<cm_LeftByExt>", "左窗口: 按扩展名排序")
-    RegisterAction("<cm_LeftByName>", "左窗口: 按文件名排序")
-    RegisterAction("<cm_LeftBySize>", "左窗口: 按大小排序")
-    RegisterAction("<cm_LeftComments>", "左窗口: 显示文件备注")
-    RegisterAction("<cm_LeftCustomView1>", "左窗口: 自定义列视图 1")
-    RegisterAction("<cm_LeftCustomView10>", "左窗口: 自定义列视图 10")
-    RegisterAction("<cm_LeftCustomView2>", "左窗口: 自定义列视图 2")
-    RegisterAction("<cm_LeftCustomView3>", "左窗口: 自定义列视图 3")
-    RegisterAction("<cm_LeftCustomView4>", "左窗口: 自定义列视图 4")
-    RegisterAction("<cm_LeftCustomView5>", "左窗口: 自定义列视图 5")
-    RegisterAction("<cm_LeftCustomView6>", "左窗口: 自定义列视图 6")
-    RegisterAction("<cm_LeftCustomView7>", "左窗口: 自定义列视图 7")
-    RegisterAction("<cm_LeftCustomView8>", "左窗口: 自定义列视图 8")
-    RegisterAction("<cm_LeftCustomView9>", "左窗口: 自定义列视图 9")
-    RegisterAction("<cm_LeftCustomViewMenu>", "窗口: 自定义视图菜单")
-    RegisterAction("<cm_LeftDirBranch>", "左窗口: 展开所有文件夹")
-    RegisterAction("<cm_LeftDirBranchSel>", "左窗口: 只展开选中的文件夹")
-    RegisterAction("<cm_LeftExecs>", "左窗口: 可执行文件")
-    RegisterAction("<cm_LeftHideQuickview>", "左窗口: 关闭快速查看窗口")
-    RegisterAction("<cm_LeftLong>", "左窗口: 详细信息")
-    RegisterAction("<cm_LeftNegOrder>", "左窗口: 反向排序")
-    RegisterAction("<cm_LeftNextCustomView>", "左窗口: 下一个自定义视图")
-    RegisterAction("<cm_LeftOpenDrives>", "左窗口: 打开驱动器列表")
-    RegisterAction("<cm_LeftPathFocus>", "左窗口: 焦点置于路径上")
-    RegisterAction("<cm_LeftPrevCustomView>", "左窗口: 上一个自定义视图")
-    RegisterAction("<cm_LeftQuickInternalOnly>", "左窗口: 快速查看(不用插件)")
-    RegisterAction("<cm_LeftQuickview>", "左窗口: 快速查看")
-    RegisterAction("<cm_LeftShort>", "左窗口: 列表")
-    RegisterAction("<cm_LeftSortByCol1>", "左窗口: 按第 1 列排序")
-    RegisterAction("<cm_LeftSortByCol10>", "左窗口: 按第 10 列排序")
-    RegisterAction("<cm_LeftSortByCol2>", "左窗口: 按第 2 列排序")
-    RegisterAction("<cm_LeftSortByCol3>", "左窗口: 按第 3 列排序")
-    RegisterAction("<cm_LeftSortByCol4>", "左窗口: 按第 4 列排序")
-    RegisterAction("<cm_LeftSortByCol5>", "左窗口: 按第 5 列排序")
-    RegisterAction("<cm_LeftSortByCol6>", "左窗口: 按第 6 列排序")
-    RegisterAction("<cm_LeftSortByCol7>", "左窗口: 按第 7 列排序")
-    RegisterAction("<cm_LeftSortByCol8>", "左窗口: 按第 8 列排序")
-    RegisterAction("<cm_LeftSortByCol9>", "左窗口: 按第 9 列排序")
-    RegisterAction("<cm_LeftThumbs>", "窗口: 缩略图")
-    RegisterAction("<cm_LeftTree>", "左窗口: 文件夹树")
-    RegisterAction("<cm_LeftUnsorted>", "左窗口: 不排序")
-    RegisterAction("<cm_LeftUserDef>", "左窗口: 自定义类型")
-    RegisterAction("<cm_LeftUserSpec>", "左窗口: 上次选中的文件")
-    RegisterAction("<cm_List>", "查看(用查看程序)")
-    RegisterAction("<cm_ListInternalOnly>", "查看(用查看程序, 但不用插件/多媒体)")
-    RegisterAction("<cm_LoadAllOnDemandFields>", "所有文件都按需加载备注")
-    RegisterAction("<cm_LoadSelectionFromClip>", "导入选择列表(从剪贴板)")
-    RegisterAction("<cm_LoadSelectionFromFile>", "导入选择列表(从文件)")
-    RegisterAction("<cm_LoadSelOnDemandFields>", "仅选中的文件按需加载备注")
-    RegisterAction("<cm_LogConfig>", "配置: 日志文件")
-    RegisterAction("<cm_MatchSrc>", "目标 = 来源")
-    RegisterAction("<cm_Maximize>", "最大化 Total Commander")
-    RegisterAction("<cm_Minimize>", "最小化 Total Commander")
-    RegisterAction("<cm_MkDir>", "新建文件夹")
-    RegisterAction("<cm_MoveOnly>", "移动到另一个窗口(F6)")
-    RegisterAction("<cm_MultiRenameFiles>", "批量重命名")
-    RegisterAction("<cm_NetConnect>", "映射网络驱动器")
-    RegisterAction("<cm_NetDisconnect>", "断开网络驱动器")
-    RegisterAction("<cm_NetShareDir>", "共享当前文件夹")
-    RegisterAction("<cm_NetUnshareDir>", "取消文件夹共享")
-    RegisterAction("<cm_NextCommand>", "下一条命令")
-    RegisterAction("<cm_NTinstallDriver>", "加载 NT 并口驱动程序")
-    RegisterAction("<cm_NTremoveDriver>", "卸载 NT 并口驱动程序")
-    RegisterAction("<cm_OpenAsUser>", "以其他用户身份运行光标处的程序")
-    RegisterAction("<cm_OpenControls>", "控制面板")
-    RegisterAction("<cm_OpenDesktop>", "桌面")
-    RegisterAction("<cm_OpenDirInNewTab>", "新建标签(并打开光标处的文件夹)")
-    RegisterAction("<cm_OpenDirInNewTabOther>", "新建标签(在另一窗口打开文件夹)")
-    RegisterAction("<cm_OpenDrives>", "我的电脑")
-    RegisterAction("<cm_OpenFonts>", "字体")
-    RegisterAction("<cm_OpenNetwork>", "网上邻居")
-    RegisterAction("<cm_OpenNewTab>", "新建标签")
-    RegisterAction("<cm_OpenNewTabBg>", "新建标签(在后台)")
-    RegisterAction("<cm_OpenPrinters>", "打印机")
-    RegisterAction("<cm_OpenRecycled>", "回收站")
-    RegisterAction("<cm_OpenTransferManager>", "后台传输管理器")
-    RegisterAction("<cm_PackerConfig>", "配置: 压缩程序")
-    RegisterAction("<cm_PackFiles>", "压缩文件")
-    RegisterAction("<cm_PasteFromClipboard>", "从剪贴板粘贴到当前文件夹")
-    RegisterAction("<cm_PluginsConfig>", "配置: 插件")
-    RegisterAction("<cm_PrevCommand>", "上一条命令")
-    RegisterAction("<cm_PrintDir>", "打印文件列表")
-    RegisterAction("<cm_PrintDirSub>", "打印文件列表(含子文件夹)")
-    RegisterAction("<cm_PrintFile>", "打印文件内容")
-    RegisterAction("<cm_Properties>", "显示属性")
-    RegisterAction("<cm_QuickSearchConfig>", "配置: 快速搜索")
-    RegisterAction("<cm_RefreshConfig>", "配置: 刷新")
-    RegisterAction("<cm_Register>", "注册信息")
-    RegisterAction("<cm_ReloadSelThumbs>", "刷新选中文件的缩略图")
-    RegisterAction("<cm_RenameOnly>", "重命名(Shift+F6)")
-    RegisterAction("<cm_RenameSingleFile>", "重命名当前文件")
-    RegisterAction("<cm_RenMov>", "重命名/移动")
-    RegisterAction("<cm_RereadSource>", "刷新来源窗口")
-    RegisterAction("<cm_Restore>", "恢复正常大小")
-    RegisterAction("<cm_RestoreSelection>", "恢复选择列表")
-    RegisterAction("<cm_Return>", "模仿按 ENTER 键")
-    RegisterAction("<cm_RightActivateTab1>", "右窗口: 激活标签 1")
-    RegisterAction("<cm_RightActivateTab10>", "右窗口: 激活标签 10")
-    RegisterAction("<cm_RightActivateTab2>", "右窗口: 激活标签 2")
-    RegisterAction("<cm_RightActivateTab3>", "右窗口: 激活标签 3")
-    RegisterAction("<cm_RightActivateTab4>", "右窗口: 激活标签 4")
-    RegisterAction("<cm_RightActivateTab5>", "右窗口: 激活标签 5")
-    RegisterAction("<cm_RightActivateTab6>", "右窗口: 激活标签 6")
-    RegisterAction("<cm_RightActivateTab7>", "右窗口: 激活标签 7")
-    RegisterAction("<cm_RightActivateTab8>", "右窗口: 激活标签 8")
-    RegisterAction("<cm_RightActivateTab9>", "右窗口: 激活标签 9")
-    RegisterAction("<cm_RightAllFile>", "右窗口: 所有文件")
-    RegisterAction("<cm_RightByDateTim>", "右窗口: 按日期时间排序")
-    RegisterAction("<cm_RightByEx>", "右窗口: 按扩展名排序")
-    RegisterAction("<cm_RightByNam>", "右窗口: 按文件名排序")
-    RegisterAction("<cm_RightBySiz>", "右窗口: 按大小排序")
-    RegisterAction("<cm_RightComments>", "右窗口: 显示文件备注")
-    RegisterAction("<cm_RightCustomView1>", "右窗口: 自定义列视图 1")
-    RegisterAction("<cm_RightCustomView10>", "右窗口: 自定义列视图 10")
-    RegisterAction("<cm_RightCustomView2>", "右窗口: 自定义列视图 2")
-    RegisterAction("<cm_RightCustomView3>", "右窗口: 自定义列视图 3")
-    RegisterAction("<cm_RightCustomView4>", "右窗口: 自定义列视图 4")
-    RegisterAction("<cm_RightCustomView5>", "右窗口: 自定义列视图 5")
-    RegisterAction("<cm_RightCustomView6>", "右窗口: 自定义列视图 6")
-    RegisterAction("<cm_RightCustomView7>", "右窗口: 自定义列视图 7")
-    RegisterAction("<cm_RightCustomView8>", "右窗口: 自定义列视图 8")
-    RegisterAction("<cm_RightCustomView9>", "右窗口: 自定义列视图 9")
-    RegisterAction("<cm_RightCustomViewMen>", "右窗口: 自定义视图菜单")
-    RegisterAction("<cm_RightDirBranch>", "右窗口: 展开所有文件夹")
-    RegisterAction("<cm_RightDirBranchSel>", "右窗口: 只展开选中的文件夹")
-    RegisterAction("<cm_RightExec>", "右窗口: 可执行文件")
-    RegisterAction("<cm_RightHideQuickvie>", "右窗口: 关闭快速查看窗口")
-    RegisterAction("<cm_RightLong>", "详细信息")
-    RegisterAction("<cm_RightNegOrde>", "右窗口: 反向排序")
-    RegisterAction("<cm_RightNextCustomView>", "右窗口: 下一个自定义视图")
-    RegisterAction("<cm_RightOpenDrives>", "右窗口: 打开驱动器列表")
-    RegisterAction("<cm_RightPathFocu>", "右窗口: 焦点置于路径上")
-    RegisterAction("<cm_RightPrevCustomView>", "右窗口: 上一个自定义视图")
-    RegisterAction("<cm_RightQuickInternalOnl>", "右窗口: 快速查看(不用插件)")
-    RegisterAction("<cm_RightQuickvie>", "右窗口: 快速查看")
-    RegisterAction("<cm_RightShort>", "右窗口: 列表")
-    RegisterAction("<cm_RightSortByCol1>", "右窗口: 按第 1 列排序")
-    RegisterAction("<cm_RightSortByCol10>", "右窗口: 按第 10 列排序")
-    RegisterAction("<cm_RightSortByCol2>", "右窗口: 按第 2 列排序")
-    RegisterAction("<cm_RightSortByCol3>", "右窗口: 按第 3 列排序")
-    RegisterAction("<cm_RightSortByCol4>", "右窗口: 按第 4 列排序")
-    RegisterAction("<cm_RightSortByCol5>", "右窗口: 按第 5 列排序")
-    RegisterAction("<cm_RightSortByCol6>", "右窗口: 按第 6 列排序")
-    RegisterAction("<cm_RightSortByCol7>", "右窗口: 按第 7 列排序")
-    RegisterAction("<cm_RightSortByCol8>", "右窗口: 按第 8 列排序")
-    RegisterAction("<cm_RightSortByCol9>", "右窗口: 按第 9 列排序")
-    RegisterAction("<cm_RightThumb>", "右窗口: 缩略图")
-    RegisterAction("<cm_RightTree>", "右窗口: 文件夹树")
-    RegisterAction("<cm_RightUnsorte>", "右窗口: 不排序")
-    RegisterAction("<cm_RightUserDe>", "右窗口: 自定义类型")
-    RegisterAction("<cm_RightUserSpe>", "右窗口: 上次选中的文件")
-    RegisterAction("<cm_SaveDetailsToFile>", "导出详细信息")
-    RegisterAction("<cm_SaveDetailsToFileA>", "导出详细信息(ANSI)")
-    RegisterAction("<cm_SaveDetailsToFileW>", "导出详细信息(Unicode)")
-    RegisterAction("<cm_SaveSelection>", "保存选择列表")
-    RegisterAction("<cm_SaveSelectionToFile>", "导出选择列表")
-    RegisterAction("<cm_SaveSelectionToFileA>", "导出选择列表(ANSI)")
-    RegisterAction("<cm_SaveSelectionToFileW>", "导出选择列表(Unicode)")
-    RegisterAction("<cm_SearchFor>", "搜索文件")
-    RegisterAction("<cm_SearchStandalone>", "在单独进程搜索文件")
-    RegisterAction("<cm_SelectAll>", "全部选择: 文件和/或文件夹(视配置而定)")
-    RegisterAction("<cm_SelectAllBoth>", "全部选择: 文件和文件夹")
-    RegisterAction("<cm_SelectAllFiles>", "全部选择: 仅文件")
-    RegisterAction("<cm_SelectAllFolders>", "全部选择: 仅文件夹")
-    RegisterAction("<cm_SelectBoth>", "选择一组: 文件和文件夹")
-    RegisterAction("<cm_SelectCurrentExtension>", "选择扩展名相同的文件")
-    RegisterAction("<cm_SelectCurrentName>", "选择文件名相同的文件")
-    RegisterAction("<cm_SelectCurrentNameExt>", "选择文件名和扩展名相同的文件")
-    RegisterAction("<cm_SelectCurrentPath>", "选择同一路径下的文件(展开文件夹+搜索文件)")
-    RegisterAction("<cm_SelectFiles>", "选择一组: 仅文件")
-    RegisterAction("<cm_SelectFolders>", "选择一组: 仅文件夹")
-    RegisterAction("<cm_SeparateTree1>", "一个独立文件夹树面板")
-    RegisterAction("<cm_SeparateTree2>", "两个独立文件夹树面板")
-    RegisterAction("<cm_SeparateTreeOff>", "关闭独立文件夹树面板")
-    RegisterAction("<cm_SetAttrib>", "更改属性")
-    RegisterAction("<cm_ShowFileUser>", "显示本地文件的远程用户")
-    RegisterAction("<cm_ShowHint>", "显示文件提示")
-    RegisterAction("<cm_ShowOnlySelected>", "仅显示选中的文件")
-    RegisterAction("<cm_ShowQuickSearch>", "显示快速搜索窗口")
-    RegisterAction("<cm_ShowRemoteMenu>", "媒体中心遥控器播放/暂停键快捷菜单")
-    RegisterAction("<cm_ShrinkSelection>", "不选一组文件")
-    RegisterAction("<cm_Split>", "分割文件")
-    RegisterAction("<cm_SpreadSelection>", "选择一组文件")
-    RegisterAction("<cm_SrcActivateTab1>", "来源窗口: 激活标签 1")
-    RegisterAction("<cm_SrcActivateTab10>", "来源窗口: 激活标签 10")
-    RegisterAction("<cm_SrcActivateTab2>", "来源窗口: 激活标签 2")
-    RegisterAction("<cm_SrcActivateTab3>", "来源窗口: 激活标签 3")
-    RegisterAction("<cm_SrcActivateTab4>", "来源窗口: 激活标签 4")
-    RegisterAction("<cm_SrcActivateTab5>", "来源窗口: 激活标签 5")
-    RegisterAction("<cm_SrcActivateTab6>", "来源窗口: 激活标签 6")
-    RegisterAction("<cm_SrcActivateTab7>", "来源窗口: 激活标签 7")
-    RegisterAction("<cm_SrcActivateTab8>", "来源窗口: 激活标签 8")
-    RegisterAction("<cm_SrcActivateTab9>", "来源窗口: 激活标签 9")
-    RegisterAction("<cm_SrcAllFiles>", "来源窗口: 所有文件")
-    RegisterAction("<cm_SrcByDateTime>", "来源窗口: 按日期时间排序")
-    RegisterAction("<cm_SrcByExt>", "来源窗口: 按扩展名排序")
-    RegisterAction("<cm_SrcByName>", "来源窗口: 按文件名排序")
-    RegisterAction("<cm_SrcBySize>", "来源窗口: 按大小排序")
-    RegisterAction("<cm_SrcComments>", "来源窗口: 显示文件备注")
-    RegisterAction("<cm_SrcCustomView1>", "来源窗口: 自定义列视图 1")
-    RegisterAction("<cm_SrcCustomView10>", "来源窗口: 自定义列视图 10")
-    RegisterAction("<cm_SrcCustomView2>", "来源窗口: 自定义列视图 2")
-    RegisterAction("<cm_SrcCustomView3>", "来源窗口: 自定义列视图 3")
-    RegisterAction("<cm_SrcCustomView4>", "来源窗口: 自定义列视图 4")
-    RegisterAction("<cm_SrcCustomView5>", "来源窗口: 自定义列视图 5")
-    RegisterAction("<cm_SrcCustomView6>", "来源窗口: 自定义列视图 6")
-    RegisterAction("<cm_SrcCustomView7>", "来源窗口: 自定义列视图 7")
-    RegisterAction("<cm_SrcCustomView8>", "来源窗口: 自定义列视图 8")
-    RegisterAction("<cm_SrcCustomView9>", "来源窗口: 自定义列视图 9")
-    RegisterAction("<cm_SrcCustomViewMenu>", "来源窗口: 自定义视图菜单")
-    RegisterAction("<cm_SrcExecs>", "来源窗口: 可执行文件")
-    RegisterAction("<cm_SrcHideQuickview>", "来源窗口: 关闭快速查看窗口")
-    RegisterAction("<cm_SrcLong>", "来源窗口: 详细信息")
-    RegisterAction("<cm_SrcNegOrder>", "来源窗口: 反向排序")
-    RegisterAction("<cm_SrcNextCustomView>", "来源窗口: 下一个自定义视图")
-    RegisterAction("<cm_SrcOpenDrives>", "来源窗口: 打开驱动器列表")
-    RegisterAction("<cm_SrcPathFocus>", "来源窗口: 焦点置于路径上")
-    RegisterAction("<cm_SrcPrevCustomView>", "来源窗口: 上一个自定义视图")
-    RegisterAction("<cm_SrcQuickInternalOnly>", "来源窗口: 快速查看(不用插件)")
-    RegisterAction("<cm_SrcQuickview>", "来源窗口: 快速查看")
-    RegisterAction("<cm_SrcShort>", "来源窗口: 列表")
-    RegisterAction("<cm_SrcSortByCol1>", "来源窗口: 按第 1 列排序")
-    RegisterAction("<cm_SrcSortByCol10>", "来源窗口: 按第 10 列排序")
-    RegisterAction("<cm_SrcSortByCol2>", "来源窗口: 按第 2 列排序")
-    RegisterAction("<cm_SrcSortByCol3>", "来源窗口: 按第 3 列排序")
-    RegisterAction("<cm_SrcSortByCol4>", "来源窗口: 按第 4 列排序")
-    RegisterAction("<cm_SrcSortByCol5>", "来源窗口: 按第 5 列排序")
-    RegisterAction("<cm_SrcSortByCol6>", "来源窗口: 按第 6 列排序")
-    RegisterAction("<cm_SrcSortByCol7>", "来源窗口: 按第 7 列排序")
-    RegisterAction("<cm_SrcSortByCol8>", "来源窗口: 按第 8 列排序")
-    RegisterAction("<cm_SrcSortByCol9>", "来源窗口: 按第 9 列排序")
-    RegisterAction("<cm_SrcThumbs>", "来源窗口: 缩略图")
-    RegisterAction("<cm_SrcTree>", "来源窗口: 文件夹树")
-    RegisterAction("<cm_SrcUnsorted>", "来源窗口: 不排序")
-    RegisterAction("<cm_SrcUserDef>", "来源窗口: 自定义类型")
-    RegisterAction("<cm_SrcUserSpec>", "来源窗口: 上次选中的文件")
-    RegisterAction("<cm_Switch83Names>", "开启/关闭: 8.3 式文件名小写显示")
-    RegisterAction("<cm_SwitchDirSort>", "开启/关闭: 文件夹按名称排序")
-    RegisterAction("<cm_SwitchHidSys>", "开启/关闭: 隐藏或系统文件显示")
-    RegisterAction("<cm_SwitchIgnoreList>", "启用/禁用: 自定义隐藏文件")
-    RegisterAction("<cm_SwitchLongNames>", "开启/关闭: 长文件名显示")
-    RegisterAction("<cm_SwitchOverlayIcons>", "开启/关闭: 叠置图标显示")
-    RegisterAction("<cm_SwitchSeparateTree>", "切换独立文件夹树面板状态")
-    RegisterAction("<cm_SwitchToNextTab>", "下一个标签(Ctrl+Tab)")
-    RegisterAction("<cm_SwitchToPreviousTab>", "上一个标签(Ctrl+Shift+Tab)")
-    RegisterAction("<cm_SwitchWatchDirs>", "启用/禁用: 文件夹自动刷新")
-    RegisterAction("<cm_SwitchX64Redirection>", "开启/关闭: 32 位 system32 目录重定向(64 位 Windows)")
-    RegisterAction("<cm_SyncChangeDir>", "两边窗口同步更改文件夹")
-    RegisterAction("<cm_SysInfo>", "系统信息")
-    RegisterAction("<cm_TestArchive>", "测试压缩包")
-    RegisterAction("<cm_ThumbnailsConfig>", "配置: 缩略图")
-    RegisterAction("<cm_ToggleLockCurrentTab>", "锁定/解锁当前标签")
-    RegisterAction("<cm_ToggleLockDcaCurrentTab>", "锁定/解锁当前标签(可更改文件夹)")
-    RegisterAction("<cm_ToggleSeparateTree1>", "开启/关闭: 一个独立文件夹树面板")
-    RegisterAction("<cm_ToggleSeparateTree2>", "开启/关闭: 两个独立文件夹树面板")
-    RegisterAction("<cm_TransferLeft>", "在左窗口打开光标处的文件夹或压缩包")
-    RegisterAction("<cm_TransferRight>", "在右窗口打开光标处的文件夹或压缩包")
-    RegisterAction("<cm_TrgActivateTab1>", "目标窗口: 激活标签 1")
-    RegisterAction("<cm_TrgActivateTab10>", "目标窗口: 激活标签 10")
-    RegisterAction("<cm_TrgActivateTab2>", "目标窗口: 激活标签 2")
-    RegisterAction("<cm_TrgActivateTab3>", "目标窗口: 激活标签 3")
-    RegisterAction("<cm_TrgActivateTab4>", "目标窗口: 激活标签 4")
-    RegisterAction("<cm_TrgActivateTab5>", "目标窗口: 激活标签 5")
-    RegisterAction("<cm_TrgActivateTab6>", "目标窗口: 激活标签 6")
-    RegisterAction("<cm_TrgActivateTab7>", "目标窗口: 激活标签 7")
-    RegisterAction("<cm_TrgActivateTab8>", "目标窗口: 激活标签 8")
-    RegisterAction("<cm_TrgActivateTab9>", "目标窗口: 激活标签 9")
-    RegisterAction("<cm_TrgNextCustomView>", "目标窗口: 下一个自定义视图")
-    RegisterAction("<cm_TrgPrevCustomView>", "目标窗口: 上一个自定义视图")
-    RegisterAction("<cm_TrgSortByCol1>", "目标窗口: 按第 1 列排序")
-    RegisterAction("<cm_TrgSortByCol10>", "目标窗口: 按第 10 列排序")
-    RegisterAction("<cm_TrgSortByCol2>", "目标窗口: 按第 2 列排序")
-    RegisterAction("<cm_TrgSortByCol3>", "目标窗口: 按第 3 列排序")
-    RegisterAction("<cm_TrgSortByCol4>", "目标窗口: 按第 4 列排序")
-    RegisterAction("<cm_TrgSortByCol5>", "目标窗口: 按第 5 列排序")
-    RegisterAction("<cm_TrgSortByCol6>", "目标窗口: 按第 6 列排序")
-    RegisterAction("<cm_TrgSortByCol7>", "目标窗口: 按第 7 列排序")
-    RegisterAction("<cm_TrgSortByCol8>", "目标窗口: 按第 8 列排序")
-    RegisterAction("<cm_TrgSortByCol9>", "目标窗口: 按第 9 列排序")
-    RegisterAction("<cm_UnloadPlugins>", "卸载所有插件")
-    RegisterAction("<cm_UnpackFiles>", "解压文件")
-    RegisterAction("<cm_UnselectCurrentExtension>", "不选扩展名相同的文件")
-    RegisterAction("<cm_UnselectCurrentName>", "不选文件名相同的文件")
-    RegisterAction("<cm_UnselectCurrentNameExt>", "不选文件名和扩展名相同的文件")
-    RegisterAction("<cm_UnselectCurrentPath>", "不选同一路径下的文件(展开文件夹+搜索文件)")
-    RegisterAction("<cm_UserMenu1>", "用户菜单 1")
-    RegisterAction("<cm_UserMenu10>", "可定义其他用户菜单")
-    RegisterAction("<cm_UserMenu2>", "用户菜单 2")
-    RegisterAction("<cm_UserMenu3>", "用户菜单 3")
-    RegisterAction("<cm_UserMenu4>", "用户菜单 4")
-    RegisterAction("<cm_UserMenu5>", "用户菜单 5")
-    RegisterAction("<cm_UserMenu6>", "用户菜单 6")
-    RegisterAction("<cm_UserMenu7>", "用户菜单 7")
-    RegisterAction("<cm_UserMenu8>", "用户菜单 8")
-    RegisterAction("<cm_UserMenu9>", "用户菜单 9")
-    RegisterAction("<cm_VersionInfo>", "版本信息")
-    RegisterAction("<cm_VerticalPanels>", "纵向/横向排列")
-    RegisterAction("<cm_VisBreadCrumbs>", "显示/隐藏: 路径导航栏")
-    RegisterAction("<cm_VisButtonbar>", "显示/隐藏: 工具栏")
-    RegisterAction("<cm_VisCmdLine>", "显示/隐藏: 命令行")
-    RegisterAction("<cm_VisCurDir>", "显示/隐藏: 当前文件夹")
-    RegisterAction("<cm_VisDirTabs>", "显示/隐藏: 文件夹标签")
-    RegisterAction("<cm_VisDriveButtons>", "显示/隐藏: 驱动器按钮")
-    RegisterAction("<cm_VisDriveCombo>", "显示/隐藏: 驱动器列表")
-    RegisterAction("<cm_VisFlatDriveButtons>", "切换: 平坦/立体驱动器按钮")
-    RegisterAction("<cm_VisFlatInterface>", "切换: 平坦/立体用户界面")
-    RegisterAction("<cm_VisHistHotButtons>", "显示/隐藏: 文件夹历史记录和常用文件夹按钮")
-    RegisterAction("<cm_VisitHomepage>", "访问 Totalcmd 网站")
-    RegisterAction("<cm_VisKeyButtons>", "显示/隐藏: 功能键按钮")
-    RegisterAction("<cm_VisStatusbar>", "显示/隐藏: 状态栏")
-    RegisterAction("<cm_VisTabHeader>", "显示/隐藏: 排序制表符")
-    RegisterAction("<cm_VisTwoDriveButtons>", "显示/隐藏: 两个驱动器按钮栏")
-    RegisterAction("<cm_VisXPThemeBackground>", "显示/隐藏: XP 主题背景")
-    RegisterAction("<cm_VolumeId>", "设置卷标")
-    RegisterAction("<cm_ZipPackerConfig>", "配置: ZIP 压缩程序")
-    RegisterAction("<TC_AlwayOnTop>", "设置 TC 顶置")
-    RegisterAction("<TC_azHistory>", "a-z历史导航")
-    RegisterAction("<TC_ClearTitle>", "将 TC 标题栏字符串设置为空")
-    RegisterAction("<TC_CopyDirectoryHotlist>", "复制到常用文件夹")
-    RegisterAction("<TC_CopyFileContents>", "不打开文件就复制文件内容")
-    RegisterAction("<TC_CopyNameOnly>", "只复制文件名，不含扩展名")
-    RegisterAction("<TC_CopyUseQueues>", "无需确认，使用队列拷贝文件至另一窗口")
-    RegisterAction("<TC_CreateBlankFile>", "创建空文件")
-    RegisterAction("<TC_CreateBlankFileNoExt>", "创建无扩展名空文件")
-    RegisterAction("<TC_CreateFileShortcut>", "创建当前光标下文件的快捷方式")
-    RegisterAction("<TC_CreateFileShortcutToDesktop>", "创建当前光标下文件的快捷方式并发送到桌面")
-    RegisterAction("<TC_CreateFileShortcutToStartup>", "创建当前光标下文件的快捷方式并发送到启动文件里")
-    RegisterAction("<TC_CreateNewFile>", "文件模板")
-    RegisterAction("<TC_DownSelect>", "向下选择")
-    RegisterAction("<TC_FileCopyForBak>", "将当前光标下的文件复制一份作为作为备份")
-    RegisterAction("<TC_FileMoveForBak>", "将当前光标下的文件重命名为备份")
-    RegisterAction("<TC_FilterSearchFNsuffix_exe>", "在当前目录里快速过滤 exe 扩展名的文件")
-    RegisterAction("<TC_FocusTCCmd>", "激活TC，定位到命令行")
-    RegisterAction("<TC_ForceDelete>", "强制删除")
-    RegisterAction("<TC_GoLastTab>", "切换到最后一个标签")
-    RegisterAction("<TC_GotoLine>", "移动到 [count] 行，默认第一行")
-    RegisterAction("<TC_GotoNextDirOther>", "前进另一侧")
-    RegisterAction("<TC_GoToParentEx>", "返回到上层文件夹，可返回到我的电脑")
-    RegisterAction("<TC_GotoPreviousDirOther>", "后退另一侧")
-    RegisterAction("<TC_Half>", "移动到窗口中间行")
-    RegisterAction("<TC_InsertMode>", "进入插入模式")
-    RegisterAction("<TC_LastLine>", "移动到 [count] 行，默认最后一行")
-    RegisterAction("<TC_ListMark>", "显示标记")
-    RegisterAction("<TC_Mark>", "标记功能")
-    RegisterAction("<TC_MarkFile>", "标记文件，将文件注释改成m")
-    RegisterAction("<TC_MoveAllFilesToPrevFolder>", "将当前文件夹下的全部文件移动到上层目录中")
-    RegisterAction("<TC_MoveDirectoryHotlist>", "移动到常用文件夹")
-    RegisterAction("<TC_MoveSelectedFilesToPrevFolder>", "将当前文件夹下的选定文件移动到上层目录中")
-    RegisterAction("<TC_MoveUseQueues>", "无需确认，使用队列移动文件至另一窗口")
-    RegisterAction("<TC_MultiFilePersistOpen>", "多个文件一次性连续打开")
-    RegisterAction("<TC_NormalMode>", "返回正常模式")
-    RegisterAction("<TC_OpenDirAndPaste>", "不打开目录，直接把复制的文件贴进去")
-    RegisterAction("<TC_OpenDirsInFile>", "将光标所在的文件内容中的文件夹在新标签页依次打开")
-    RegisterAction("<TC_OpenDriveThat>", "打开驱动器列表:另侧")
-    RegisterAction("<TC_OpenDriveThis>", "打开驱动器列表:本侧")
-    RegisterAction("<TC_OpenWithAlternateViewer>", "使用外部查看器打开（alt + f3）")
-    RegisterAction("<TC_PasteFileEx>", "粘贴文件，如果光标下为目录则粘贴进该目录")
-    RegisterAction("<TC_ReOpenTab>", "重新打开之前关闭的标签页")
-    RegisterAction("<TC_Restart>", "重启 TC")
-    RegisterAction("<TC_SearchMode>", "连续搜索")
-    RegisterAction("<TC_SelectCmd>", "选择命令来执行")
-    RegisterAction("<TC_SrcQuickViewAndTab>", "预览文件时,光标自动移到对侧窗口里")
-    RegisterAction("<TC_SuperReturn>", "同回车键，但定位到第一个文件")
-    RegisterAction("<TC_ThumbsView>", "缩略图试图，并且修改 h 和 l 为方向键")
-    RegisterAction("<TC_Toggle_50_100Percent_V>", "切换当前（纵向）窗口显示状态 50% ~ 100%")
-    RegisterAction("<TC_Toggle_50_100Percent>", "切换当前窗口显示状态 50% ~ 100% ")
-    RegisterAction("<TC_ToggleMenu>", "显示/隐藏: 菜单栏")
-    RegisterAction("<TC_ToggleShowInfo>", "显示/隐藏: 按键提示")
-    RegisterAction("<TC_ToggleTC>", "打开/激活TC")
-    RegisterAction("<TC_TwoFileExchangeName>", "两个文件互换文件名")
-    RegisterAction("<TC_UnMarkFile>", "取消文件标记，将文件注释清空")
-    RegisterAction("<TC_UpSelect>", "向上选择")
-    RegisterAction("<TC_ViewFileUnderCursor>", "使用查看器打开光标所在文件（shift + f3）")
-    RegisterAction("<TC_WinMaxLeft>", "最大化左侧窗口")
-    RegisterAction("<TC_WinMaxRight>", "最大化右侧窗口")
+    RegisterAction("<cm_100Percent>", T("act.TotalCommander.cm_100Percent"))
+    RegisterAction("<cm_50Percent>", T("act.TotalCommander.cm_50Percent"))
+    RegisterAction("<cm_About>", T("act.TotalCommander.cm_About"))
+    RegisterAction("<cm_AddPathToCmdline>", T("act.TotalCommander.cm_AddPathToCmdline"))
+    RegisterAction("<cm_AdministerServer>", T("act.TotalCommander.cm_AdministerServer"))
+    RegisterAction("<cm_Associate>", T("act.TotalCommander.cm_Associate"))
+    RegisterAction("<cm_ButtonConfig>", T("act.TotalCommander.cm_ButtonConfig"))
+    RegisterAction("<cm_CDtree>", T("act.TotalCommander.cm_CDtree"))
+    RegisterAction("<cm_ChangeStartMenu>", T("act.TotalCommander.cm_ChangeStartMenu"))
+    RegisterAction("<cm_ClearAll>", T("act.TotalCommander.cm_ClearAll"))
+    RegisterAction("<cm_ClearAllCfg>", T("act.TotalCommander.cm_ClearAllCfg"))
+    RegisterAction("<cm_ClearAllFiles>", T("act.TotalCommander.cm_ClearAllFiles"))
+    RegisterAction("<cm_ClearAllFolders>", T("act.TotalCommander.cm_ClearAllFolders"))
+    RegisterAction("<cm_ClearCmdLine>", T("act.TotalCommander.cm_ClearCmdLine"))
+    RegisterAction("<cm_ClearFiles>", T("act.TotalCommander.cm_ClearFiles"))
+    RegisterAction("<cm_ClearFolders>", T("act.TotalCommander.cm_ClearFolders"))
+    RegisterAction("<cm_ClearSelCfg>", T("act.TotalCommander.cm_ClearSelCfg"))
+    RegisterAction("<cm_CloseAllTabs>", T("act.TotalCommander.cm_CloseAllTabs"))
+    RegisterAction("<cm_CloseCurrentTab>", T("act.TotalCommander.cm_CloseCurrentTab"))
+    RegisterAction("<cm_ColorConfig>", T("act.TotalCommander.cm_ColorConfig"))
+    RegisterAction("<cm_Combine>", T("act.TotalCommander.cm_Combine"))
+    RegisterAction("<cm_CommandBrowser>", T("act.TotalCommander.cm_CommandBrowser"))
+    RegisterAction("<cm_CompareDirs>", T("act.TotalCommander.cm_CompareDirs"))
+    RegisterAction("<cm_CompareDirsWithSubdirs>", T("act.TotalCommander.cm_CompareDirsWithSubdirs"))
+    RegisterAction("<cm_CompareFilesByContent>", T("act.TotalCommander.cm_CompareFilesByContent"))
+    RegisterAction("<cm_Config>", T("act.TotalCommander.cm_Config"))
+    RegisterAction("<cm_Config2>", T("act.TotalCommander.cm_Config2"))
+    RegisterAction("<cm_ConfigChangeIniFiles>", T("act.TotalCommander.cm_ConfigChangeIniFiles"))
+    RegisterAction("<cm_ConfigSaveDirHistory>", T("act.TotalCommander.cm_ConfigSaveDirHistory"))
+    RegisterAction("<cm_ConfigSavePos>", T("act.TotalCommander.cm_ConfigSavePos"))
+    RegisterAction("<cm_ConfigSaveSettings>", T("act.TotalCommander.cm_ConfigSaveSettings"))
+    RegisterAction("<cm_Confirmation>", T("act.TotalCommander.cm_Confirmation"))
+    RegisterAction("<cm_ConfTabChange>", T("act.TotalCommander.cm_ConfTabChange"))
+    RegisterAction("<cm_ContentStopLoadFields>", T("act.TotalCommander.cm_ContentStopLoadFields"))
+    RegisterAction("<cm_ContextMenu>", T("act.TotalCommander.cm_ContextMenu"))
+    RegisterAction("<cm_ContextMenuInternal>", T("act.TotalCommander.cm_ContextMenuInternal"))
+    RegisterAction("<cm_ContextMenuInternalCursor>", T("act.TotalCommander.cm_ContextMenuInternalCursor"))
+    RegisterAction("<cm_Copy>", T("act.TotalCommander.cm_Copy"))
+    RegisterAction("<cm_CopyConfig>", T("act.TotalCommander.cm_CopyConfig"))
+    RegisterAction("<cm_CopyFileDetailsToClip>", T("act.TotalCommander.cm_CopyFileDetailsToClip"))
+    RegisterAction("<cm_CopyFpFileDetailsToClip>", T("act.TotalCommander.cm_CopyFpFileDetailsToClip"))
+    RegisterAction("<cm_CopyFullNamesToClip>", T("act.TotalCommander.cm_CopyFullNamesToClip"))
+    RegisterAction("<cm_CopyNamesToClip>", T("act.TotalCommander.cm_CopyNamesToClip"))
+    RegisterAction("<cm_CopyNetFileDetailsToClip>", T("act.TotalCommander.cm_CopyNetFileDetailsToClip"))
+    RegisterAction("<cm_CopyNetNamesToClip>", T("act.TotalCommander.cm_CopyNetNamesToClip"))
+    RegisterAction("<cm_CopyOtherpanel>", T("act.TotalCommander.cm_CopyOtherpanel"))
+    RegisterAction("<cm_CopySamepanel>", T("act.TotalCommander.cm_CopySamepanel"))
+    RegisterAction("<cm_CopySrcPathToClip>", T("act.TotalCommander.cm_CopySrcPathToClip"))
+    RegisterAction("<cm_CopyToClipboard>", T("act.TotalCommander.cm_CopyToClipboard"))
+    RegisterAction("<cm_CopyTrgPathToClip>", T("act.TotalCommander.cm_CopyTrgPathToClip"))
+    RegisterAction("<cm_CountDirContent>", T("act.TotalCommander.cm_CountDirContent"))
+    RegisterAction("<cm_CRCcheck>", T("act.TotalCommander.cm_CRCcheck"))
+    RegisterAction("<cm_CRCcreate>", T("act.TotalCommander.cm_CRCcreate"))
+    RegisterAction("<cm_CreateShortcut>", T("act.TotalCommander.cm_CreateShortcut"))
+    RegisterAction("<cm_CustomColumnConfig>", T("act.TotalCommander.cm_CustomColumnConfig"))
+    RegisterAction("<cm_CustomColumnDlg>", T("act.TotalCommander.cm_CustomColumnDlg"))
+    RegisterAction("<cm_CutToClipboard>", T("act.TotalCommander.cm_CutToClipboard"))
+    RegisterAction("<cm_Decode>", T("act.TotalCommander.cm_Decode"))
+    RegisterAction("<cm_Delete>", T("act.TotalCommander.cm_Delete"))
+    RegisterAction("<cm_DirBranch>", T("act.TotalCommander.cm_DirBranch"))
+    RegisterAction("<cm_DirBranchSel>", T("act.TotalCommander.cm_DirBranchSel"))
+    RegisterAction("<cm_DirectCableConnect>", T("act.TotalCommander.cm_DirectCableConnect"))
+    RegisterAction("<cm_DirectoryHistory>", T("act.TotalCommander.cm_DirectoryHistory"))
+    RegisterAction("<cm_DirectoryHotlist>", T("act.TotalCommander.cm_DirectoryHotlist"))
+    RegisterAction("<cm_DirMatch>", T("act.TotalCommander.cm_DirMatch"))
+    RegisterAction("<cm_DirTabsConfig>", T("act.TotalCommander.cm_DirTabsConfig"))
+    RegisterAction("<cm_DirTabsShowMenu>", T("act.TotalCommander.cm_DirTabsShowMenu"))
+    RegisterAction("<cm_DisplayConfig>", T("act.TotalCommander.cm_DisplayConfig"))
+    RegisterAction("<cm_Edit>", T("act.TotalCommander.cm_Edit"))
+    RegisterAction("<cm_EditAuditInfo>", T("act.TotalCommander.cm_EditAuditInfo"))
+    RegisterAction("<cm_EditComment>", T("act.TotalCommander.cm_EditComment"))
+    RegisterAction("<cm_EditConfig>", T("act.TotalCommander.cm_EditConfig"))
+    RegisterAction("<cm_EditOwnerInfo>", T("act.TotalCommander.cm_EditOwnerInfo"))
+    RegisterAction("<cm_EditPath>", T("act.TotalCommander.cm_EditPath"))
+    RegisterAction("<cm_EditPermissionInfo>", T("act.TotalCommander.cm_EditPermissionInfo"))
+    RegisterAction("<cm_Encode>", T("act.TotalCommander.cm_Encode"))
+    RegisterAction("<cm_Exchange>", T("act.TotalCommander.cm_Exchange"))
+    RegisterAction("<cm_ExchangeSelBoth>", T("act.TotalCommander.cm_ExchangeSelBoth"))
+    RegisterAction("<cm_ExchangeSelection>", T("act.TotalCommander.cm_ExchangeSelection"))
+    RegisterAction("<cm_ExchangeSelFiles>", T("act.TotalCommander.cm_ExchangeSelFiles"))
+    RegisterAction("<cm_ExchangeSelFolders>", T("act.TotalCommander.cm_ExchangeSelFolders"))
+    RegisterAction("<cm_ExchangeWithTabs>", T("act.TotalCommander.cm_ExchangeWithTabs"))
+    RegisterAction("<cm_ExecuteDOS>", T("act.TotalCommander.cm_ExecuteDOS"))
+    RegisterAction("<cm_Exit>", T("act.TotalCommander.cm_Exit"))
+    RegisterAction("<cm_FileSync>", T("act.TotalCommander.cm_FileSync"))
+    RegisterAction("<cm_FocusButtonBar>", T("act.TotalCommander.cm_FocusButtonBar"))
+    RegisterAction("<cm_FocusCmdLine>", T("act.TotalCommander.cm_FocusCmdLine"))
+    RegisterAction("<cm_FocusLeft>", T("act.TotalCommander.cm_FocusLeft"))
+    RegisterAction("<cm_FocusRight>", T("act.TotalCommander.cm_FocusRight"))
+    RegisterAction("<cm_FocusSrc>", T("act.TotalCommander.cm_FocusSrc"))
+    RegisterAction("<cm_FocusTrg>", T("act.TotalCommander.cm_FocusTrg"))
+    RegisterAction("<cm_FontConfig>", T("act.TotalCommander.cm_FontConfig"))
+    RegisterAction("<cm_FtpAbort>", T("act.TotalCommander.cm_FtpAbort"))
+    RegisterAction("<cm_FtpAddToList>", T("act.TotalCommander.cm_FtpAddToList"))
+    RegisterAction("<cm_FtpConfig>", T("act.TotalCommander.cm_FtpConfig"))
+    RegisterAction("<cm_FtpConnect>", T("act.TotalCommander.cm_FtpConnect"))
+    RegisterAction("<cm_FtpDisconnect>", T("act.TotalCommander.cm_FtpDisconnect"))
+    RegisterAction("<cm_FtpDownloadList>", T("act.TotalCommander.cm_FtpDownloadList"))
+    RegisterAction("<cm_FtpHiddenFiles>", T("act.TotalCommander.cm_FtpHiddenFiles"))
+    RegisterAction("<cm_FtpNew>", T("act.TotalCommander.cm_FtpNew"))
+    RegisterAction("<cm_FtpResumeDownload>", T("act.TotalCommander.cm_FtpResumeDownload"))
+    RegisterAction("<cm_FtpSelectTransferMode>", T("act.TotalCommander.cm_FtpSelectTransferMode"))
+    RegisterAction("<cm_GetFileSpace>", T("act.TotalCommander.cm_GetFileSpace"))
+    RegisterAction("<cm_GoToDir>", T("act.TotalCommander.cm_GoToDir"))
+    RegisterAction("<cm_GotoDriveA>", T("act.TotalCommander.cm_GotoDriveA"))
+    RegisterAction("<cm_GotoDriveC>", T("act.TotalCommander.cm_GotoDriveC"))
+    RegisterAction("<cm_GotoDriveD>", T("act.TotalCommander.cm_GotoDriveD"))
+    RegisterAction("<cm_GotoDriveE>", T("act.TotalCommander.cm_GotoDriveE"))
+    RegisterAction("<cm_GotoDriveF>", T("act.TotalCommander.cm_GotoDriveF"))
+    RegisterAction("<cm_GotoDriveZ>", T("act.TotalCommander.cm_GotoDriveZ"))
+    RegisterAction("<cm_GoToFirstEntry>", T("act.TotalCommander.cm_GoToFirstEntry"))
+    RegisterAction("<cm_GoToFirstFile>", T("act.TotalCommander.cm_GoToFirstFile"))
+    RegisterAction("<cm_GoToLockedDir>", T("act.TotalCommander.cm_GoToLockedDir"))
+    RegisterAction("<cm_GotoNextDir>", T("act.TotalCommander.cm_GotoNextDir"))
+    RegisterAction("<cm_GotoNextDrive>", T("act.TotalCommander.cm_GotoNextDrive"))
+    RegisterAction("<cm_GotoNextLocalDir>", T("act.TotalCommander.cm_GotoNextLocalDir"))
+    RegisterAction("<cm_GotoNextSelected>", T("act.TotalCommander.cm_GotoNextSelected"))
+    RegisterAction("<cm_GoToParent>", T("act.TotalCommander.cm_GoToParent"))
+    RegisterAction("<cm_GotoPreviousDir>", T("act.TotalCommander.cm_GotoPreviousDir"))
+    RegisterAction("<cm_GotoPreviousDrive>", T("act.TotalCommander.cm_GotoPreviousDrive"))
+    RegisterAction("<cm_GotoPreviousLocalDir>", T("act.TotalCommander.cm_GotoPreviousLocalDir"))
+    RegisterAction("<cm_GotoPrevSelected>", T("act.TotalCommander.cm_GotoPrevSelected"))
+    RegisterAction("<cm_GoToRoot>", T("act.TotalCommander.cm_GoToRoot"))
+    RegisterAction("<cm_HelpIndex>", T("act.TotalCommander.cm_HelpIndex"))
+    RegisterAction("<cm_IconConfig>", T("act.TotalCommander.cm_IconConfig"))
+    RegisterAction("<cm_IgnoreConfig>", T("act.TotalCommander.cm_IgnoreConfig"))
+    RegisterAction("<cm_IntCompareFilesByContent>", T("act.TotalCommander.cm_IntCompareFilesByContent"))
+    RegisterAction("<cm_InternalAssociate>", T("act.TotalCommander.cm_InternalAssociate"))
+    RegisterAction("<cm_Keyboard>", T("act.TotalCommander.cm_Keyboard"))
+    RegisterAction("<cm_LanguageConfig>", T("act.TotalCommander.cm_LanguageConfig"))
+    RegisterAction("<cm_LeftActivateTab1>", T("act.TotalCommander.cm_LeftActivateTab1"))
+    RegisterAction("<cm_LeftActivateTab10>", T("act.TotalCommander.cm_LeftActivateTab10"))
+    RegisterAction("<cm_LeftActivateTab2>", T("act.TotalCommander.cm_LeftActivateTab2"))
+    RegisterAction("<cm_LeftActivateTab3>", T("act.TotalCommander.cm_LeftActivateTab3"))
+    RegisterAction("<cm_LeftActivateTab4>", T("act.TotalCommander.cm_LeftActivateTab4"))
+    RegisterAction("<cm_LeftActivateTab5>", T("act.TotalCommander.cm_LeftActivateTab5"))
+    RegisterAction("<cm_LeftActivateTab6>", T("act.TotalCommander.cm_LeftActivateTab6"))
+    RegisterAction("<cm_LeftActivateTab7>", T("act.TotalCommander.cm_LeftActivateTab7"))
+    RegisterAction("<cm_LeftActivateTab8>", T("act.TotalCommander.cm_LeftActivateTab8"))
+    RegisterAction("<cm_LeftActivateTab9>", T("act.TotalCommander.cm_LeftActivateTab9"))
+    RegisterAction("<cm_LeftAllFiles>", T("act.TotalCommander.cm_LeftAllFiles"))
+    RegisterAction("<cm_LeftByDateTime>", T("act.TotalCommander.cm_LeftByDateTime"))
+    RegisterAction("<cm_LeftByExt>", T("act.TotalCommander.cm_LeftByExt"))
+    RegisterAction("<cm_LeftByName>", T("act.TotalCommander.cm_LeftByName"))
+    RegisterAction("<cm_LeftBySize>", T("act.TotalCommander.cm_LeftBySize"))
+    RegisterAction("<cm_LeftComments>", T("act.TotalCommander.cm_LeftComments"))
+    RegisterAction("<cm_LeftCustomView1>", T("act.TotalCommander.cm_LeftCustomView1"))
+    RegisterAction("<cm_LeftCustomView10>", T("act.TotalCommander.cm_LeftCustomView10"))
+    RegisterAction("<cm_LeftCustomView2>", T("act.TotalCommander.cm_LeftCustomView2"))
+    RegisterAction("<cm_LeftCustomView3>", T("act.TotalCommander.cm_LeftCustomView3"))
+    RegisterAction("<cm_LeftCustomView4>", T("act.TotalCommander.cm_LeftCustomView4"))
+    RegisterAction("<cm_LeftCustomView5>", T("act.TotalCommander.cm_LeftCustomView5"))
+    RegisterAction("<cm_LeftCustomView6>", T("act.TotalCommander.cm_LeftCustomView6"))
+    RegisterAction("<cm_LeftCustomView7>", T("act.TotalCommander.cm_LeftCustomView7"))
+    RegisterAction("<cm_LeftCustomView8>", T("act.TotalCommander.cm_LeftCustomView8"))
+    RegisterAction("<cm_LeftCustomView9>", T("act.TotalCommander.cm_LeftCustomView9"))
+    RegisterAction("<cm_LeftCustomViewMenu>", T("act.TotalCommander.cm_LeftCustomViewMenu"))
+    RegisterAction("<cm_LeftDirBranch>", T("act.TotalCommander.cm_LeftDirBranch"))
+    RegisterAction("<cm_LeftDirBranchSel>", T("act.TotalCommander.cm_LeftDirBranchSel"))
+    RegisterAction("<cm_LeftExecs>", T("act.TotalCommander.cm_LeftExecs"))
+    RegisterAction("<cm_LeftHideQuickview>", T("act.TotalCommander.cm_LeftHideQuickview"))
+    RegisterAction("<cm_LeftLong>", T("act.TotalCommander.cm_LeftLong"))
+    RegisterAction("<cm_LeftNegOrder>", T("act.TotalCommander.cm_LeftNegOrder"))
+    RegisterAction("<cm_LeftNextCustomView>", T("act.TotalCommander.cm_LeftNextCustomView"))
+    RegisterAction("<cm_LeftOpenDrives>", T("act.TotalCommander.cm_LeftOpenDrives"))
+    RegisterAction("<cm_LeftPathFocus>", T("act.TotalCommander.cm_LeftPathFocus"))
+    RegisterAction("<cm_LeftPrevCustomView>", T("act.TotalCommander.cm_LeftPrevCustomView"))
+    RegisterAction("<cm_LeftQuickInternalOnly>", T("act.TotalCommander.cm_LeftQuickInternalOnly"))
+    RegisterAction("<cm_LeftQuickview>", T("act.TotalCommander.cm_LeftQuickview"))
+    RegisterAction("<cm_LeftShort>", T("act.TotalCommander.cm_LeftShort"))
+    RegisterAction("<cm_LeftSortByCol1>", T("act.TotalCommander.cm_LeftSortByCol1"))
+    RegisterAction("<cm_LeftSortByCol10>", T("act.TotalCommander.cm_LeftSortByCol10"))
+    RegisterAction("<cm_LeftSortByCol2>", T("act.TotalCommander.cm_LeftSortByCol2"))
+    RegisterAction("<cm_LeftSortByCol3>", T("act.TotalCommander.cm_LeftSortByCol3"))
+    RegisterAction("<cm_LeftSortByCol4>", T("act.TotalCommander.cm_LeftSortByCol4"))
+    RegisterAction("<cm_LeftSortByCol5>", T("act.TotalCommander.cm_LeftSortByCol5"))
+    RegisterAction("<cm_LeftSortByCol6>", T("act.TotalCommander.cm_LeftSortByCol6"))
+    RegisterAction("<cm_LeftSortByCol7>", T("act.TotalCommander.cm_LeftSortByCol7"))
+    RegisterAction("<cm_LeftSortByCol8>", T("act.TotalCommander.cm_LeftSortByCol8"))
+    RegisterAction("<cm_LeftSortByCol9>", T("act.TotalCommander.cm_LeftSortByCol9"))
+    RegisterAction("<cm_LeftThumbs>", T("act.TotalCommander.cm_LeftThumbs"))
+    RegisterAction("<cm_LeftTree>", T("act.TotalCommander.cm_LeftTree"))
+    RegisterAction("<cm_LeftUnsorted>", T("act.TotalCommander.cm_LeftUnsorted"))
+    RegisterAction("<cm_LeftUserDef>", T("act.TotalCommander.cm_LeftUserDef"))
+    RegisterAction("<cm_LeftUserSpec>", T("act.TotalCommander.cm_LeftUserSpec"))
+    RegisterAction("<cm_List>", T("act.TotalCommander.cm_List"))
+    RegisterAction("<cm_ListInternalOnly>", T("act.TotalCommander.cm_ListInternalOnly"))
+    RegisterAction("<cm_LoadAllOnDemandFields>", T("act.TotalCommander.cm_LoadAllOnDemandFields"))
+    RegisterAction("<cm_LoadSelectionFromClip>", T("act.TotalCommander.cm_LoadSelectionFromClip"))
+    RegisterAction("<cm_LoadSelectionFromFile>", T("act.TotalCommander.cm_LoadSelectionFromFile"))
+    RegisterAction("<cm_LoadSelOnDemandFields>", T("act.TotalCommander.cm_LoadSelOnDemandFields"))
+    RegisterAction("<cm_LogConfig>", T("act.TotalCommander.cm_LogConfig"))
+    RegisterAction("<cm_MatchSrc>", T("act.TotalCommander.cm_MatchSrc"))
+    RegisterAction("<cm_Maximize>", T("act.TotalCommander.cm_Maximize"))
+    RegisterAction("<cm_Minimize>", T("act.TotalCommander.cm_Minimize"))
+    RegisterAction("<cm_MkDir>", T("act.TotalCommander.cm_MkDir"))
+    RegisterAction("<cm_MoveOnly>", T("act.TotalCommander.cm_MoveOnly"))
+    RegisterAction("<cm_MultiRenameFiles>", T("act.TotalCommander.cm_MultiRenameFiles"))
+    RegisterAction("<cm_NetConnect>", T("act.TotalCommander.cm_NetConnect"))
+    RegisterAction("<cm_NetDisconnect>", T("act.TotalCommander.cm_NetDisconnect"))
+    RegisterAction("<cm_NetShareDir>", T("act.TotalCommander.cm_NetShareDir"))
+    RegisterAction("<cm_NetUnshareDir>", T("act.TotalCommander.cm_NetUnshareDir"))
+    RegisterAction("<cm_NextCommand>", T("act.TotalCommander.cm_NextCommand"))
+    RegisterAction("<cm_NTinstallDriver>", T("act.TotalCommander.cm_NTinstallDriver"))
+    RegisterAction("<cm_NTremoveDriver>", T("act.TotalCommander.cm_NTremoveDriver"))
+    RegisterAction("<cm_OpenAsUser>", T("act.TotalCommander.cm_OpenAsUser"))
+    RegisterAction("<cm_OpenControls>", T("act.TotalCommander.cm_OpenControls"))
+    RegisterAction("<cm_OpenDesktop>", T("act.TotalCommander.cm_OpenDesktop"))
+    RegisterAction("<cm_OpenDirInNewTab>", T("act.TotalCommander.cm_OpenDirInNewTab"))
+    RegisterAction("<cm_OpenDirInNewTabOther>", T("act.TotalCommander.cm_OpenDirInNewTabOther"))
+    RegisterAction("<cm_OpenDrives>", T("act.TotalCommander.cm_OpenDrives"))
+    RegisterAction("<cm_OpenFonts>", T("act.TotalCommander.cm_OpenFonts"))
+    RegisterAction("<cm_OpenNetwork>", T("act.TotalCommander.cm_OpenNetwork"))
+    RegisterAction("<cm_OpenNewTab>", T("act.TotalCommander.cm_OpenNewTab"))
+    RegisterAction("<cm_OpenNewTabBg>", T("act.TotalCommander.cm_OpenNewTabBg"))
+    RegisterAction("<cm_OpenPrinters>", T("act.TotalCommander.cm_OpenPrinters"))
+    RegisterAction("<cm_OpenRecycled>", T("act.TotalCommander.cm_OpenRecycled"))
+    RegisterAction("<cm_OpenTransferManager>", T("act.TotalCommander.cm_OpenTransferManager"))
+    RegisterAction("<cm_PackerConfig>", T("act.TotalCommander.cm_PackerConfig"))
+    RegisterAction("<cm_PackFiles>", T("act.TotalCommander.cm_PackFiles"))
+    RegisterAction("<cm_PasteFromClipboard>", T("act.TotalCommander.cm_PasteFromClipboard"))
+    RegisterAction("<cm_PluginsConfig>", T("act.TotalCommander.cm_PluginsConfig"))
+    RegisterAction("<cm_PrevCommand>", T("act.TotalCommander.cm_PrevCommand"))
+    RegisterAction("<cm_PrintDir>", T("act.TotalCommander.cm_PrintDir"))
+    RegisterAction("<cm_PrintDirSub>", T("act.TotalCommander.cm_PrintDirSub"))
+    RegisterAction("<cm_PrintFile>", T("act.TotalCommander.cm_PrintFile"))
+    RegisterAction("<cm_Properties>", T("act.TotalCommander.cm_Properties"))
+    RegisterAction("<cm_QuickSearchConfig>", T("act.TotalCommander.cm_QuickSearchConfig"))
+    RegisterAction("<cm_RefreshConfig>", T("act.TotalCommander.cm_RefreshConfig"))
+    RegisterAction("<cm_Register>", T("act.TotalCommander.cm_Register"))
+    RegisterAction("<cm_ReloadSelThumbs>", T("act.TotalCommander.cm_ReloadSelThumbs"))
+    RegisterAction("<cm_RenameOnly>", T("act.TotalCommander.cm_RenameOnly"))
+    RegisterAction("<cm_RenameSingleFile>", T("act.TotalCommander.cm_RenameSingleFile"))
+    RegisterAction("<cm_RenMov>", T("act.TotalCommander.cm_RenMov"))
+    RegisterAction("<cm_RereadSource>", T("act.TotalCommander.cm_RereadSource"))
+    RegisterAction("<cm_Restore>", T("act.TotalCommander.cm_Restore"))
+    RegisterAction("<cm_RestoreSelection>", T("act.TotalCommander.cm_RestoreSelection"))
+    RegisterAction("<cm_Return>", T("act.TotalCommander.cm_Return"))
+    RegisterAction("<cm_RightActivateTab1>", T("act.TotalCommander.cm_RightActivateTab1"))
+    RegisterAction("<cm_RightActivateTab10>", T("act.TotalCommander.cm_RightActivateTab10"))
+    RegisterAction("<cm_RightActivateTab2>", T("act.TotalCommander.cm_RightActivateTab2"))
+    RegisterAction("<cm_RightActivateTab3>", T("act.TotalCommander.cm_RightActivateTab3"))
+    RegisterAction("<cm_RightActivateTab4>", T("act.TotalCommander.cm_RightActivateTab4"))
+    RegisterAction("<cm_RightActivateTab5>", T("act.TotalCommander.cm_RightActivateTab5"))
+    RegisterAction("<cm_RightActivateTab6>", T("act.TotalCommander.cm_RightActivateTab6"))
+    RegisterAction("<cm_RightActivateTab7>", T("act.TotalCommander.cm_RightActivateTab7"))
+    RegisterAction("<cm_RightActivateTab8>", T("act.TotalCommander.cm_RightActivateTab8"))
+    RegisterAction("<cm_RightActivateTab9>", T("act.TotalCommander.cm_RightActivateTab9"))
+    RegisterAction("<cm_RightAllFile>", T("act.TotalCommander.cm_RightAllFile"))
+    RegisterAction("<cm_RightByDateTim>", T("act.TotalCommander.cm_RightByDateTim"))
+    RegisterAction("<cm_RightByEx>", T("act.TotalCommander.cm_RightByEx"))
+    RegisterAction("<cm_RightByNam>", T("act.TotalCommander.cm_RightByNam"))
+    RegisterAction("<cm_RightBySiz>", T("act.TotalCommander.cm_RightBySiz"))
+    RegisterAction("<cm_RightComments>", T("act.TotalCommander.cm_RightComments"))
+    RegisterAction("<cm_RightCustomView1>", T("act.TotalCommander.cm_RightCustomView1"))
+    RegisterAction("<cm_RightCustomView10>", T("act.TotalCommander.cm_RightCustomView10"))
+    RegisterAction("<cm_RightCustomView2>", T("act.TotalCommander.cm_RightCustomView2"))
+    RegisterAction("<cm_RightCustomView3>", T("act.TotalCommander.cm_RightCustomView3"))
+    RegisterAction("<cm_RightCustomView4>", T("act.TotalCommander.cm_RightCustomView4"))
+    RegisterAction("<cm_RightCustomView5>", T("act.TotalCommander.cm_RightCustomView5"))
+    RegisterAction("<cm_RightCustomView6>", T("act.TotalCommander.cm_RightCustomView6"))
+    RegisterAction("<cm_RightCustomView7>", T("act.TotalCommander.cm_RightCustomView7"))
+    RegisterAction("<cm_RightCustomView8>", T("act.TotalCommander.cm_RightCustomView8"))
+    RegisterAction("<cm_RightCustomView9>", T("act.TotalCommander.cm_RightCustomView9"))
+    RegisterAction("<cm_RightCustomViewMen>", T("act.TotalCommander.cm_RightCustomViewMen"))
+    RegisterAction("<cm_RightDirBranch>", T("act.TotalCommander.cm_RightDirBranch"))
+    RegisterAction("<cm_RightDirBranchSel>", T("act.TotalCommander.cm_RightDirBranchSel"))
+    RegisterAction("<cm_RightExec>", T("act.TotalCommander.cm_RightExec"))
+    RegisterAction("<cm_RightHideQuickvie>", T("act.TotalCommander.cm_RightHideQuickvie"))
+    RegisterAction("<cm_RightLong>", T("act.TotalCommander.cm_RightLong"))
+    RegisterAction("<cm_RightNegOrde>", T("act.TotalCommander.cm_RightNegOrde"))
+    RegisterAction("<cm_RightNextCustomView>", T("act.TotalCommander.cm_RightNextCustomView"))
+    RegisterAction("<cm_RightOpenDrives>", T("act.TotalCommander.cm_RightOpenDrives"))
+    RegisterAction("<cm_RightPathFocu>", T("act.TotalCommander.cm_RightPathFocu"))
+    RegisterAction("<cm_RightPrevCustomView>", T("act.TotalCommander.cm_RightPrevCustomView"))
+    RegisterAction("<cm_RightQuickInternalOnl>", T("act.TotalCommander.cm_RightQuickInternalOnl"))
+    RegisterAction("<cm_RightQuickvie>", T("act.TotalCommander.cm_RightQuickvie"))
+    RegisterAction("<cm_RightShort>", T("act.TotalCommander.cm_RightShort"))
+    RegisterAction("<cm_RightSortByCol1>", T("act.TotalCommander.cm_RightSortByCol1"))
+    RegisterAction("<cm_RightSortByCol10>", T("act.TotalCommander.cm_RightSortByCol10"))
+    RegisterAction("<cm_RightSortByCol2>", T("act.TotalCommander.cm_RightSortByCol2"))
+    RegisterAction("<cm_RightSortByCol3>", T("act.TotalCommander.cm_RightSortByCol3"))
+    RegisterAction("<cm_RightSortByCol4>", T("act.TotalCommander.cm_RightSortByCol4"))
+    RegisterAction("<cm_RightSortByCol5>", T("act.TotalCommander.cm_RightSortByCol5"))
+    RegisterAction("<cm_RightSortByCol6>", T("act.TotalCommander.cm_RightSortByCol6"))
+    RegisterAction("<cm_RightSortByCol7>", T("act.TotalCommander.cm_RightSortByCol7"))
+    RegisterAction("<cm_RightSortByCol8>", T("act.TotalCommander.cm_RightSortByCol8"))
+    RegisterAction("<cm_RightSortByCol9>", T("act.TotalCommander.cm_RightSortByCol9"))
+    RegisterAction("<cm_RightThumb>", T("act.TotalCommander.cm_RightThumb"))
+    RegisterAction("<cm_RightTree>", T("act.TotalCommander.cm_RightTree"))
+    RegisterAction("<cm_RightUnsorte>", T("act.TotalCommander.cm_RightUnsorte"))
+    RegisterAction("<cm_RightUserDe>", T("act.TotalCommander.cm_RightUserDe"))
+    RegisterAction("<cm_RightUserSpe>", T("act.TotalCommander.cm_RightUserSpe"))
+    RegisterAction("<cm_SaveDetailsToFile>", T("act.TotalCommander.cm_SaveDetailsToFile"))
+    RegisterAction("<cm_SaveDetailsToFileA>", T("act.TotalCommander.cm_SaveDetailsToFileA"))
+    RegisterAction("<cm_SaveDetailsToFileW>", T("act.TotalCommander.cm_SaveDetailsToFileW"))
+    RegisterAction("<cm_SaveSelection>", T("act.TotalCommander.cm_SaveSelection"))
+    RegisterAction("<cm_SaveSelectionToFile>", T("act.TotalCommander.cm_SaveSelectionToFile"))
+    RegisterAction("<cm_SaveSelectionToFileA>", T("act.TotalCommander.cm_SaveSelectionToFileA"))
+    RegisterAction("<cm_SaveSelectionToFileW>", T("act.TotalCommander.cm_SaveSelectionToFileW"))
+    RegisterAction("<cm_SearchFor>", T("act.TotalCommander.cm_SearchFor"))
+    RegisterAction("<cm_SearchStandalone>", T("act.TotalCommander.cm_SearchStandalone"))
+    RegisterAction("<cm_SelectAll>", T("act.TotalCommander.cm_SelectAll"))
+    RegisterAction("<cm_SelectAllBoth>", T("act.TotalCommander.cm_SelectAllBoth"))
+    RegisterAction("<cm_SelectAllFiles>", T("act.TotalCommander.cm_SelectAllFiles"))
+    RegisterAction("<cm_SelectAllFolders>", T("act.TotalCommander.cm_SelectAllFolders"))
+    RegisterAction("<cm_SelectBoth>", T("act.TotalCommander.cm_SelectBoth"))
+    RegisterAction("<cm_SelectCurrentExtension>", T("act.TotalCommander.cm_SelectCurrentExtension"))
+    RegisterAction("<cm_SelectCurrentName>", T("act.TotalCommander.cm_SelectCurrentName"))
+    RegisterAction("<cm_SelectCurrentNameExt>", T("act.TotalCommander.cm_SelectCurrentNameExt"))
+    RegisterAction("<cm_SelectCurrentPath>", T("act.TotalCommander.cm_SelectCurrentPath"))
+    RegisterAction("<cm_SelectFiles>", T("act.TotalCommander.cm_SelectFiles"))
+    RegisterAction("<cm_SelectFolders>", T("act.TotalCommander.cm_SelectFolders"))
+    RegisterAction("<cm_SeparateTree1>", T("act.TotalCommander.cm_SeparateTree1"))
+    RegisterAction("<cm_SeparateTree2>", T("act.TotalCommander.cm_SeparateTree2"))
+    RegisterAction("<cm_SeparateTreeOff>", T("act.TotalCommander.cm_SeparateTreeOff"))
+    RegisterAction("<cm_SetAttrib>", T("act.TotalCommander.cm_SetAttrib"))
+    RegisterAction("<cm_ShowFileUser>", T("act.TotalCommander.cm_ShowFileUser"))
+    RegisterAction("<cm_ShowHint>", T("act.TotalCommander.cm_ShowHint"))
+    RegisterAction("<cm_ShowOnlySelected>", T("act.TotalCommander.cm_ShowOnlySelected"))
+    RegisterAction("<cm_ShowQuickSearch>", T("act.TotalCommander.cm_ShowQuickSearch"))
+    RegisterAction("<cm_ShowRemoteMenu>", T("act.TotalCommander.cm_ShowRemoteMenu"))
+    RegisterAction("<cm_ShrinkSelection>", T("act.TotalCommander.cm_ShrinkSelection"))
+    RegisterAction("<cm_Split>", T("act.TotalCommander.cm_Split"))
+    RegisterAction("<cm_SpreadSelection>", T("act.TotalCommander.cm_SpreadSelection"))
+    RegisterAction("<cm_SrcActivateTab1>", T("act.TotalCommander.cm_SrcActivateTab1"))
+    RegisterAction("<cm_SrcActivateTab10>", T("act.TotalCommander.cm_SrcActivateTab10"))
+    RegisterAction("<cm_SrcActivateTab2>", T("act.TotalCommander.cm_SrcActivateTab2"))
+    RegisterAction("<cm_SrcActivateTab3>", T("act.TotalCommander.cm_SrcActivateTab3"))
+    RegisterAction("<cm_SrcActivateTab4>", T("act.TotalCommander.cm_SrcActivateTab4"))
+    RegisterAction("<cm_SrcActivateTab5>", T("act.TotalCommander.cm_SrcActivateTab5"))
+    RegisterAction("<cm_SrcActivateTab6>", T("act.TotalCommander.cm_SrcActivateTab6"))
+    RegisterAction("<cm_SrcActivateTab7>", T("act.TotalCommander.cm_SrcActivateTab7"))
+    RegisterAction("<cm_SrcActivateTab8>", T("act.TotalCommander.cm_SrcActivateTab8"))
+    RegisterAction("<cm_SrcActivateTab9>", T("act.TotalCommander.cm_SrcActivateTab9"))
+    RegisterAction("<cm_SrcAllFiles>", T("act.TotalCommander.cm_SrcAllFiles"))
+    RegisterAction("<cm_SrcByDateTime>", T("act.TotalCommander.cm_SrcByDateTime"))
+    RegisterAction("<cm_SrcByExt>", T("act.TotalCommander.cm_SrcByExt"))
+    RegisterAction("<cm_SrcByName>", T("act.TotalCommander.cm_SrcByName"))
+    RegisterAction("<cm_SrcBySize>", T("act.TotalCommander.cm_SrcBySize"))
+    RegisterAction("<cm_SrcComments>", T("act.TotalCommander.cm_SrcComments"))
+    RegisterAction("<cm_SrcCustomView1>", T("act.TotalCommander.cm_SrcCustomView1"))
+    RegisterAction("<cm_SrcCustomView10>", T("act.TotalCommander.cm_SrcCustomView10"))
+    RegisterAction("<cm_SrcCustomView2>", T("act.TotalCommander.cm_SrcCustomView2"))
+    RegisterAction("<cm_SrcCustomView3>", T("act.TotalCommander.cm_SrcCustomView3"))
+    RegisterAction("<cm_SrcCustomView4>", T("act.TotalCommander.cm_SrcCustomView4"))
+    RegisterAction("<cm_SrcCustomView5>", T("act.TotalCommander.cm_SrcCustomView5"))
+    RegisterAction("<cm_SrcCustomView6>", T("act.TotalCommander.cm_SrcCustomView6"))
+    RegisterAction("<cm_SrcCustomView7>", T("act.TotalCommander.cm_SrcCustomView7"))
+    RegisterAction("<cm_SrcCustomView8>", T("act.TotalCommander.cm_SrcCustomView8"))
+    RegisterAction("<cm_SrcCustomView9>", T("act.TotalCommander.cm_SrcCustomView9"))
+    RegisterAction("<cm_SrcCustomViewMenu>", T("act.TotalCommander.cm_SrcCustomViewMenu"))
+    RegisterAction("<cm_SrcExecs>", T("act.TotalCommander.cm_SrcExecs"))
+    RegisterAction("<cm_SrcHideQuickview>", T("act.TotalCommander.cm_SrcHideQuickview"))
+    RegisterAction("<cm_SrcLong>", T("act.TotalCommander.cm_SrcLong"))
+    RegisterAction("<cm_SrcNegOrder>", T("act.TotalCommander.cm_SrcNegOrder"))
+    RegisterAction("<cm_SrcNextCustomView>", T("act.TotalCommander.cm_SrcNextCustomView"))
+    RegisterAction("<cm_SrcOpenDrives>", T("act.TotalCommander.cm_SrcOpenDrives"))
+    RegisterAction("<cm_SrcPathFocus>", T("act.TotalCommander.cm_SrcPathFocus"))
+    RegisterAction("<cm_SrcPrevCustomView>", T("act.TotalCommander.cm_SrcPrevCustomView"))
+    RegisterAction("<cm_SrcQuickInternalOnly>", T("act.TotalCommander.cm_SrcQuickInternalOnly"))
+    RegisterAction("<cm_SrcQuickview>", T("act.TotalCommander.cm_SrcQuickview"))
+    RegisterAction("<cm_SrcShort>", T("act.TotalCommander.cm_SrcShort"))
+    RegisterAction("<cm_SrcSortByCol1>", T("act.TotalCommander.cm_SrcSortByCol1"))
+    RegisterAction("<cm_SrcSortByCol10>", T("act.TotalCommander.cm_SrcSortByCol10"))
+    RegisterAction("<cm_SrcSortByCol2>", T("act.TotalCommander.cm_SrcSortByCol2"))
+    RegisterAction("<cm_SrcSortByCol3>", T("act.TotalCommander.cm_SrcSortByCol3"))
+    RegisterAction("<cm_SrcSortByCol4>", T("act.TotalCommander.cm_SrcSortByCol4"))
+    RegisterAction("<cm_SrcSortByCol5>", T("act.TotalCommander.cm_SrcSortByCol5"))
+    RegisterAction("<cm_SrcSortByCol6>", T("act.TotalCommander.cm_SrcSortByCol6"))
+    RegisterAction("<cm_SrcSortByCol7>", T("act.TotalCommander.cm_SrcSortByCol7"))
+    RegisterAction("<cm_SrcSortByCol8>", T("act.TotalCommander.cm_SrcSortByCol8"))
+    RegisterAction("<cm_SrcSortByCol9>", T("act.TotalCommander.cm_SrcSortByCol9"))
+    RegisterAction("<cm_SrcThumbs>", T("act.TotalCommander.cm_SrcThumbs"))
+    RegisterAction("<cm_SrcTree>", T("act.TotalCommander.cm_SrcTree"))
+    RegisterAction("<cm_SrcUnsorted>", T("act.TotalCommander.cm_SrcUnsorted"))
+    RegisterAction("<cm_SrcUserDef>", T("act.TotalCommander.cm_SrcUserDef"))
+    RegisterAction("<cm_SrcUserSpec>", T("act.TotalCommander.cm_SrcUserSpec"))
+    RegisterAction("<cm_Switch83Names>", T("act.TotalCommander.cm_Switch83Names"))
+    RegisterAction("<cm_SwitchDirSort>", T("act.TotalCommander.cm_SwitchDirSort"))
+    RegisterAction("<cm_SwitchHidSys>", T("act.TotalCommander.cm_SwitchHidSys"))
+    RegisterAction("<cm_SwitchIgnoreList>", T("act.TotalCommander.cm_SwitchIgnoreList"))
+    RegisterAction("<cm_SwitchLongNames>", T("act.TotalCommander.cm_SwitchLongNames"))
+    RegisterAction("<cm_SwitchOverlayIcons>", T("act.TotalCommander.cm_SwitchOverlayIcons"))
+    RegisterAction("<cm_SwitchSeparateTree>", T("act.TotalCommander.cm_SwitchSeparateTree"))
+    RegisterAction("<cm_SwitchToNextTab>", T("act.TotalCommander.cm_SwitchToNextTab"))
+    RegisterAction("<cm_SwitchToPreviousTab>", T("act.TotalCommander.cm_SwitchToPreviousTab"))
+    RegisterAction("<cm_SwitchWatchDirs>", T("act.TotalCommander.cm_SwitchWatchDirs"))
+    RegisterAction("<cm_SwitchX64Redirection>", T("act.TotalCommander.cm_SwitchX64Redirection"))
+    RegisterAction("<cm_SyncChangeDir>", T("act.TotalCommander.cm_SyncChangeDir"))
+    RegisterAction("<cm_SysInfo>", T("act.TotalCommander.cm_SysInfo"))
+    RegisterAction("<cm_TestArchive>", T("act.TotalCommander.cm_TestArchive"))
+    RegisterAction("<cm_ThumbnailsConfig>", T("act.TotalCommander.cm_ThumbnailsConfig"))
+    RegisterAction("<cm_ToggleLockCurrentTab>", T("act.TotalCommander.cm_ToggleLockCurrentTab"))
+    RegisterAction("<cm_ToggleLockDcaCurrentTab>", T("act.TotalCommander.cm_ToggleLockDcaCurrentTab"))
+    RegisterAction("<cm_ToggleSeparateTree1>", T("act.TotalCommander.cm_ToggleSeparateTree1"))
+    RegisterAction("<cm_ToggleSeparateTree2>", T("act.TotalCommander.cm_ToggleSeparateTree2"))
+    RegisterAction("<cm_TransferLeft>", T("act.TotalCommander.cm_TransferLeft"))
+    RegisterAction("<cm_TransferRight>", T("act.TotalCommander.cm_TransferRight"))
+    RegisterAction("<cm_TrgActivateTab1>", T("act.TotalCommander.cm_TrgActivateTab1"))
+    RegisterAction("<cm_TrgActivateTab10>", T("act.TotalCommander.cm_TrgActivateTab10"))
+    RegisterAction("<cm_TrgActivateTab2>", T("act.TotalCommander.cm_TrgActivateTab2"))
+    RegisterAction("<cm_TrgActivateTab3>", T("act.TotalCommander.cm_TrgActivateTab3"))
+    RegisterAction("<cm_TrgActivateTab4>", T("act.TotalCommander.cm_TrgActivateTab4"))
+    RegisterAction("<cm_TrgActivateTab5>", T("act.TotalCommander.cm_TrgActivateTab5"))
+    RegisterAction("<cm_TrgActivateTab6>", T("act.TotalCommander.cm_TrgActivateTab6"))
+    RegisterAction("<cm_TrgActivateTab7>", T("act.TotalCommander.cm_TrgActivateTab7"))
+    RegisterAction("<cm_TrgActivateTab8>", T("act.TotalCommander.cm_TrgActivateTab8"))
+    RegisterAction("<cm_TrgActivateTab9>", T("act.TotalCommander.cm_TrgActivateTab9"))
+    RegisterAction("<cm_TrgNextCustomView>", T("act.TotalCommander.cm_TrgNextCustomView"))
+    RegisterAction("<cm_TrgPrevCustomView>", T("act.TotalCommander.cm_TrgPrevCustomView"))
+    RegisterAction("<cm_TrgSortByCol1>", T("act.TotalCommander.cm_TrgSortByCol1"))
+    RegisterAction("<cm_TrgSortByCol10>", T("act.TotalCommander.cm_TrgSortByCol10"))
+    RegisterAction("<cm_TrgSortByCol2>", T("act.TotalCommander.cm_TrgSortByCol2"))
+    RegisterAction("<cm_TrgSortByCol3>", T("act.TotalCommander.cm_TrgSortByCol3"))
+    RegisterAction("<cm_TrgSortByCol4>", T("act.TotalCommander.cm_TrgSortByCol4"))
+    RegisterAction("<cm_TrgSortByCol5>", T("act.TotalCommander.cm_TrgSortByCol5"))
+    RegisterAction("<cm_TrgSortByCol6>", T("act.TotalCommander.cm_TrgSortByCol6"))
+    RegisterAction("<cm_TrgSortByCol7>", T("act.TotalCommander.cm_TrgSortByCol7"))
+    RegisterAction("<cm_TrgSortByCol8>", T("act.TotalCommander.cm_TrgSortByCol8"))
+    RegisterAction("<cm_TrgSortByCol9>", T("act.TotalCommander.cm_TrgSortByCol9"))
+    RegisterAction("<cm_UnloadPlugins>", T("act.TotalCommander.cm_UnloadPlugins"))
+    RegisterAction("<cm_UnpackFiles>", T("act.TotalCommander.cm_UnpackFiles"))
+    RegisterAction("<cm_UnselectCurrentExtension>", T("act.TotalCommander.cm_UnselectCurrentExtension"))
+    RegisterAction("<cm_UnselectCurrentName>", T("act.TotalCommander.cm_UnselectCurrentName"))
+    RegisterAction("<cm_UnselectCurrentNameExt>", T("act.TotalCommander.cm_UnselectCurrentNameExt"))
+    RegisterAction("<cm_UnselectCurrentPath>", T("act.TotalCommander.cm_UnselectCurrentPath"))
+    RegisterAction("<cm_UserMenu1>", T("act.TotalCommander.cm_UserMenu1"))
+    RegisterAction("<cm_UserMenu10>", T("act.TotalCommander.cm_UserMenu10"))
+    RegisterAction("<cm_UserMenu2>", T("act.TotalCommander.cm_UserMenu2"))
+    RegisterAction("<cm_UserMenu3>", T("act.TotalCommander.cm_UserMenu3"))
+    RegisterAction("<cm_UserMenu4>", T("act.TotalCommander.cm_UserMenu4"))
+    RegisterAction("<cm_UserMenu5>", T("act.TotalCommander.cm_UserMenu5"))
+    RegisterAction("<cm_UserMenu6>", T("act.TotalCommander.cm_UserMenu6"))
+    RegisterAction("<cm_UserMenu7>", T("act.TotalCommander.cm_UserMenu7"))
+    RegisterAction("<cm_UserMenu8>", T("act.TotalCommander.cm_UserMenu8"))
+    RegisterAction("<cm_UserMenu9>", T("act.TotalCommander.cm_UserMenu9"))
+    RegisterAction("<cm_VersionInfo>", T("act.TotalCommander.cm_VersionInfo"))
+    RegisterAction("<cm_VerticalPanels>", T("act.TotalCommander.cm_VerticalPanels"))
+    RegisterAction("<cm_VisBreadCrumbs>", T("act.TotalCommander.cm_VisBreadCrumbs"))
+    RegisterAction("<cm_VisButtonbar>", T("act.TotalCommander.cm_VisButtonbar"))
+    RegisterAction("<cm_VisCmdLine>", T("act.TotalCommander.cm_VisCmdLine"))
+    RegisterAction("<cm_VisCurDir>", T("act.TotalCommander.cm_VisCurDir"))
+    RegisterAction("<cm_VisDirTabs>", T("act.TotalCommander.cm_VisDirTabs"))
+    RegisterAction("<cm_VisDriveButtons>", T("act.TotalCommander.cm_VisDriveButtons"))
+    RegisterAction("<cm_VisDriveCombo>", T("act.TotalCommander.cm_VisDriveCombo"))
+    RegisterAction("<cm_VisFlatDriveButtons>", T("act.TotalCommander.cm_VisFlatDriveButtons"))
+    RegisterAction("<cm_VisFlatInterface>", T("act.TotalCommander.cm_VisFlatInterface"))
+    RegisterAction("<cm_VisHistHotButtons>", T("act.TotalCommander.cm_VisHistHotButtons"))
+    RegisterAction("<cm_VisitHomepage>", T("act.TotalCommander.cm_VisitHomepage"))
+    RegisterAction("<cm_VisKeyButtons>", T("act.TotalCommander.cm_VisKeyButtons"))
+    RegisterAction("<cm_VisStatusbar>", T("act.TotalCommander.cm_VisStatusbar"))
+    RegisterAction("<cm_VisTabHeader>", T("act.TotalCommander.cm_VisTabHeader"))
+    RegisterAction("<cm_VisTwoDriveButtons>", T("act.TotalCommander.cm_VisTwoDriveButtons"))
+    RegisterAction("<cm_VisXPThemeBackground>", T("act.TotalCommander.cm_VisXPThemeBackground"))
+    RegisterAction("<cm_VolumeId>", T("act.TotalCommander.cm_VolumeId"))
+    RegisterAction("<cm_ZipPackerConfig>", T("act.TotalCommander.cm_ZipPackerConfig"))
+    RegisterAction("<TC_AlwayOnTop>", T("act.TotalCommander.TC_AlwayOnTop"))
+    RegisterAction("<TC_azHistory>", T("act.TotalCommander.TC_azHistory"))
+    RegisterAction("<TC_ClearTitle>", T("act.TotalCommander.TC_ClearTitle"))
+    RegisterAction("<TC_CopyDirectoryHotlist>", T("act.TotalCommander.TC_CopyDirectoryHotlist"))
+    RegisterAction("<TC_CopyFileContents>", T("act.TotalCommander.TC_CopyFileContents"))
+    RegisterAction("<TC_CopyNameOnly>", T("act.TotalCommander.TC_CopyNameOnly"))
+    RegisterAction("<TC_CopyUseQueues>", T("act.TotalCommander.TC_CopyUseQueues"))
+    RegisterAction("<TC_CreateBlankFile>", T("act.TotalCommander.TC_CreateBlankFile"))
+    RegisterAction("<TC_CreateBlankFileNoExt>", T("act.TotalCommander.TC_CreateBlankFileNoExt"))
+    RegisterAction("<TC_CreateFileShortcut>", T("act.TotalCommander.TC_CreateFileShortcut"))
+    RegisterAction("<TC_CreateFileShortcutToDesktop>", T("act.TotalCommander.TC_CreateFileShortcutToDesktop"))
+    RegisterAction("<TC_CreateFileShortcutToStartup>", T("act.TotalCommander.TC_CreateFileShortcutToStartup"))
+    RegisterAction("<TC_CreateNewFile>", T("act.TotalCommander.TC_CreateNewFile"))
+    RegisterAction("<TC_DownSelect>", T("act.TotalCommander.TC_DownSelect"))
+    RegisterAction("<TC_FileCopyForBak>", T("act.TotalCommander.TC_FileCopyForBak"))
+    RegisterAction("<TC_FileMoveForBak>", T("act.TotalCommander.TC_FileMoveForBak"))
+    RegisterAction("<TC_FilterSearchFNsuffix_exe>", T("act.TotalCommander.TC_FilterSearchFNsuffix_exe"))
+    RegisterAction("<TC_FocusTCCmd>", T("act.TotalCommander.TC_FocusTCCmd"))
+    RegisterAction("<TC_ForceDelete>", T("act.TotalCommander.TC_ForceDelete"))
+    RegisterAction("<TC_GoLastTab>", T("act.TotalCommander.TC_GoLastTab"))
+    RegisterAction("<TC_GotoLine>", T("act.TotalCommander.TC_GotoLine"))
+    RegisterAction("<TC_GotoNextDirOther>", T("act.TotalCommander.TC_GotoNextDirOther"))
+    RegisterAction("<TC_GoToParentEx>", T("act.TotalCommander.TC_GoToParentEx"))
+    RegisterAction("<TC_GotoPreviousDirOther>", T("act.TotalCommander.TC_GotoPreviousDirOther"))
+    RegisterAction("<TC_Half>", T("act.TotalCommander.TC_Half"))
+    RegisterAction("<TC_InsertMode>", T("act.TotalCommander.TC_InsertMode"))
+    RegisterAction("<TC_LastLine>", T("act.TotalCommander.TC_LastLine"))
+    RegisterAction("<TC_ListMark>", T("act.TotalCommander.TC_ListMark"))
+    RegisterAction("<TC_Mark>", T("act.TotalCommander.TC_Mark"))
+    RegisterAction("<TC_MarkFile>", T("act.TotalCommander.TC_MarkFile"))
+    RegisterAction("<TC_MoveAllFilesToPrevFolder>", T("act.TotalCommander.TC_MoveAllFilesToPrevFolder"))
+    RegisterAction("<TC_MoveDirectoryHotlist>", T("act.TotalCommander.TC_MoveDirectoryHotlist"))
+    RegisterAction("<TC_MoveSelectedFilesToPrevFolder>", T("act.TotalCommander.TC_MoveSelectedFilesToPrevFolder"))
+    RegisterAction("<TC_MoveUseQueues>", T("act.TotalCommander.TC_MoveUseQueues"))
+    RegisterAction("<TC_MultiFilePersistOpen>", T("act.TotalCommander.TC_MultiFilePersistOpen"))
+    RegisterAction("<TC_NormalMode>", T("act.TotalCommander.TC_NormalMode"))
+    RegisterAction("<TC_OpenDirAndPaste>", T("act.TotalCommander.TC_OpenDirAndPaste"))
+    RegisterAction("<TC_OpenDirsInFile>", T("act.TotalCommander.TC_OpenDirsInFile"))
+    RegisterAction("<TC_OpenDriveThat>", T("act.TotalCommander.TC_OpenDriveThat"))
+    RegisterAction("<TC_OpenDriveThis>", T("act.TotalCommander.TC_OpenDriveThis"))
+    RegisterAction("<TC_OpenWithAlternateViewer>", T("act.TotalCommander.TC_OpenWithAlternateViewer"))
+    RegisterAction("<TC_PasteFileEx>", T("act.TotalCommander.TC_PasteFileEx"))
+    RegisterAction("<TC_ReOpenTab>", T("act.TotalCommander.TC_ReOpenTab"))
+    RegisterAction("<TC_Restart>", T("act.TotalCommander.TC_Restart"))
+    RegisterAction("<TC_SearchMode>", T("act.TotalCommander.TC_SearchMode"))
+    RegisterAction("<TC_SelectCmd>", T("act.TotalCommander.TC_SelectCmd"))
+    RegisterAction("<TC_SrcQuickViewAndTab>", T("act.TotalCommander.TC_SrcQuickViewAndTab"))
+    RegisterAction("<TC_SuperReturn>", T("act.TotalCommander.TC_SuperReturn"))
+    RegisterAction("<TC_ThumbsView>", T("act.TotalCommander.TC_ThumbsView"))
+    RegisterAction("<TC_Toggle_50_100Percent_V>", T("act.TotalCommander.TC_Toggle_50_100Percent_V"))
+    RegisterAction("<TC_Toggle_50_100Percent>", T("act.TotalCommander.TC_Toggle_50_100Percent"))
+    RegisterAction("<TC_ToggleMenu>", T("act.TotalCommander.TC_ToggleMenu"))
+    RegisterAction("<TC_ToggleShowInfo>", T("act.TotalCommander.TC_ToggleShowInfo"))
+    RegisterAction("<TC_ToggleTC>", T("act.TotalCommander.TC_ToggleTC"))
+    RegisterAction("<TC_TwoFileExchangeName>", T("act.TotalCommander.TC_TwoFileExchangeName"))
+    RegisterAction("<TC_UnMarkFile>", T("act.TotalCommander.TC_UnMarkFile"))
+    RegisterAction("<TC_UpSelect>", T("act.TotalCommander.TC_UpSelect"))
+    RegisterAction("<TC_ViewFileUnderCursor>", T("act.TotalCommander.TC_ViewFileUnderCursor"))
+    RegisterAction("<TC_WinMaxLeft>", T("act.TotalCommander.TC_WinMaxLeft"))
+    RegisterAction("<TC_WinMaxRight>", T("act.TotalCommander.TC_WinMaxRight"))
     ; 注册窗口 (类名匹配, 不绑死进程名: 32 位 TOTALCMD.EXE / 64 位 TOTALCMD64.EXE 通吃)
     RegisterWin("TTOTAL_CMD", "TTOTAL_CMD", "")
     RegisterWin("TCQuickSearch", "TQUICKSEARCH", "")
@@ -1106,165 +1106,165 @@ RegisterPlugin_TotalCommander() {
     Rim.vim.SetBeforeActionDoForWin("TTOTAL_CMD", TC_BeforeActionDo)
 
     ; === 基础动作 ===
-    RegisterAction("<TC_NormalMode>", "返回正常模式")
-    RegisterAction("<TC_InsertMode>", "进入插入模式")
-    RegisterAction("<TC_ToggleTC>", "打开/激活TC")
-    RegisterAction("<TC_Restart>", "重启TC")
+    RegisterAction("<TC_NormalMode>", T("act.TotalCommander.TC_NormalMode"))
+    RegisterAction("<TC_InsertMode>", T("act.TotalCommander.TC_InsertMode"))
+    RegisterAction("<TC_ToggleTC>", T("act.TotalCommander.TC_ToggleTC"))
+    RegisterAction("<TC_Restart>", T("act.TotalCommander.TC_Restart_2"))
 
     ; === 导航 ===
-    RegisterAction("<TC_GoToParentEx>", "返回上层文件夹")
-    RegisterAction("<cm_GotoRoot>", "转到根目录")
-    RegisterAction("<cm_GotoPreviousDir>", "后退")
-    RegisterAction("<cm_GotoNextDir>", "前进")
-    RegisterAction("<TC_DownSelect>", "向下选择")
-    RegisterAction("<TC_UpSelect>", "向上选择")
-    RegisterAction("<TC_GotoLine>", "跳转到第N行")
-    RegisterAction("<TC_LastLine>", "跳转到最后一行")
-    RegisterAction("<TC_Half>", "跳到中间行")
+    RegisterAction("<TC_GoToParentEx>", T("act.TotalCommander.TC_GoToParentEx_2"))
+    RegisterAction("<cm_GotoRoot>", T("act.TotalCommander.cm_GotoRoot"))
+    RegisterAction("<cm_GotoPreviousDir>", T("act.TotalCommander.cm_GotoPreviousDir"))
+    RegisterAction("<cm_GotoNextDir>", T("act.TotalCommander.cm_GotoNextDir"))
+    RegisterAction("<TC_DownSelect>", T("act.TotalCommander.TC_DownSelect"))
+    RegisterAction("<TC_UpSelect>", T("act.TotalCommander.TC_UpSelect"))
+    RegisterAction("<TC_GotoLine>", T("act.TotalCommander.TC_GotoLine_2"))
+    RegisterAction("<TC_LastLine>", T("act.TotalCommander.TC_LastLine_2"))
+    RegisterAction("<TC_Half>", T("act.TotalCommander.TC_Half_2"))
 
     ; === 文件操作 ===
-    RegisterAction("<cm_CopyOtherpanel>", "复制到对侧")
-    RegisterAction("<cm_MoveOnly>", "移动到对侧")
-    RegisterAction("<cm_CopyToClipboard>", "复制到剪贴板")
-    RegisterAction("<cm_CutToClipboard>", "剪切到剪贴板")
-    RegisterAction("<cm_PasteFromClipboard>", "粘贴")
-    RegisterAction("<cm_Delete>", "删除")
-    RegisterAction("<cm_RenameOnly>", "重命名")
-    RegisterAction("<cm_MultiRenameFiles>", "批量重命名")
-    RegisterAction("<cm_MkDir>", "新建文件夹")
-    RegisterAction("<cm_Edit>", "编辑文件")
-    RegisterAction("<cm_View>", "查看文件")
-    RegisterAction("<cm_PackFiles>", "压缩文件")
-    RegisterAction("<cm_UnpackFiles>", "解压文件")
-    RegisterAction("<cm_CopyNamesToClip>", "复制文件名")
-    RegisterAction("<cm_CopyFullNamesToClip>", "复制完整路径")
-    RegisterAction("<cm_CopySrcPathToClip>", "复制源路径")
-    RegisterAction("<cm_CopyFileContents>", "复制文件内容")
+    RegisterAction("<cm_CopyOtherpanel>", T("act.TotalCommander.cm_CopyOtherpanel_2"))
+    RegisterAction("<cm_MoveOnly>", T("act.TotalCommander.cm_MoveOnly_2"))
+    RegisterAction("<cm_CopyToClipboard>", T("act.TotalCommander.cm_CopyToClipboard_2"))
+    RegisterAction("<cm_CutToClipboard>", T("act.TotalCommander.cm_CutToClipboard_2"))
+    RegisterAction("<cm_PasteFromClipboard>", T("act.TotalCommander.cm_PasteFromClipboard_2"))
+    RegisterAction("<cm_Delete>", T("act.TotalCommander.cm_Delete"))
+    RegisterAction("<cm_RenameOnly>", T("act.TotalCommander.cm_RenameOnly_2"))
+    RegisterAction("<cm_MultiRenameFiles>", T("act.TotalCommander.cm_MultiRenameFiles"))
+    RegisterAction("<cm_MkDir>", T("act.TotalCommander.cm_MkDir"))
+    RegisterAction("<cm_Edit>", T("act.TotalCommander.cm_Edit_2"))
+    RegisterAction("<cm_View>", T("act.TotalCommander.cm_View"))
+    RegisterAction("<cm_PackFiles>", T("act.TotalCommander.cm_PackFiles"))
+    RegisterAction("<cm_UnpackFiles>", T("act.TotalCommander.cm_UnpackFiles"))
+    RegisterAction("<cm_CopyNamesToClip>", T("act.TotalCommander.cm_CopyNamesToClip"))
+    RegisterAction("<cm_CopyFullNamesToClip>", T("act.TotalCommander.cm_CopyFullNamesToClip_2"))
+    RegisterAction("<cm_CopySrcPathToClip>", T("act.TotalCommander.cm_CopySrcPathToClip_2"))
+    RegisterAction("<cm_CopyFileContents>", T("act.TotalCommander.cm_CopyFileContents"))
 
     ; === 搜索 ===
-    RegisterAction("<cm_SearchFor>", "搜索")
-    RegisterAction("<cm_ShowQuickSearch>", "快速搜索")
+    RegisterAction("<cm_SearchFor>", T("act.TotalCommander.cm_SearchFor_2"))
+    RegisterAction("<cm_ShowQuickSearch>", T("act.TotalCommander.cm_ShowQuickSearch_2"))
 
     ; === 比较 ===
-    RegisterAction("<cm_CompareDirs>", "比较目录")
-    RegisterAction("<cm_CompareByContent>", "按内容比较")
-    RegisterAction("<cm_SyncDirs>", "同步目录")
+    RegisterAction("<cm_CompareDirs>", T("act.TotalCommander.cm_CompareDirs_2"))
+    RegisterAction("<cm_CompareByContent>", T("act.TotalCommander.cm_CompareByContent"))
+    RegisterAction("<cm_SyncDirs>", T("act.TotalCommander.cm_SyncDirs"))
 
     ; === 选择 ===
-    RegisterAction("<cm_SelectAll>", "全选")
-    RegisterAction("<cm_ExchangeSelection>", "反选")
-    RegisterAction("<cm_ProperCase>", "首字母大写")
-    RegisterAction("<cm_LowerCase>", "转小写")
-    RegisterAction("<cm_UpperCase>", "转大写")
+    RegisterAction("<cm_SelectAll>", T("act.TotalCommander.cm_SelectAll_2"))
+    RegisterAction("<cm_ExchangeSelection>", T("act.TotalCommander.cm_ExchangeSelection_2"))
+    RegisterAction("<cm_ProperCase>", T("act.TotalCommander.cm_ProperCase"))
+    RegisterAction("<cm_LowerCase>", T("act.TotalCommander.cm_LowerCase"))
+    RegisterAction("<cm_UpperCase>", T("act.TotalCommander.cm_UpperCase"))
 
     ; === 刷新 ===
-    RegisterAction("<cm_Refresh>", "刷新")
+    RegisterAction("<cm_Refresh>", T("act.TotalCommander.cm_Refresh"))
 
     ; === 标签页 ===
-    RegisterAction("<cm_OpenNewTab>", "新建标签")
-    RegisterAction("<cm_OpenNewTabBg>", "后台新建标签")
-    RegisterAction("<cm_SwitchToNextTab>", "下一个标签")
-    RegisterAction("<cm_SwitchToPreviousTab>", "上一个标签")
-    RegisterAction("<cm_CloseCurrentTab>", "关闭当前标签")
-    RegisterAction("<cm_CloseAllTabs>", "关闭所有标签")
-    RegisterAction("<cm_SrcGoToLastTab>", "跳到最后一个标签")
+    RegisterAction("<cm_OpenNewTab>", T("act.TotalCommander.cm_OpenNewTab"))
+    RegisterAction("<cm_OpenNewTabBg>", T("act.TotalCommander.cm_OpenNewTabBg_2"))
+    RegisterAction("<cm_SwitchToNextTab>", T("act.TotalCommander.cm_SwitchToNextTab_2"))
+    RegisterAction("<cm_SwitchToPreviousTab>", T("act.TotalCommander.cm_SwitchToPreviousTab_2"))
+    RegisterAction("<cm_CloseCurrentTab>", T("act.TotalCommander.cm_CloseCurrentTab"))
+    RegisterAction("<cm_CloseAllTabs>", T("act.TotalCommander.cm_CloseAllTabs"))
+    RegisterAction("<cm_SrcGoToLastTab>", T("act.TotalCommander.cm_SrcGoToLastTab"))
 
     ; === 排序 ===
-    RegisterAction("<cm_SrcByName>", "按名称排序")
-    RegisterAction("<cm_SrcByExt>", "按扩展名排序")
-    RegisterAction("<cm_SrcBySize>", "按大小排序")
-    RegisterAction("<cm_SrcByDateTime>", "按日期排序")
-    RegisterAction("<cm_SrcByAttr>", "按属性排序")
-    RegisterAction("<cm_SrcNegSort>", "反向排序")
+    RegisterAction("<cm_SrcByName>", T("act.TotalCommander.cm_SrcByName_2"))
+    RegisterAction("<cm_SrcByExt>", T("act.TotalCommander.cm_SrcByExt_2"))
+    RegisterAction("<cm_SrcBySize>", T("act.TotalCommander.cm_SrcBySize_2"))
+    RegisterAction("<cm_SrcByDateTime>", T("act.TotalCommander.cm_SrcByDateTime_2"))
+    RegisterAction("<cm_SrcByAttr>", T("act.TotalCommander.cm_SrcByAttr"))
+    RegisterAction("<cm_SrcNegSort>", T("act.TotalCommander.cm_SrcNegSort"))
 
     ; === 视图 ===
-    RegisterAction("<cm_SrcShort>", "短列表")
-    RegisterAction("<cm_SrcLong>", "长列表")
-    RegisterAction("<cm_SrcTree>", "目录树")
-    RegisterAction("<cm_SrcThumbs>", "缩略图")
-    RegisterAction("<cm_SrcQuickView>", "快速预览")
-    RegisterAction("<cm_ToggleTreeView>", "切换目录树")
+    RegisterAction("<cm_SrcShort>", T("act.TotalCommander.cm_SrcShort_2"))
+    RegisterAction("<cm_SrcLong>", T("act.TotalCommander.cm_SrcLong_2"))
+    RegisterAction("<cm_SrcTree>", T("act.TotalCommander.cm_SrcTree_2"))
+    RegisterAction("<cm_SrcThumbs>", T("act.TotalCommander.cm_SrcThumbs_2"))
+    RegisterAction("<cm_SrcQuickView>", T("act.TotalCommander.cm_SrcQuickView"))
+    RegisterAction("<cm_ToggleTreeView>", T("act.TotalCommander.cm_ToggleTreeView"))
 
     ; === 窗口 ===
-    RegisterAction("<cm_MaximizePanel1>", "最大化左面板")
-    RegisterAction("<cm_MaximizePanel2>", "最大化右面板")
-    RegisterAction("<cm_Exchange>", "交换面板")
-    RegisterAction("<cm_Minimize>", "最小化")
-    RegisterAction("<cm_Maximize>", "最大化")
-    RegisterAction("<cm_Restore>", "还原")
+    RegisterAction("<cm_MaximizePanel1>", T("act.TotalCommander.cm_MaximizePanel1"))
+    RegisterAction("<cm_MaximizePanel2>", T("act.TotalCommander.cm_MaximizePanel2"))
+    RegisterAction("<cm_Exchange>", T("act.TotalCommander.cm_Exchange_2"))
+    RegisterAction("<cm_Minimize>", T("act.TotalCommander.cm_Minimize_2"))
+    RegisterAction("<cm_Maximize>", T("act.TotalCommander.cm_Maximize_2"))
+    RegisterAction("<cm_Restore>", T("act.TotalCommander.cm_Restore_2"))
 
     ; === 其他 ===
-    RegisterAction("<cm_ContextMenu>", "右键菜单")
-    RegisterAction("<cm_ExecuteDOS>", "命令提示符")
-    RegisterAction("<cm_FocusCmdLine>", "焦点到命令行")
-    RegisterAction("<cm_DirectoryHotlist>", "常用文件夹")
-    RegisterAction("<cm_LeftOpenDrives>", "左侧驱动器")
-    RegisterAction("<cm_RightOpenDrives>", "右侧驱动器")
-    RegisterAction("<cm_SrcHome>", "回到源目录首页")
-    RegisterAction("<cm_DirHome>", "回到目标目录首页")
-    RegisterAction("<cm_Config>", "配置")
-    RegisterAction("<cm_Exit>", "退出TC")
+    RegisterAction("<cm_ContextMenu>", T("act.TotalCommander.cm_ContextMenu_2"))
+    RegisterAction("<cm_ExecuteDOS>", T("act.TotalCommander.cm_ExecuteDOS_2"))
+    RegisterAction("<cm_FocusCmdLine>", T("act.TotalCommander.cm_FocusCmdLine_2"))
+    RegisterAction("<cm_DirectoryHotlist>", T("act.TotalCommander.cm_DirectoryHotlist"))
+    RegisterAction("<cm_LeftOpenDrives>", T("act.TotalCommander.cm_LeftOpenDrives_2"))
+    RegisterAction("<cm_RightOpenDrives>", T("act.TotalCommander.cm_RightOpenDrives_2"))
+    RegisterAction("<cm_SrcHome>", T("act.TotalCommander.cm_SrcHome"))
+    RegisterAction("<cm_DirHome>", T("act.TotalCommander.cm_DirHome"))
+    RegisterAction("<cm_Config>", T("act.TotalCommander.cm_Config_2"))
+    RegisterAction("<cm_Exit>", T("act.TotalCommander.cm_Exit_2"))
 
     ; === 高级功能 ===
-    RegisterAction("<TC_Mark>", "标记功能")
-    RegisterAction("<TC_ListMark>", "显示标记")
-    RegisterAction("<TC_azHistory>", "a-z历史导航")
-    RegisterAction("<TC_CreateNewFile>", "创建新文件")
-    RegisterAction("<TC_ForceDelete>", "强制删除")
-    RegisterAction("<TC_Toggle_50_100Percent>", "切换窗口大小")
-    RegisterAction("<TC_AlwayOnTop>", "TC置顶")
-    RegisterAction("<TC_ToggleShowInfo>", "显示/隐藏按键提示")
-    RegisterAction("<TC_SelectCmd>", "选择命令")
-    RegisterAction("<TC_OpenDriveThis>", "驱动器列表(本侧)")
-    RegisterAction("<TC_OpenDriveThat>", "驱动器列表(另侧)")
-    RegisterAction("<TC_ToggleMenu>", "切换菜单栏")
-    RegisterAction("<TC_ToggleToolbar>", "切换工具栏")
-    RegisterAction("<TC_ToggleStatusBar>", "切换状态栏")
-    RegisterAction("<TC_WinMaxLeft>", "最大化左面板")
-    RegisterAction("<TC_WinMaxRight>", "最大化右面板")
-    RegisterAction("<TC_FileCopyForBak>", "复制并加.bak")
-    RegisterAction("<TC_FileMoveForBak>", "重命名并加.bak")
-    RegisterAction("<TC_CreateFileShortcut>", "创建快捷方式")
-    RegisterAction("<TC_CreateFileShortcutToDesktop>", "创建快捷方式到桌面")
-    RegisterAction("<TC_CreateBlankFile>", "创建空文件")
+    RegisterAction("<TC_Mark>", T("act.TotalCommander.TC_Mark"))
+    RegisterAction("<TC_ListMark>", T("act.TotalCommander.TC_ListMark"))
+    RegisterAction("<TC_azHistory>", T("act.TotalCommander.TC_azHistory"))
+    RegisterAction("<TC_CreateNewFile>", T("act.TotalCommander.TC_CreateNewFile_2"))
+    RegisterAction("<TC_ForceDelete>", T("act.TotalCommander.TC_ForceDelete"))
+    RegisterAction("<TC_Toggle_50_100Percent>", T("act.TotalCommander.TC_Toggle_50_100Percent_2"))
+    RegisterAction("<TC_AlwayOnTop>", T("act.TotalCommander.TC_AlwayOnTop_2"))
+    RegisterAction("<TC_ToggleShowInfo>", T("act.TotalCommander.TC_ToggleShowInfo_2"))
+    RegisterAction("<TC_SelectCmd>", T("act.TotalCommander.TC_SelectCmd_2"))
+    RegisterAction("<TC_OpenDriveThis>", T("act.TotalCommander.TC_OpenDriveThis_2"))
+    RegisterAction("<TC_OpenDriveThat>", T("act.TotalCommander.TC_OpenDriveThat_2"))
+    RegisterAction("<TC_ToggleMenu>", T("act.TotalCommander.TC_ToggleMenu_2"))
+    RegisterAction("<TC_ToggleToolbar>", T("act.TotalCommander.TC_ToggleToolbar"))
+    RegisterAction("<TC_ToggleStatusBar>", T("act.TotalCommander.TC_ToggleStatusBar"))
+    RegisterAction("<TC_WinMaxLeft>", T("act.TotalCommander.cm_MaximizePanel1"))
+    RegisterAction("<TC_WinMaxRight>", T("act.TotalCommander.cm_MaximizePanel2"))
+    RegisterAction("<TC_FileCopyForBak>", T("act.TotalCommander.TC_FileCopyForBak_2"))
+    RegisterAction("<TC_FileMoveForBak>", T("act.TotalCommander.TC_FileMoveForBak_2"))
+    RegisterAction("<TC_CreateFileShortcut>", T("act.TotalCommander.cm_CreateShortcut"))
+    RegisterAction("<TC_CreateFileShortcutToDesktop>", T("act.TotalCommander.TC_CreateFileShortcutToDesktop_2"))
+    RegisterAction("<TC_CreateBlankFile>", T("act.TotalCommander.TC_CreateBlankFile"))
 
     ; === 高级功能 ===
-    RegisterAction("<TC_CopyUseQueues>", "队列复制")
-    RegisterAction("<TC_MoveUseQueues>", "队列移动")
-    RegisterAction("<TC_CopyDirectoryHotlist>", "复制到常用文件夹")
-    RegisterAction("<TC_MoveDirectoryHotlist>", "移动到常用文件夹")
-    RegisterAction("<TC_GotoPreviousDirOther>", "另侧后退")
-    RegisterAction("<TC_GotoNextDirOther>", "另侧前进")
-    RegisterAction("<TC_SearchMode>", "连续搜索模式")
-    RegisterAction("<TC_ReOpenTab>", "重新打开关闭标签")
-    RegisterAction("<TC_GoLastTab>", "跳到最后标签")
-    RegisterAction("<TC_Toggle_50_100Percent_V>", "纵向切换窗口大小")
-    RegisterAction("<TC_SuperReturn>", "回车后定位到第一个文件")
-    RegisterAction("<TC_MultiFilePersistOpen>", "多文件连续打开")
-    RegisterAction("<TC_CopyFileContents>", "复制文件内容")
-    RegisterAction("<TC_OpenDirAndPaste>", "不打开目录直接粘贴")
-    RegisterAction("<TC_MoveSelectedFilesToPrevFolder>", "移动选中文件到上级")
-    RegisterAction("<TC_MoveAllFilesToPrevFolder>", "移动所有文件到上级")
-    RegisterAction("<TC_SrcQuickViewAndTab>", "预览时移到对侧")
-    RegisterAction("<TC_CreateFileShortcutToStartup>", "快捷方式到启动目录")
-    RegisterAction("<TC_FilterSearchFNsuffix_exe>", "快速过滤exe")
-    RegisterAction("<TC_TwoFileExchangeName>", "两文件互换名称")
-    RegisterAction("<TC_MarkFile>", "文件备注标记")
-    RegisterAction("<TC_UnMarkFile>", "取消文件标记")
-    RegisterAction("<TC_ClearTitle>", "清空标题栏")
-    RegisterAction("<TC_OpenDirsInFile>", "按文件内容打开目录")
-    RegisterAction("<TC_CreateBlankFileNoExt>", "创建无扩展名文件")
-    RegisterAction("<TC_PasteFileEx>", "粘贴到光标下目录")
-    RegisterAction("<TC_ThumbsView>", "缩略图视图切换")
-    RegisterAction("<TC_SrcActivateTab1>", "激活标签1")
-    RegisterAction("<TC_SrcActivateTab2>", "激活标签2")
-    RegisterAction("<TC_SrcActivateTab3>", "激活标签3")
-    RegisterAction("<TC_SrcActivateTab4>", "激活标签4")
-    RegisterAction("<TC_SrcActivateTab5>", "激活标签5")
-    RegisterAction("<TC_SrcActivateTab6>", "激活标签6")
-    RegisterAction("<TC_SrcActivateTab7>", "激活标签7")
-    RegisterAction("<TC_SrcActivateTab8>", "激活标签8")
-    RegisterAction("<TC_SrcActivateTab9>", "激活标签9")
+    RegisterAction("<TC_CopyUseQueues>", T("act.TotalCommander.TC_CopyUseQueues_2"))
+    RegisterAction("<TC_MoveUseQueues>", T("act.TotalCommander.TC_MoveUseQueues_2"))
+    RegisterAction("<TC_CopyDirectoryHotlist>", T("act.TotalCommander.TC_CopyDirectoryHotlist"))
+    RegisterAction("<TC_MoveDirectoryHotlist>", T("act.TotalCommander.TC_MoveDirectoryHotlist"))
+    RegisterAction("<TC_GotoPreviousDirOther>", T("act.TotalCommander.TC_GotoPreviousDirOther_2"))
+    RegisterAction("<TC_GotoNextDirOther>", T("act.TotalCommander.TC_GotoNextDirOther_2"))
+    RegisterAction("<TC_SearchMode>", T("act.TotalCommander.TC_SearchMode_2"))
+    RegisterAction("<TC_ReOpenTab>", T("act.TotalCommander.TC_ReOpenTab_2"))
+    RegisterAction("<TC_GoLastTab>", T("act.TotalCommander.TC_GoLastTab_2"))
+    RegisterAction("<TC_Toggle_50_100Percent_V>", T("act.TotalCommander.TC_Toggle_50_100Percent_V_2"))
+    RegisterAction("<TC_SuperReturn>", T("act.TotalCommander.TC_SuperReturn_2"))
+    RegisterAction("<TC_MultiFilePersistOpen>", T("act.TotalCommander.TC_MultiFilePersistOpen_2"))
+    RegisterAction("<TC_CopyFileContents>", T("act.TotalCommander.cm_CopyFileContents"))
+    RegisterAction("<TC_OpenDirAndPaste>", T("act.TotalCommander.TC_OpenDirAndPaste_2"))
+    RegisterAction("<TC_MoveSelectedFilesToPrevFolder>", T("act.TotalCommander.TC_MoveSelectedFilesToPrevFolder_2"))
+    RegisterAction("<TC_MoveAllFilesToPrevFolder>", T("act.TotalCommander.TC_MoveAllFilesToPrevFolder_2"))
+    RegisterAction("<TC_SrcQuickViewAndTab>", T("act.TotalCommander.TC_SrcQuickViewAndTab_2"))
+    RegisterAction("<TC_CreateFileShortcutToStartup>", T("act.TotalCommander.TC_CreateFileShortcutToStartup_2"))
+    RegisterAction("<TC_FilterSearchFNsuffix_exe>", T("act.TotalCommander.TC_FilterSearchFNsuffix_exe_2"))
+    RegisterAction("<TC_TwoFileExchangeName>", T("act.TotalCommander.TC_TwoFileExchangeName_2"))
+    RegisterAction("<TC_MarkFile>", T("act.TotalCommander.TC_MarkFile_2"))
+    RegisterAction("<TC_UnMarkFile>", T("act.TotalCommander.TC_UnMarkFile_2"))
+    RegisterAction("<TC_ClearTitle>", T("act.TotalCommander.TC_ClearTitle_2"))
+    RegisterAction("<TC_OpenDirsInFile>", T("act.TotalCommander.TC_OpenDirsInFile_2"))
+    RegisterAction("<TC_CreateBlankFileNoExt>", T("act.TotalCommander.TC_CreateBlankFileNoExt_2"))
+    RegisterAction("<TC_PasteFileEx>", T("act.TotalCommander.TC_PasteFileEx_2"))
+    RegisterAction("<TC_ThumbsView>", T("act.TotalCommander.TC_ThumbsView_2"))
+    RegisterAction("<TC_SrcActivateTab1>", T("act.TotalCommander.TC_SrcActivateTab1"))
+    RegisterAction("<TC_SrcActivateTab2>", T("act.TotalCommander.TC_SrcActivateTab2"))
+    RegisterAction("<TC_SrcActivateTab3>", T("act.TotalCommander.TC_SrcActivateTab3"))
+    RegisterAction("<TC_SrcActivateTab4>", T("act.TotalCommander.TC_SrcActivateTab4"))
+    RegisterAction("<TC_SrcActivateTab5>", T("act.TotalCommander.TC_SrcActivateTab5"))
+    RegisterAction("<TC_SrcActivateTab6>", T("act.TotalCommander.TC_SrcActivateTab6"))
+    RegisterAction("<TC_SrcActivateTab7>", T("act.TotalCommander.TC_SrcActivateTab7"))
+    RegisterAction("<TC_SrcActivateTab8>", T("act.TotalCommander.TC_SrcActivateTab8"))
+    RegisterAction("<TC_SrcActivateTab9>", T("act.TotalCommander.TC_SrcActivateTab9"))
 
     ; === 映射热键 - normal 模式 (1:1 对原版 vim.map, 顺序同原版) ===
 
@@ -1665,12 +1665,12 @@ TC_CreateNewFile() {
     templates := TC_ScanShellNewTemplates()
 
     ; 添加自定义模板
-    templates.Push({name: "空文件", ext: "", template: ""})
-    templates.Push({name: "文本文件", ext: ".txt", template: ""})
-    templates.Push({name: "批处理文件", ext: ".bat", template: "@echo off`r`n"})
-    templates.Push({name: "AHK 脚本", ext: ".ahk", template: "#Requires AutoHotkey v2.0`r`n`r`n"})
-    templates.Push({name: "Python 脚本", ext: ".py", template: "# -*- coding: utf-8 -*-`r`n`r`n"})
-    templates.Push({name: "Markdown 文件", ext: ".md", template: "# 标题`r`n`r`n"})
+    templates.Push({name: T("tc.tpl_empty"), ext: "", template: ""})
+    templates.Push({name: T("tc.tpl_text"), ext: ".txt", template: ""})
+    templates.Push({name: T("tc.tpl_bat"), ext: ".bat", template: "@echo off`r`n"})
+    templates.Push({name: T("tc.tpl_ahk"), ext: ".ahk", template: "#Requires AutoHotkey v2.0`r`n`r`n"})
+    templates.Push({name: T("tc.tpl_py"), ext: ".py", template: "# -*- coding: utf-8 -*-`r`n`r`n"})
+    templates.Push({name: T("tc.tpl_md"), ext: ".md", template: "# 标题`r`n`r`n"})
 
     ; 创建菜单
     menu := Menu()
@@ -1725,14 +1725,14 @@ TC_CreateFileWithTemplate(tmpl, *) {
     ; 获取当前目录
     currentDir := TC_GetCurrentDir()
     if (currentDir = "") {
-        MsgBox "无法获取当前目录", "创建文件"
+        MsgBox(T("tc.no_curdir"), T("tc.title_newfile"))
         return
     }
 
     ; 输入文件名 (v2: InputBox 返回 {Value, Result} 对象, 且 Prompt 在前 Title 在后)
     defaultName := "new" (tmpl.ext != "" ? tmpl.ext : "")
     try {
-        ibox := InputBox("输入文件名:`n`n默认: " defaultName, "创建文件")
+        ibox := InputBox(T("tc.input_filename", defaultName), T("tc.title_newfile"))
         fileName := ibox.Value
     } catch {
         return
@@ -1749,7 +1749,7 @@ TC_CreateFileWithTemplate(tmpl, *) {
 
     ; 检查文件是否已存在
     if FileExist(filePath) {
-        result := MsgBox("文件已存在: " fileName "`n是否覆盖?", "确认", "YesNo")
+        result := MsgBox(T("tc.file_exists", fileName), T("tc.confirm_title"), "YesNo")
         if (result != "Yes")
             return
     }
@@ -1763,7 +1763,7 @@ TC_CreateFileWithTemplate(tmpl, *) {
 
         Log("TC: Created file " filePath)
     } catch as e {
-        MsgBox "创建文件失败: " e.Message, "错误"
+        MsgBox(T("tc.create_failed", e.Message), T("tc.err_title"))
     }
 }
 
@@ -1812,12 +1812,12 @@ TC_CreateBlankFile() {
     ; 创建空文件
     currentDir := TC_GetCurrentDir()
     if (currentDir = "") {
-        MsgBox "无法获取当前目录", "创建文件"
+        MsgBox(T("tc.no_curdir"), T("tc.title_newfile"))
         return
     }
 
     try {
-        ibox2 := InputBox("输入文件名:", "创建空文件")
+        ibox2 := InputBox(T("tc.input_empty_name"), T("tc.title_empty_file"))
         fileName := ibox2.Value
     } catch {
         return
@@ -1831,7 +1831,7 @@ TC_CreateBlankFile() {
         f.Close()
         Log("TC: Created blank file " filePath)
     } catch as e {
-        MsgBox "创建文件失败: " e.Message, "错误"
+        MsgBox(T("tc.create_failed", e.Message), T("tc.err_title"))
     }
 }
 
@@ -1892,7 +1892,7 @@ TC_Mark() {
     ; 获取当前选中文件路径
     filePath := TC_GetSelectedFile()
     if (filePath = "") {
-        MsgBox "请先选择一个文件", "标记"
+        MsgBox(T("tc.pick_file_first"), T("tc.mark_title"))
         return
     }
 
@@ -1924,7 +1924,7 @@ TC_ShowMarkMenu(filePath := "") {
         letter := Chr(96 + idx)  ; a-z
         setMarkMenu.Add(letter, MakeMenuCb("TC_SetMark", filePath, letter))
     }
-    menu.Add("设置标记 (&S)", setMarkMenu)
+    menu.Add(T("tc.mark_set"), setMarkMenu)
 
     ; 添加跳转到标记子菜单
     if (marks.Count > 0) {
@@ -1936,7 +1936,7 @@ TC_ShowMarkMenu(filePath := "") {
                 fileName := SubStr(fileName, 1, 27) "..."
             gotoMenu.Add("[" char "] " fileName, MakeMenuCb("TC_GotoMark", path))
         }
-        menu.Add("跳转到标记 (&G)", gotoMenu)
+        menu.Add(T("tc.mark_goto"), gotoMenu)
 
         ; 添加删除标记子菜单
         deleteMenu := Menu()
@@ -1946,11 +1946,11 @@ TC_ShowMarkMenu(filePath := "") {
                 fileName := SubStr(fileName, 1, 27) "..."
             deleteMenu.Add("[" char "] " fileName, MakeMenuCb("TC_DeleteMark", path))
         }
-        menu.Add("删除标记 (&D)", deleteMenu)
+        menu.Add(T("tc.mark_del"), deleteMenu)
 
         ; 清除所有标记
         menu.Add()
-        menu.Add("清除所有标记 (&C)", (*) => TC_ClearAllMarks())
+        menu.Add(T("tc.mark_clear"), (*) => TC_ClearAllMarks())
     }
 
     ; 显示菜单
@@ -2058,7 +2058,7 @@ TC_ListMark() {
     markFile := Rim.appDir "\Conf\TCMark.ini"
 
     if !FileExist(markFile) {
-        MsgBox "暂无标记文件", "标记列表"
+        MsgBox(T("tc.no_marks_file"), T("tc.mark_list_title"))
         return
     }
 
@@ -2072,7 +2072,7 @@ TC_ListMark() {
     }
 
     if (marks.Count = 0) {
-        MsgBox "暂无标记", "标记列表"
+        MsgBox(T("tc.no_marks"), T("tc.mark_list_title"))
         return
     }
 
@@ -2085,7 +2085,7 @@ TC_ListMark() {
         menu.Add("[" char "] " fileName, MakeMenuCb("TC_GotoMark", path))
     }
     menu.Add()
-    menu.Add("清除所有标记", (*) => TC_ClearAllMarks())
+    menu.Add(T("tc.mark_clear2"), (*) => TC_ClearAllMarks())
 
     menu.Show()
 }
@@ -2114,7 +2114,7 @@ TC_azHistory() {
     global TCINI
 
     if (TCINI = "" || !FileExist(TCINI)) {
-        MsgBox "无法读取 TC 配置文件", "历史导航"
+        MsgBox(T("tc.no_tc_conf"), T("tc.hist_nav_title"))
         return
     }
 
@@ -2145,7 +2145,7 @@ TC_azHistory() {
     }
 
     if (leftHistory.Length = 0 && rightHistory.Length = 0) {
-        MsgBox "暂无历史记录", "a-z 历史导航"
+        MsgBox(T("tc.no_history"), T("tc.az_hist_title"))
         return
     }
 
@@ -2166,7 +2166,7 @@ TC_azHistory() {
                 displayPath := "..." SubStr(displayPath, -47)
             leftMenu.Add("[" letter "] " displayPath, MakeMenuCb("TC_GotoHistory", path, "left"))
         }
-        menu.Add("左面板历史 (&L)", leftMenu)
+        menu.Add(T("tc.hist_left"), leftMenu)
     }
 
     ; 右面板历史
@@ -2182,14 +2182,14 @@ TC_azHistory() {
                 displayPath := "..." SubStr(displayPath, -47)
             rightMenu.Add("[" letter "] " displayPath, MakeMenuCb("TC_GotoHistory", path, "right"))
         }
-        menu.Add("右面板历史 (&R)", rightMenu)
+        menu.Add(T("tc.hist_right"), rightMenu)
     }
 
     ; 清除历史
     menu.Add()
-    menu.Add("清除左面板历史", (*) => TC_ClearHistory("LeftHistory"))
-    menu.Add("清除右面板历史", (*) => TC_ClearHistory("RightHistory"))
-    menu.Add("清除所有历史", (*) => TC_ClearHistory("all"))
+    menu.Add(T("tc.hist_clear_left"), (*) => TC_ClearHistory("LeftHistory"))
+    menu.Add(T("tc.hist_clear_right"), (*) => TC_ClearHistory("RightHistory"))
+    menu.Add(T("tc.hist_clear_all"), (*) => TC_ClearHistory("all"))
 
     ; 显示菜单
     menu.Show()
@@ -2199,10 +2199,10 @@ TC_ResolveHistoryPath(path) {
     ; 解析历史路径，处理特殊位置
     ; 特殊位置映射
     specialPaths := Map(
-        "::{20D04FE0-3AEA-1069-A2D8-08002B30309D}", "此电脑",
-        "::{645FF040-5081-101B-9F08-00AA002F954E}", "回收站",
-        "::{B4BFCC3A-DB2C-424C-B029-7FE99A8CEC6C}", "桌面",
-        "::{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}", "网络"
+        "::{20D04FE0-3AEA-1069-A2D8-08002B30309D}", T("tc.hist_thispc"),
+        "::{645FF040-5081-101B-9F08-00AA002F954E}", T("tc.hist_recycle"),
+        "::{B4BFCC3A-DB2C-424C-B029-7FE99A8CEC6C}", T("tc.hist_desktop"),
+        "::{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}", T("tc.hist_network")
     )
 
     if specialPaths.Has(path)
@@ -2268,7 +2268,7 @@ TC_ToggleMenu() {
     global TCINI
 
     if (TCINI = "" || !FileExist(TCINI)) {
-        MsgBox "无法读取 TC 配置文件", "菜单切换"
+        MsgBox(T("tc.no_tc_conf"), T("tc.menu_toggle_title"))
         return
     }
 
@@ -2384,7 +2384,7 @@ TC_FileCopyForBak() {
     ; 复制文件并加 .bak 后缀
     filePath := TC_GetSelectedFile()
     if (filePath = "") {
-        MsgBox "请先选择一个文件", "复制备份"
+        MsgBox(T("tc.pick_file_first"), T("tc.title_copybak"))
         return
     }
 
@@ -2393,7 +2393,7 @@ TC_FileCopyForBak() {
         FileCopy(filePath, bakPath)
         Log("TC: Copied " filePath " to " bakPath)
     } catch as e {
-        MsgBox "复制失败: " e.Message, "错误"
+        MsgBox(T("tc.copy_failed", e.Message), T("tc.err_title"))
     }
 }
 
@@ -2401,7 +2401,7 @@ TC_FileMoveForBak() {
     ; 重命名文件加 .bak 后缀
     filePath := TC_GetSelectedFile()
     if (filePath = "") {
-        MsgBox "请先选择一个文件", "重命名备份"
+        MsgBox(T("tc.pick_file_first"), T("tc.title_movebak"))
         return
     }
 
@@ -2410,7 +2410,7 @@ TC_FileMoveForBak() {
         FileMove(filePath, bakPath)
         Log("TC: Moved " filePath " to " bakPath)
     } catch as e {
-        MsgBox "重命名失败: " e.Message, "错误"
+        MsgBox(T("tc.rename_failed", e.Message), T("tc.err_title"))
     }
 }
 
@@ -2418,14 +2418,14 @@ TC_CreateFileShortcut() {
     ; 创建快捷方式
     filePath := TC_GetSelectedFile()
     if (filePath = "") {
-        MsgBox "请先选择一个文件", "创建快捷方式"
+        MsgBox(T("tc.pick_file_first"), T("tc.title_shortcut"))
         return
     }
 
     ; 获取当前目录
     currentDir := TC_GetCurrentDir()
     if (currentDir = "") {
-        MsgBox "无法获取当前目录", "创建快捷方式"
+        MsgBox(T("tc.no_curdir"), T("tc.title_shortcut"))
         return
     }
 
@@ -2435,7 +2435,7 @@ TC_CreateFileShortcut() {
         FileCreateShortcut(filePath, shortcutPath)
         Log("TC: Created shortcut " shortcutPath)
     } catch as e {
-        MsgBox "创建快捷方式失败: " e.Message, "错误"
+        MsgBox(T("tc.shortcut_failed", e.Message), T("tc.err_title"))
     }
 }
 
@@ -2443,7 +2443,7 @@ TC_CreateFileShortcutToDesktop() {
     ; 创建快捷方式到桌面
     filePath := TC_GetSelectedFile()
     if (filePath = "") {
-        MsgBox "请先选择一个文件", "创建快捷方式到桌面"
+        MsgBox(T("tc.pick_file_first"), T("tc.title_shortcut_desktop"))
         return
     }
 
@@ -2452,7 +2452,7 @@ TC_CreateFileShortcutToDesktop() {
         FileCreateShortcut(filePath, desktopPath)
         Log("TC: Created shortcut to desktop " desktopPath)
     } catch as e {
-        MsgBox "创建快捷方式失败: " e.Message, "错误"
+        MsgBox(T("tc.shortcut_failed", e.Message), T("tc.err_title"))
     }
 }
 
@@ -2484,66 +2484,66 @@ TC_SelectCmd() {
 
     ; 初始化命令列表 (编号与 cmdMap 一致)
     if (commands.Count = 0) {
-        commands["cm_CopyOtherpanel (复制到对侧)"] := 2001
-        commands["cm_MoveOnly (移动到对侧)"] := 2002
-        commands["cm_Delete (删除)"] := 2003
-        commands["cm_Edit (编辑文件)"] := 2004
-        commands["cm_View (查看文件)"] := 2005
-        commands["cm_PackFiles (压缩文件)"] := 2006
-        commands["cm_UnpackFiles (解压文件)"] := 2007
-        commands["cm_CopyToClipboard (复制到剪贴板)"] := 2009
-        commands["cm_CutToClipboard (剪切到剪贴板)"] := 2010
-        commands["cm_PasteFromClipboard (粘贴)"] := 2011
-        commands["cm_MkDir (新建文件夹)"] := 2012
-        commands["cm_RenameOnly (重命名)"] := 2013
-        commands["cm_MultiRenameFiles (批量重命名)"] := 2014
-        commands["cm_SrcByName (按名称排序)"] := 2015
-        commands["cm_SrcByExt (按扩展名排序)"] := 2016
-        commands["cm_SrcBySize (按大小排序)"] := 2017
-        commands["cm_SrcByDateTime (按日期排序)"] := 2018
-        commands["cm_SrcNegSort (反向排序)"] := 2020
-        commands["cm_SrcShort (短列表)"] := 2021
-        commands["cm_SrcLong (长列表)"] := 2022
-        commands["cm_SrcTree (目录树)"] := 2023
-        commands["cm_SrcThumbs (缩略图)"] := 2024
-        commands["cm_SrcQuickView (快速预览)"] := 2025
-        commands["cm_ToggleTreeView (切换目录树)"] := 2026
-        commands["cm_Refresh (刷新)"] := 2027
-        commands["cm_CopySrcPathToClip (复制源路径)"] := 2029
-        commands["cm_SelectAll (全选)"] := 2030
-        commands["cm_ExchangeSelection (反选)"] := 2031
-        commands["cm_MaximizePanel1 (最大化左面板)"] := 2032
-        commands["cm_MaximizePanel2 (最大化右面板)"] := 2033
-        commands["cm_Exchange (交换面板)"] := 2034
-        commands["cm_Minimize (最小化)"] := 2035
-        commands["cm_Maximize (最大化)"] := 2036
-        commands["cm_Restore (还原)"] := 2037
-        commands["cm_DirectoryHotlist (常用文件夹)"] := 2039
-        commands["cm_CopyNamesToClip (复制文件名)"] := 2040
-        commands["cm_CopyFullNamesToClip (复制完整路径)"] := 2041
-        commands["cm_SearchFor (搜索)"] := 2042
-        commands["cm_ShowQuickSearch (快速搜索)"] := 2043
-        commands["cm_CompareDirs (比较目录)"] := 2044
-        commands["cm_SyncDirs (同步目录)"] := 2045
-        commands["cm_CompareByContent (按内容比较)"] := 2046
-        commands["cm_ContextMenu (右键菜单)"] := 2047
-        commands["cm_ExecuteDOS (命令提示符)"] := 2048
-        commands["cm_FocusCmdLine (焦点到命令行)"] := 2049
-        commands["cm_LeftOpenDrives (左侧驱动器)"] := 2050
-        commands["cm_RightOpenDrives (右侧驱动器)"] := 2051
-        commands["cm_Config (配置)"] := 2052
-        commands["cm_DirHome (回到目标目录首页)"] := 2053
-        commands["cm_GotoRoot (转到根目录)"] := 2054
-        commands["cm_GotoPreviousDir (后退)"] := 2055
-        commands["cm_GotoNextDir (前进)"] := 2056
-        commands["cm_OpenDesktop (桌面)"] := 2057
-        commands["cm_OpenNewTab (新建标签)"] := 3001
-        commands["cm_OpenNewTabBg (后台新建标签)"] := 3002
-        commands["cm_SwitchToNextTab (下一个标签)"] := 3003
-        commands["cm_SwitchToPreviousTab (上一个标签)"] := 3004
-        commands["cm_CloseCurrentTab (关闭当前标签)"] := 3005
-        commands["cm_CloseAllTabs (关闭所有标签)"] := 3006
-        commands["cm_Exit (退出TC)"] := 2063
+        commands["cm_CopyOtherpanel (" . T("act.TotalCommander.cm_CopyOtherpanel_2") . ")"] := 2001
+        commands["cm_MoveOnly (" . T("act.TotalCommander.cm_MoveOnly_2") . ")"] := 2002
+        commands["cm_Delete (" . T("act.TotalCommander.cm_Delete") . ")"] := 2003
+        commands["cm_Edit (" . T("act.TotalCommander.cm_Edit_2") . ")"] := 2004
+        commands["cm_View (" . T("act.TotalCommander.cm_View") . ")"] := 2005
+        commands["cm_PackFiles (" . T("act.TotalCommander.cm_PackFiles") . ")"] := 2006
+        commands["cm_UnpackFiles (" . T("act.TotalCommander.cm_UnpackFiles") . ")"] := 2007
+        commands["cm_CopyToClipboard (" . T("act.TotalCommander.cm_CopyToClipboard_2") . ")"] := 2009
+        commands["cm_CutToClipboard (" . T("act.TotalCommander.cm_CutToClipboard_2") . ")"] := 2010
+        commands["cm_PasteFromClipboard (" . T("act.TotalCommander.cm_PasteFromClipboard_2") . ")"] := 2011
+        commands["cm_MkDir (" . T("act.TotalCommander.cm_MkDir") . ")"] := 2012
+        commands["cm_RenameOnly (" . T("act.TotalCommander.cm_RenameOnly_2") . ")"] := 2013
+        commands["cm_MultiRenameFiles (" . T("act.TotalCommander.cm_MultiRenameFiles") . ")"] := 2014
+        commands["cm_SrcByName (" . T("act.TotalCommander.cm_SrcByName_2") . ")"] := 2015
+        commands["cm_SrcByExt (" . T("act.TotalCommander.cm_SrcByExt_2") . ")"] := 2016
+        commands["cm_SrcBySize (" . T("act.TotalCommander.cm_SrcBySize_2") . ")"] := 2017
+        commands["cm_SrcByDateTime (" . T("act.TotalCommander.cm_SrcByDateTime_2") . ")"] := 2018
+        commands["cm_SrcNegSort (" . T("act.TotalCommander.cm_SrcNegSort") . ")"] := 2020
+        commands["cm_SrcShort (" . T("act.TotalCommander.cm_SrcShort_2") . ")"] := 2021
+        commands["cm_SrcLong (" . T("act.TotalCommander.cm_SrcLong_2") . ")"] := 2022
+        commands["cm_SrcTree (" . T("act.TotalCommander.cm_SrcTree_2") . ")"] := 2023
+        commands["cm_SrcThumbs (" . T("act.TotalCommander.cm_SrcThumbs_2") . ")"] := 2024
+        commands["cm_SrcQuickView (" . T("act.TotalCommander.cm_SrcQuickView") . ")"] := 2025
+        commands["cm_ToggleTreeView (" . T("act.TotalCommander.cm_ToggleTreeView") . ")"] := 2026
+        commands["cm_Refresh (" . T("act.TotalCommander.cm_Refresh") . ")"] := 2027
+        commands["cm_CopySrcPathToClip (" . T("act.TotalCommander.cm_CopySrcPathToClip_2") . ")"] := 2029
+        commands["cm_SelectAll (" . T("act.TotalCommander.cm_SelectAll_2") . ")"] := 2030
+        commands["cm_ExchangeSelection (" . T("act.TotalCommander.cm_ExchangeSelection_2") . ")"] := 2031
+        commands["cm_MaximizePanel1 (" . T("act.TotalCommander.cm_MaximizePanel1") . ")"] := 2032
+        commands["cm_MaximizePanel2 (" . T("act.TotalCommander.cm_MaximizePanel2") . ")"] := 2033
+        commands["cm_Exchange (" . T("act.TotalCommander.cm_Exchange_2") . ")"] := 2034
+        commands["cm_Minimize (" . T("act.TotalCommander.cm_Minimize_2") . ")"] := 2035
+        commands["cm_Maximize (" . T("act.TotalCommander.cm_Maximize_2") . ")"] := 2036
+        commands["cm_Restore (" . T("act.TotalCommander.cm_Restore_2") . ")"] := 2037
+        commands["cm_DirectoryHotlist (" . T("act.TotalCommander.cm_DirectoryHotlist") . ")"] := 2039
+        commands["cm_CopyNamesToClip (" . T("act.TotalCommander.cm_CopyNamesToClip") . ")"] := 2040
+        commands["cm_CopyFullNamesToClip (" . T("act.TotalCommander.cm_CopyFullNamesToClip_2") . ")"] := 2041
+        commands["cm_SearchFor (" . T("act.TotalCommander.cm_SearchFor_2") . ")"] := 2042
+        commands["cm_ShowQuickSearch (" . T("act.TotalCommander.cm_ShowQuickSearch_2") . ")"] := 2043
+        commands["cm_CompareDirs (" . T("act.TotalCommander.cm_CompareDirs_2") . ")"] := 2044
+        commands["cm_SyncDirs (" . T("act.TotalCommander.cm_SyncDirs") . ")"] := 2045
+        commands["cm_CompareByContent (" . T("act.TotalCommander.cm_CompareByContent") . ")"] := 2046
+        commands["cm_ContextMenu (" . T("act.TotalCommander.cm_ContextMenu_2") . ")"] := 2047
+        commands["cm_ExecuteDOS (" . T("act.TotalCommander.cm_ExecuteDOS_2") . ")"] := 2048
+        commands["cm_FocusCmdLine (" . T("act.TotalCommander.cm_FocusCmdLine_2") . ")"] := 2049
+        commands["cm_LeftOpenDrives (" . T("act.TotalCommander.cm_LeftOpenDrives_2") . ")"] := 2050
+        commands["cm_RightOpenDrives (" . T("act.TotalCommander.cm_RightOpenDrives_2") . ")"] := 2051
+        commands["cm_Config (" . T("act.TotalCommander.cm_Config_2") . ")"] := 2052
+        commands["cm_DirHome (" . T("act.TotalCommander.cm_DirHome") . ")"] := 2053
+        commands["cm_GotoRoot (" . T("act.TotalCommander.cm_GotoRoot") . ")"] := 2054
+        commands["cm_GotoPreviousDir (" . T("act.TotalCommander.cm_GotoPreviousDir") . ")"] := 2055
+        commands["cm_GotoNextDir (" . T("act.TotalCommander.cm_GotoNextDir") . ")"] := 2056
+        commands["cm_OpenDesktop (" . T("act.TotalCommander.cm_OpenDesktop") . ")"] := 2057
+        commands["cm_OpenNewTab (" . T("act.TotalCommander.cm_OpenNewTab") . ")"] := 3001
+        commands["cm_OpenNewTabBg (" . T("act.TotalCommander.cm_OpenNewTabBg_2") . ")"] := 3002
+        commands["cm_SwitchToNextTab (" . T("act.TotalCommander.cm_SwitchToNextTab_2") . ")"] := 3003
+        commands["cm_SwitchToPreviousTab (" . T("act.TotalCommander.cm_SwitchToPreviousTab_2") . ")"] := 3004
+        commands["cm_CloseCurrentTab (" . T("act.TotalCommander.cm_CloseCurrentTab") . ")"] := 3005
+        commands["cm_CloseAllTabs (" . T("act.TotalCommander.cm_CloseAllTabs") . ")"] := 3006
+        commands["cm_Exit (" . T("act.TotalCommander.cm_Exit_2") . ")"] := 2063
     }
 
     ; 创建菜单 (循环变量经 MakeMenuCb 工厂固化: 闭包直捕越界, .Bind 叠参, 两坑全避)
@@ -2673,7 +2673,7 @@ TC_CopyFileContents() {
             A_Clipboard := content
             Log("TC: Copied file contents from " filePath)
         } catch as e {
-            MsgBox "读取文件失败: " e.Message, "错误"
+            MsgBox(T("tc.read_failed", e.Message), T("tc.err_title"))
         }
     }
 }
@@ -2716,7 +2716,7 @@ TC_CreateFileShortcutToStartup() {
     ; 创建快捷方式到启动目录
     filePath := TC_GetSelectedFile()
     if (filePath = "") {
-        MsgBox "请先选择一个文件", "创建快捷方式"
+        MsgBox(T("tc.pick_file_first"), T("tc.title_shortcut"))
         return
     }
 
@@ -2725,7 +2725,7 @@ TC_CreateFileShortcutToStartup() {
         FileCreateShortcut(filePath, startupPath)
         Log("TC: Created shortcut to startup " startupPath)
     } catch as e {
-        MsgBox "创建快捷方式失败: " e.Message, "错误"
+        MsgBox(T("tc.shortcut_failed", e.Message), T("tc.err_title"))
     }
 }
 
@@ -2742,18 +2742,18 @@ TC_TwoFileExchangeName() {
     ; 两个文件互换名称
     file1 := TC_GetSelectedFile()
     if (file1 = "") {
-        MsgBox "请先选择第一个文件", "互换名称"
+        MsgBox(T("tc.pick_first_file"), T("tc.swap_title"))
         return
     }
 
     ; 提示选择第二个文件
-    MsgBox "请记住第一个文件名，然后选择第二个文件并点击确定", "互换名称"
+    MsgBox(T("tc.swap_remember"), T("tc.swap_title"))
     Send "{Down}"  ; 移动到下一个文件
     Sleep 100
 
     file2 := TC_GetSelectedFile()
     if (file2 = "") {
-        MsgBox "未选择第二个文件", "互换名称"
+        MsgBox(T("tc.swap_no_second"), T("tc.swap_title"))
         return
     }
 
@@ -2773,7 +2773,7 @@ TC_TwoFileExchangeName() {
         FileMove(dir1 tempName, dir2 name2)
         Log("TC: Exchanged names " name1 " <-> " name2)
     } catch as e {
-        MsgBox "互换名称失败: " e.Message, "错误"
+        MsgBox(T("tc.swap_failed", e.Message), T("tc.err_title"))
     }
 }
 
@@ -2781,12 +2781,12 @@ TC_MarkFile() {
     ; 通过文件备注标记
     filePath := TC_GetSelectedFile()
     if (filePath = "") {
-        MsgBox "请先选择一个文件", "标记文件"
+        MsgBox(T("tc.pick_file_first"), T("tc.title_markfile"))
         return
     }
 
     try {
-        ibox3 := InputBox("输入标记文本:`n`n文件: " filePath, "标记文件")
+        ibox3 := InputBox(T("tc.mark_prompt", filePath), T("tc.title_markfile"))
         markText := ibox3.Value
     } catch {
         return
@@ -2804,7 +2804,7 @@ TC_UnMarkFile() {
     ; 取消文件标记
     filePath := TC_GetSelectedFile()
     if (filePath = "") {
-        MsgBox "请先选择一个文件", "取消标记"
+        MsgBox(T("tc.pick_file_first"), T("tc.title_unmark"))
         return
     }
 
@@ -2824,7 +2824,7 @@ TC_OpenDirsInFile() {
     ; 从文件内容批量打开目录
     filePath := TC_GetSelectedFile()
     if (filePath = "" || !FileExist(filePath)) {
-        MsgBox "请选择一个包含目录列表的文件", "打开目录"
+        MsgBox(T("tc.pick_dirfile"), T("tc.title_opendir"))
         return
     }
 
@@ -2846,7 +2846,7 @@ TC_OpenDirsInFile() {
             }
         }
     } catch as e {
-        MsgBox "读取文件失败: " e.Message, "错误"
+        MsgBox(T("tc.read_failed", e.Message), T("tc.err_title"))
     }
 }
 
@@ -2854,12 +2854,12 @@ TC_CreateBlankFileNoExt() {
     ; 创建无扩展名空文件
     currentDir := TC_GetCurrentDir()
     if (currentDir = "") {
-        MsgBox "无法获取当前目录", "创建文件"
+        MsgBox(T("tc.no_curdir"), T("tc.title_newfile"))
         return
     }
 
     try {
-        ibox4 := InputBox("输入文件名:", "创建无扩展名文件")
+        ibox4 := InputBox(T("tc.input_empty_name"), T("tc.title_noext"))
         fileName := ibox4.Value
     } catch {
         return
@@ -2877,7 +2877,7 @@ TC_CreateBlankFileNoExt() {
         f.Close()
         Log("TC: Created blank file without extension " filePath)
     } catch as e {
-        MsgBox "创建文件失败: " e.Message, "错误"
+        MsgBox(T("tc.create_failed", e.Message), T("tc.err_title"))
     }
 }
 

@@ -19,11 +19,11 @@ VimConfig_Show(*) {
         }
         g_VimCfg.Clear()
     }
-    g := Gui("+Resize", "配置中心 - Rim")
+    g := Gui("+Resize", T("cfg.title"))
     g.SetFont("s10", "Microsoft YaHei")
     g_VimCfg["gui"] := g
     g_VimCfg["dirty"] := Map()
-    tabs := g.Add("Tab3", "w880 h470", ["按键", "全局热键", "插件", "TC 设置", "启动器", "动作", "帮助"])
+    tabs := g.Add("Tab3", "w880 h470", [T("cfg.tab_keys"), T("cfg.tab_globalhotkey"), T("cfg.tab_plugins"), T("cfg.tab_tc"), T("cfg.tab_launcher"), T("cfg.tab_actions"), T("cfg.tab_help")])
     g_VimCfg["tabs"] := tabs
 
     tabs.UseTab(1)
@@ -42,9 +42,9 @@ VimConfig_Show(*) {
     VimCfg_BuildHelpTab(g)
     tabs.UseTab()
 
-    g.Add("Button", "xm y+10 w110", "保存").OnEvent("Click", VimCfg_OnSave)
-    g.Add("Button", "x+10 w130", "文本编辑器打开").OnEvent("Click", VimCfg_OnTextEdit)
-    g.Add("Text", "x+14 yp+6 w560", "保存后 3 秒内自动重载生效. 只改键值, 不动注释与顺序.")
+    g.Add("Button", "xm y+10 w110", T("cfg.save")).OnEvent("Click", VimCfg_OnSave)
+    g.Add("Button", "x+10 w130", T("cfg.open_in_editor")).OnEvent("Click", VimCfg_OnTextEdit)
+    g.Add("Text", "x+14 yp+6 w560", T("cfg.save_hint"))
     wb := g.Add("Edit", "xm y+8 w880 h40 ReadOnly -VScroll +BackgroundFFFFE0")
     g_VimCfg["warnbar"] := wb
     g.OnEvent("Close", VimCfg_OnClose)
@@ -142,7 +142,7 @@ VimCfg_OnSave(*) {
     VimCfg_RefreshWarnBar()
     dirty := g_VimCfg["dirty"]
     if (dirty.Count = 0) {
-        ToolTip("没有改动")
+        ToolTip(T("cfg.no_change"))
         SetTimer(RemoveToolTip, -1200)
         return
     }
@@ -150,7 +150,7 @@ VimCfg_OnSave(*) {
     try {
         VimCfg_WriteIni(path, dirty)
     } catch as e {
-        MsgBox("保存失败: " e.Message, "配置中心", 16)
+        MsgBox(T("cfg.save_failed", e.Message), T("cfg.title"), 16)
         return
     }
     ; 同步内存 (新段自动建; 删键同步删)
@@ -165,27 +165,27 @@ VimCfg_OnSave(*) {
         }
     }
     g_VimCfg["dirty"] := Map()
-    ToolTip("已保存, 3 秒内自动重载生效")
+    ToolTip(T("cfg.saved"))
     SetTimer(RemoveToolTip, -1500)
 }
 
 ; ==================== 按键页 ====================
 VimCfg_BuildKeysTab(g) {
     global g_VimCfg
-    g.Add("GroupBox", "x10 y40 w210 h300", "窗口")
+    g.Add("GroupBox", "x10 y40 w210 h300", T("cfg.keys_window"))
     lbw := g.Add("ListBox", "x20 y65 w190 R13", [])
-    g.Add("GroupBox", "x10 y350 w210 h80", "模式")
+    g.Add("GroupBox", "x10 y350 w210 h80", T("cfg.keys_mode"))
     lbm := g.Add("ListBox", "x20 y375 w190 R3", [])
-    g.Add("GroupBox", "x10 y440 w210 h61", "过滤")
+    g.Add("GroupBox", "x10 y440 w210 h61", T("cfg.keys_filter"))
     ed := g.Add("Edit", "x20 y465 w190 h25")
-    g.Add("GroupBox", "x230 y40 w650 h461", "映射 (双击编辑)")
-    lv := g.Add("ListView", "x240 y65 w630 h400 grid", ["按键", "动作", "中文含义"])
+    g.Add("GroupBox", "x230 y40 w650 h461", T("cfg.keys_mapping"))
+    lv := g.Add("ListView", "x240 y65 w630 h400 grid", [T("cfg.keys_col_key"), T("cfg.keys_col_action"), T("cfg.keys_col_desc")])
     lv.ModifyCol(1, 110)
     lv.ModifyCol(2, 230)
     lv.ModifyCol(3, 271)
-    g.Add("Button", "x240 y475 w70", "新增").OnEvent("Click", VimCfg_KeyAdd)
-    g.Add("Button", "x+10 w70", "编辑").OnEvent("Click", VimCfg_KeyEdit)
-    g.Add("Button", "x+10 w70", "删除").OnEvent("Click", VimCfg_KeyDel)
+    g.Add("Button", "x240 y475 w70", T("cfg.keys_add")).OnEvent("Click", VimCfg_KeyAdd)
+    g.Add("Button", "x+10 w70", T("cfg.keys_edit")).OnEvent("Click", VimCfg_KeyEdit)
+    g.Add("Button", "x+10 w70", T("cfg.keys_delete")).OnEvent("Click", VimCfg_KeyDel)
     g_VimCfg["kw"] := lbw
     g_VimCfg["km"] := lbm
     g_VimCfg["ke"] := ed
@@ -336,10 +336,10 @@ VimCfg_KeyDel(*) {
     if (item = "")
         return
     wname := g_VimCfg["kwin"]
-    if (MsgBox("删除映射 [" item["key"] "] ?`n(硬编码窗口将回落到内置映射)", "配置中心", "YesNo") != "Yes")
+    if (MsgBox(T("cfg.keys_del_confirm", item["key"]), T("cfg.title"), "YesNo") != "Yes")
         return
     VimCfg_MarkDirty(wname, item["rawkey"], "", true)
-    ToolTip("已标记删除, 点保存生效")
+    ToolTip(T("cfg.keys_marked_deleted"))
     SetTimer(RemoveToolTip, -1200)
 }
 
@@ -352,21 +352,21 @@ VimCfg_KeyDialog(isNew, item, withMode := true) {
         } catch {
         }
     }
-    d := Gui("+Owner" g_VimCfg["gui"].Hwnd, isNew ? "新增映射" : "编辑映射")
+    d := Gui("+Owner" g_VimCfg["gui"].Hwnd, isNew ? T("cfg.dlg_add_mapping") : T("cfg.dlg_edit_mapping"))
     d.SetFont("s10", "Microsoft YaHei")
-    d.Add("Text", "x15 y15 w60", "按键")
+    d.Add("Text", "x15 y15 w60", T("cfg.dlg_key"))
     dek := d.Add("Edit", "x85 y12 w250 h25", item["key"])
-    d.Add("Text", "x15 y50 w60", "动作")
+    d.Add("Text", "x15 y50 w60", T("cfg.dlg_action"))
     dea := d.Add("Edit", "x85 y47 w250 h25", item["action"])
     dem := ""
     y := 82
     if (withMode) {
-        d.Add("Text", "x15 y85 w60", "模式")
+        d.Add("Text", "x15 y85 w60", T("cfg.dlg_mode"))
         dem := d.Add("Edit", "x85 y82 w250 h25", g_VimCfg.Has("kmode") ? g_VimCfg["kmode"] : "normal")
         y := 117
     }
-    d.Add("Button", "x85 y" y " w80 Default", "确定").OnEvent("Click", VimCfg_KeyDialogOK)
-    d.Add("Button", "x+10 w80", "取消").OnEvent("Click", VimCfg_KeyDialogCancel)
+    d.Add("Button", "x85 y" y " w80 Default", T("cfg.dlg_ok")).OnEvent("Click", VimCfg_KeyDialogOK)
+    d.Add("Button", "x+10 w80", T("cfg.dlg_cancel")).OnEvent("Click", VimCfg_KeyDialogCancel)
     g_VimCfg["dlg"] := d
     g_VimCfg["dlgNew"] := isNew
     g_VimCfg["dlgKey"] := dek
@@ -388,7 +388,7 @@ VimCfg_KeyDialogOK(*) {
     key := Trim(g_VimCfg["dlgKey"].Value)
     action := Trim(g_VimCfg["dlgAct"].Value)
     if (key = "" || action = "") {
-        MsgBox("按键和动作都不能为空", "配置中心", 16)
+        MsgBox(T("cfg.dlg_empty"), T("cfg.title"), 16)
         return
     }
     if (g_VimCfg["dlgWithMode"]) {
@@ -406,20 +406,20 @@ VimCfg_KeyDialogOK(*) {
     }
     try g_VimCfg["dlg"].Destroy()
     g_VimCfg.Delete("dlg")
-    ToolTip("已暂存, 点保存写入文件")
+    ToolTip(T("cfg.dlg_staged"))
     SetTimer(RemoveToolTip, -1200)
 }
 
 ; ==================== 键值对页 (全局热键 / Hotkey) ====================
 VimCfg_BuildKvTab(g, sec, tag) {
     global g_VimCfg
-    g.Add("GroupBox", "x10 y40 w860 h400", (sec = "GlobalHotkey" ? "全局热键 (立即生效需重启)" : "启动器热键"))
-    lv := g.Add("ListView", "x20 y65 w840 h330 grid", ["热键", "动作"])
+    g.Add("GroupBox", "x10 y40 w860 h400", (sec = "GlobalHotkey" ? T("cfg.kv_global_title") : T("cfg.kv_hotkey_title")))
+    lv := g.Add("ListView", "x20 y65 w840 h330 grid", [T("cfg.kv_col_hotkey"), T("cfg.kv_col_action")])
     lv.ModifyCol(1, 220)
     lv.ModifyCol(2, 600)
-    g.Add("Button", "x20 y410 w70", "新增").OnEvent("Click", VimCfg_KvAdd)
-    g.Add("Button", "x+10 w70", "编辑").OnEvent("Click", VimCfg_KvEdit)
-    g.Add("Button", "x+10 w70", "删除").OnEvent("Click", VimCfg_KvDel)
+    g.Add("Button", "x20 y410 w70", T("cfg.kv_add")).OnEvent("Click", VimCfg_KvAdd)
+    g.Add("Button", "x+10 w70", T("cfg.kv_edit")).OnEvent("Click", VimCfg_KvEdit)
+    g.Add("Button", "x+10 w70", T("cfg.kv_delete")).OnEvent("Click", VimCfg_KvDel)
     g_VimCfg["kv_" tag] := lv
     g_VimCfg["kvrows_" tag] := []
     lv.OnEvent("DoubleClick", VimCfg_KvDblEdit)
@@ -528,7 +528,7 @@ VimCfg_KvDel(*) {
     r := VimCfg_KvSelected()
     if (r = "")
         return
-    if (MsgBox("删除 [" r["key"] "] ?", "配置中心", "YesNo") != "Yes")
+    if (MsgBox(T("cfg.kv_del_confirm", r["key"]), T("cfg.title"), "YesNo") != "Yes")
         return
     VimCfg_MarkDirty(VimCfg_KvSec(), r["key"], "", true)
     VimCfg_KvReload(VimCfg_KvSec())
@@ -537,12 +537,12 @@ VimCfg_KvDel(*) {
 ; ==================== 插件页 ====================
 VimCfg_BuildPluginTab(g) {
     global g_VimCfg
-    g.Add("GroupBox", "x10 y40 w860 h400", "插件开关 (改动需重启)")
-    lv := g.Add("ListView", "x20 y65 w840 h330 grid", ["插件", "状态"])
+    g.Add("GroupBox", "x10 y40 w860 h400", T("cfg.plugin_title"))
+    lv := g.Add("ListView", "x20 y65 w840 h330 grid", [T("cfg.plugin_col_name"), T("cfg.plugin_col_status")])
     lv.ModifyCol(1, 300)
     lv.ModifyCol(2, 520)
-    g.Add("Button", "x20 y410 w110", "启用/禁用").OnEvent("Click", VimCfg_PluginToggle)
-    g.Add("Button", "x+10 w110", "重启生效").OnEvent("Click", VimCfg_PluginRestart)
+    g.Add("Button", "x20 y410 w110", T("cfg.plugin_toggle")).OnEvent("Click", VimCfg_PluginToggle)
+    g.Add("Button", "x+10 w110", T("cfg.plugin_restart")).OnEvent("Click", VimCfg_PluginRestart)
     g_VimCfg["plug"] := lv
     g_VimCfg["plugrows"] := []
     lv.OnEvent("DoubleClick", VimCfg_PluginToggle)
@@ -587,7 +587,7 @@ VimCfg_PluginReload() {
     g_VimCfg["plugrows"] := rows
     try lv.Delete()
     for r in rows {
-        try lv.Add("", r["key"], r["on"] ? "启用" : "禁用")
+        try lv.Add("", r["key"], r["on"] ? T("cfg.plugin_on") : T("cfg.plugin_off"))
     }
 }
 
@@ -622,20 +622,20 @@ VimCfg_CollectPluginTab() {
 ; ==================== TC 设置页 ====================
 VimCfg_BuildTCTab(g) {
     global g_VimCfg
-    g.Add("GroupBox", "x10 y40 w860 h400", "TotalCommander")
-    g.Add("Text", "x25 y75 w110", "TC 路径")
+    g.Add("GroupBox", "x10 y40 w860 h400", T("cfg.tc_title"))
+    g.Add("Text", "x25 y75 w110", T("cfg.tc_path"))
     ed1 := g.Add("Edit", "x140 y72 w560 h25")
-    g.Add("Button", "x+10 w80", "浏览").OnEvent("Click", VimCfg_TCBrowsePath)
-    g.Add("Text", "x25 y115 w110", "TC 配置 wincmd")
+    g.Add("Button", "x+10 w80", T("cfg.tc_browse")).OnEvent("Click", VimCfg_TCBrowsePath)
+    g.Add("Text", "x25 y115 w110", T("cfg.tc_ini"))
     ed2 := g.Add("Edit", "x140 y112 w560 h25")
-    g.Add("Button", "x+10 w80", "浏览").OnEvent("Click", VimCfg_TCBrowseIni)
-    cb1 := g.Add("CheckBox", "x25 y155", "记录 Mark (SaveMark)")
-    g.Add("Text", "x25 y190 w110", "菜单图标尺寸")
+    g.Add("Button", "x+10 w80", T("cfg.tc_browse")).OnEvent("Click", VimCfg_TCBrowseIni)
+    cb1 := g.Add("CheckBox", "x25 y155", T("cfg.tc_savemark"))
+    g.Add("Text", "x25 y190 w110", T("cfg.tc_iconsize"))
     ed3 := g.Add("Edit", "x140 y187 w80 h25")
-    cb2 := g.Add("CheckBox", "x25 y225", "作为文件选择对话框 (AsOpenFileDialog)")
-    g.Add("Text", "x25 y260 w150", "对话框排除词 (逗号隔开)")
+    cb2 := g.Add("CheckBox", "x25 y225", T("cfg.tc_asdlg"))
+    g.Add("Text", "x25 y260 w150", T("cfg.tc_exclude"))
     ed4 := g.Add("Edit", "x25 y285 w675 h25")
-    g.Add("Text", "x25 y330 w675", "说明: TC 路径同时写入 [Config] 与 [TotalCommander_Config]; 其余写入后者.")
+    g.Add("Text", "x25 y330 w675", T("cfg.tc_note"))
     g_VimCfg["tc_path"] := ed1
     g_VimCfg["tc_ini"] := ed2
     g_VimCfg["tc_savemark"] := cb1
@@ -663,7 +663,7 @@ VimCfg_TCLoad() {
 VimCfg_TCBrowsePath(*) {
     global g_VimCfg
     try {
-        p := FileSelect(3, , "选择 Total Commander", "程序 (*.exe)")
+        p := FileSelect(3, , T("cfg.tc_pick_exe"), T("cfg.tc_pick_exe_filter"))
         if (p != "")
             g_VimCfg["tc_path"].Value := p
     }
@@ -672,7 +672,7 @@ VimCfg_TCBrowsePath(*) {
 VimCfg_TCBrowseIni(*) {
     global g_VimCfg
     try {
-        p := FileSelect(3, , "选择 wincmd.ini", "配置 (*.ini)")
+        p := FileSelect(3, , T("cfg.tc_pick_ini"), T("cfg.tc_pick_ini_filter"))
         if (p != "")
             g_VimCfg["tc_ini"].Value := p
     }
@@ -703,39 +703,40 @@ VimCfg_CollectTCTab() {
 ; ==================== 启动器页 ====================
 VimCfg_LauncherSpecs() {
     return [
-        Map("sec", "Config", "key", "SearchFileDir", "label", "搜索目录 (| 分隔)", "type", "text"),
-        Map("sec", "Config", "key", "SearchFileType", "label", "文件类型 (| 分隔)", "type", "text"),
-        Map("sec", "Config", "key", "SearchFileExclude", "label", "排除正则", "type", "text"),
-        Map("sec", "Config", "key", "TCMatchPath", "label", "tcmatch.dll 路径", "type", "text"),
-        Map("sec", "Config", "key", "RunInBackground", "label", "后台运行", "type", "bool"),
-        Map("sec", "Config", "key", "ExitIfInactivate", "label", "失焦关闭", "type", "bool"),
-        Map("sec", "Config", "key", "WindowAlwaysOnTop", "label", "窗口置顶", "type", "bool"),
-        Map("sec", "Config", "key", "SaveHistory", "label", "记录历史", "type", "bool"),
-        Map("sec", "Config", "key", "HistorySize", "label", "历史条数", "type", "int"),
-        Map("sec", "Config", "key", "AutoRank", "label", "自动排序", "type", "bool"),
-        Map("sec", "Config", "key", "ClickToRun", "label", "单击执行", "type", "bool"),
-        Map("sec", "Config", "key", "KeepInputText", "label", "隐藏保留输入", "type", "bool"),
-        Map("sec", "Config", "key", "RunOnce", "label", "运行一次即退", "type", "bool"),
-        Map("sec", "Config", "key", "RunIfOnlyOne", "label", "唯一结果直运", "type", "bool"),
-        Map("sec", "Config", "key", "SwitchToEngIME", "label", "激活切英文", "type", "bool"),
-        Map("sec", "Config", "key", "DebugMode", "label", "调试模式", "type", "bool"),
-        Map("sec", "Gui", "key", "Skin", "label", "皮肤", "type", "skin"),
-        Map("sec", "Gui", "key", "HideTitle", "label", "隐藏标题栏", "type", "bool"),
-        Map("sec", "Gui", "key", "ShowTrayIcon", "label", "托盘图标", "type", "bool"),
-        Map("sec", "Gui", "key", "ShowCurrentCommand", "label", "显示当前命令", "type", "bool"),
-        Map("sec", "Gui", "key", "DisplayRows", "label", "显示行数", "type", "int"),
-        Map("sec", "Gui", "key", "WidgetWidth", "label", "界面宽度", "type", "int"),
-        Map("sec", "Gui", "key", "FontName", "label", "字体", "type", "text"),
-        Map("sec", "Gui", "key", "FontSize", "label", "字号", "type", "int"),
-        Map("sec", "Gui", "key", "FontColor", "label", "字体颜色", "type", "text"),
-        Map("sec", "Gui", "key", "BackgroundColor", "label", "背景色", "type", "text"),
-        Map("sec", "Gui", "key", "EditColor", "label", "输入框颜色", "type", "text")
+        Map("sec", "Config", "key", "SearchFileDir", "label", T("cfg.opt_searchdir"), "type", "text"),
+        Map("sec", "Config", "key", "SearchFileType", "label", T("cfg.opt_searchtype"), "type", "text"),
+        Map("sec", "Config", "key", "SearchFileExclude", "label", T("cfg.opt_exclude"), "type", "text"),
+        Map("sec", "Config", "key", "TCMatchPath", "label", T("cfg.opt_tcmatch"), "type", "text"),
+        Map("sec", "Config", "key", "Language", "label", T("cfg.opt_language"), "type", "lang"),
+        Map("sec", "Config", "key", "RunInBackground", "label", T("cfg.opt_bg"), "type", "bool"),
+        Map("sec", "Config", "key", "ExitIfInactivate", "label", T("cfg.opt_exitblur"), "type", "bool"),
+        Map("sec", "Config", "key", "WindowAlwaysOnTop", "label", T("cfg.opt_topmost"), "type", "bool"),
+        Map("sec", "Config", "key", "SaveHistory", "label", T("cfg.opt_history"), "type", "bool"),
+        Map("sec", "Config", "key", "HistorySize", "label", T("cfg.opt_historysize"), "type", "int"),
+        Map("sec", "Config", "key", "AutoRank", "label", T("cfg.opt_autorank"), "type", "bool"),
+        Map("sec", "Config", "key", "ClickToRun", "label", T("cfg.opt_clicktorun"), "type", "bool"),
+        Map("sec", "Config", "key", "KeepInputText", "label", T("cfg.opt_keepinput"), "type", "bool"),
+        Map("sec", "Config", "key", "RunOnce", "label", T("cfg.opt_runonce"), "type", "bool"),
+        Map("sec", "Config", "key", "RunIfOnlyOne", "label", T("cfg.opt_runifone"), "type", "bool"),
+        Map("sec", "Config", "key", "SwitchToEngIME", "label", T("cfg.opt_engime"), "type", "bool"),
+        Map("sec", "Config", "key", "DebugMode", "label", T("cfg.opt_debug"), "type", "bool"),
+        Map("sec", "Gui", "key", "Skin", "label", T("cfg.opt_skin"), "type", "skin"),
+        Map("sec", "Gui", "key", "HideTitle", "label", T("cfg.opt_hidetitle"), "type", "bool"),
+        Map("sec", "Gui", "key", "ShowTrayIcon", "label", T("cfg.opt_tray"), "type", "bool"),
+        Map("sec", "Gui", "key", "ShowCurrentCommand", "label", T("cfg.opt_showcmd"), "type", "bool"),
+        Map("sec", "Gui", "key", "DisplayRows", "label", T("cfg.opt_rows"), "type", "int"),
+        Map("sec", "Gui", "key", "WidgetWidth", "label", T("cfg.opt_width"), "type", "int"),
+        Map("sec", "Gui", "key", "FontName", "label", T("cfg.opt_font"), "type", "text"),
+        Map("sec", "Gui", "key", "FontSize", "label", T("cfg.opt_fontsize"), "type", "int"),
+        Map("sec", "Gui", "key", "FontColor", "label", T("cfg.opt_fontcolor"), "type", "text"),
+        Map("sec", "Gui", "key", "BackgroundColor", "label", T("cfg.opt_bgcolor"), "type", "text"),
+        Map("sec", "Gui", "key", "EditColor", "label", T("cfg.opt_editcolor"), "type", "text")
     ]
 }
 
 VimCfg_BuildLauncherTab(g) {
     global g_VimCfg, g_Conf
-    g.Add("GroupBox", "x10 y40 w860 h400", "启动器 / 界面")
+    g.Add("GroupBox", "x10 y40 w860 h400", T("cfg.launcher_title"))
     specs := VimCfg_LauncherSpecs()
     x := 25
     y := 70
@@ -751,6 +752,20 @@ VimCfg_BuildLauncherTab(g) {
         if (sp["type"] = "bool") {
             ctl := g.Add("CheckBox", "x" x " y" y " w400", sp["label"])
             try ctl.Value := cur = "1" ? 1 : 0
+        } else if (sp["type"] = "lang") {
+            g.Add("Text", "x" x " y" y + 3 " w120", sp["label"])
+            names := []
+            curName := ""
+            for l in I18nAvailable() {
+                dn := I18nDisplayName(l)
+                names.Push(dn)
+                if (l = cur || (cur = "auto" && l = I18nGetLang()))
+                    curName := dn
+            }
+            if (curName = "" && names.Length > 0)
+                curName := names[1]
+            ctl := g.Add("DropDownList", "x" x + 130 " y" y " w270", names)
+            try ctl.Text := curName
         } else if (sp["type"] = "skin") {
             g.Add("Text", "x" x " y" y + 3 " w120", sp["label"])
             names := [cur]
@@ -786,6 +801,17 @@ VimCfg_CollectLauncherTab() {
         val := ""
         if (sp["type"] = "bool") {
             val := ctl.Value ? "1" : "0"
+        } else if (sp["type"] = "lang") {
+            sel := ""
+            try sel := ctl.Text
+            for l in I18nAvailable() {
+                if (I18nDisplayName(l) = sel) {
+                    val := l
+                    break
+                }
+            }
+            if (val = "")
+                val := g_Conf.Get(sp["sec"], sp["key"], "auto")
         } else if (sp["type"] = "skin") {
             try val := ctl.Text
         } else {
@@ -799,12 +825,12 @@ VimCfg_CollectLauncherTab() {
 ; ==================== 动作页 (替代托盘 插件P: 按插件浏览动作, 双击定位源码) ====================
 VimCfg_BuildActionsTab(g) {
     global g_VimCfg
-    g.Add("GroupBox", "x10 y40 w860 h400", "插件动作 (双击定位源码)")
-    g.Add("Text", "x25 y70 w60", "插件")
+    g.Add("GroupBox", "x10 y40 w860 h400", T("cfg.actions_title"))
+    g.Add("Text", "x25 y70 w60", T("cfg.actions_plugin"))
     ddl := g.Add("DropDownList", "x90 y67 w200", [])
-    g.Add("Text", "x310 y70 w60", "过滤")
+    g.Add("Text", "x310 y70 w60", T("cfg.actions_filter"))
     ed := g.Add("Edit", "x370 y67 w200 h25")
-    lv := g.Add("ListView", "x20 y100 w840 h330 grid", ["动作", "描述"])
+    lv := g.Add("ListView", "x20 y100 w840 h330 grid", [T("cfg.actions_col_action"), T("cfg.actions_col_desc")])
     lv.ModifyCol(1, 280)
     lv.ModifyCol(2, 540)
     g_VimCfg["ac_ddl"] := ddl
@@ -837,10 +863,16 @@ VimCfg_AcPick(*) {
     lines := []
     if FileExist(file) {
         for _line in ReadFileLines(file) {
-            if RegExMatch(_line, 'RegisterAction\("([^"]+)"(?:\s*,\s*"([^"]*)")?', &mm) {
-                lines.Push(Map("action", mm[1], "desc", mm[2]))
-            } else if RegExMatch(_line, '(?:Host\s*\(\s*"RegisterCommand"\s*,\s*|RegisterCommand\s*\(\s*)"([^"]+)"\s*,\s*"([^"]+)"(?:\s*,\s*"[^"]*")?(?:\s*,\s*"([^"]*)")?', &mc) {
-                lines.Push(Map("action", mc[1] " [" mc[2] "]", "desc", mc[3]))
+            if RegExMatch(_line, 'RegisterAction\("([^"]+)"(?:\s*,\s*(?:"([^"]*)"|T\("([^"]+)"\)))?', &mm) {
+                desc := mm[2]
+                if (desc = "" && mm[3] != "")
+                    desc := T(mm[3])
+                lines.Push(Map("action", mm[1], "desc", desc))
+            } else if RegExMatch(_line, '(?:Host\s*\(\s*"RegisterCommand"\s*,\s*|RegisterCommand\s*\(\s*)"([^"]+)"\s*,\s*"([^"]+)"(?:\s*,\s*"[^"]*")?(?:\s*,\s*(?:"([^"]*)"|T\("([^"]+)"\)))?', &mc) {
+                desc := mc[3]
+                if (desc = "" && mc[4] != "")
+                    desc := T(mc[4])
+                lines.Push(Map("action", mc[1] " [" mc[2] "]", "desc", desc))
             }
         }
     }
@@ -892,8 +924,8 @@ VimCfg_BuildHelpTab(g) {
     try tag := g_BuildTag
     catch {
     }
-    txt .= "`n构建: " tag
-    g.Add("GroupBox", "x10 y40 w860 h400", "热键帮助")
+    txt .= "`n" . T("cfg.help_build", tag)
+    g.Add("GroupBox", "x10 y40 w860 h400", T("cfg.help_title"))
     ed := g.Add("Edit", "x20 y65 w840 h365 ReadOnly -VScroll")
     try ed.Value := txt
 }
@@ -928,28 +960,28 @@ VimCfg_CheckConflicts() {
     pairs := [["TotalCommander", "TTOTAL_CMD"], ["Explorer", "CabinetWClass"]]
     for pr in pairs {
         if (G.Get("Plugins", pr[1], "1") = "0" && G.HasSection(pr[2]) && G.GetSection(pr[2]).Count > 0)
-            out.Push(Map("level", "warn", "text", "[" pr[1] "] 已禁用但 [" pr[2] "] 还有映射: 门控回调缺失, 输入框打字会被劫持"))
+            out.Push(Map("level", "warn", "text", T("cfg.warn_plugin_off", pr[1], pr[2])))
     }
     ; 2. 无托盘 + 后台运行 = 丢应用 (皮肤覆盖纳入)
     if (VimCfg_EffGui("ShowTrayIcon", "1") = "0" && G.Get("Config", "RunInBackground", "1") = "1")
-        out.Push(Map("level", "warn", "text", "托盘已隐藏且后台运行: 窗口隐藏后只能 Win+J 唤回"))
+        out.Push(Map("level", "warn", "text", T("cfg.warn_tray")))
     ; 3. 单击执行 + 鼠标移动改选中 = 必误触
     if (G.Get("Config", "ClickToRun", "1") = "1" && G.Get("Config", "ChangeCommandOnMouseMove", "0") = "1")
-        out.Push(Map("level", "warn", "text", "单击执行 + 鼠标移动改选中: 鼠标移过去目标就变了, 点下去必误触"))
+        out.Push(Map("level", "warn", "text", T("cfg.warn_click")))
     ; 4/5/6. 知情类
     if (G.Get("TotalCommander_Config", "AsOpenFileDialog", "0") = "1")
-        out.Push(Map("level", "info", "text", "TC 正在接管全系统文件对话框 (密码框除外)"))
+        out.Push(Map("level", "info", "text", T("cfg.info_tcdlg")))
     if (G.Get("Config", "SwitchToEngIME", "0") = "1")
-        out.Push(Map("level", "info", "text", "每次唤起启动器都会切英文输入法"))
+        out.Push(Map("level", "info", "text", T("cfg.info_ime")))
     if (G.Get("Config", "ExitIfInactivate", "1") = "1" && G.Get("Config", "RunInBackground", "1") != "1")
-        out.Push(Map("level", "info", "text", "失焦即退出进程 (非后台模式)"))
+        out.Push(Map("level", "info", "text", T("cfg.info_exitblur")))
     ; 7. 另一个 RunZ 窗口 (原版或重复启动)
     try {
         if (hw := WinExist("RunZ    ")) {
             pid := 0
             try pid := WinGetPID("ahk_id " hw)
             if (pid != 0 && pid != DllCall("GetCurrentProcessId", "UInt"))
-                out.Push(Map("level", "warn", "text", "检测到另一个 RunZ 窗口 (PID " pid "): 热键/SendTo 可能对打"))
+                out.Push(Map("level", "warn", "text", T("cfg.warn_duprunz", pid)))
         }
     }
     return out
@@ -964,6 +996,6 @@ VimCfg_RefreshWarnBar() {
     for w in list
         txt .= (w["level"] = "warn" ? "⚠ " : "ℹ ") w["text"] "`n"
     if (txt = "")
-        txt := "✓ 无冲突提醒"
+        txt := T("cfg.warn_ok")
     try g_VimCfg["warnbar"].Value := RTrim(txt, "`n")
 }

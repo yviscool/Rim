@@ -8,22 +8,22 @@ RegisterPlugin_TCCompare() {
     RegisterWin("TCCompare", "TConvertForm", "TOTALCMD.EXE")
 
     ; 注册动作
-    RegisterAction("<TCC_Edit>", "进入编辑模式")
-    RegisterAction("<TCC_Recompare>", "重新比较")
-    RegisterAction("<TCC_ToggleBinary>", "切换二进制比较")
-    RegisterAction("<TCC_ToggleEncoding>", "切换编码")
-    RegisterAction("<TCC_NextDiff>", "下一处不同")
-    RegisterAction("<TCC_PrevDiff>", "上一处不同")
-    RegisterAction("<TCC_Home>", "跳到开头")
-    RegisterAction("<TCC_End>", "跳到结尾")
-    RegisterAction("<TCC_Search>", "搜索")
-    RegisterAction("<TCC_CopyToLeft>", "复制到左侧")
-    RegisterAction("<TCC_CopyToRight>", "复制到右侧")
-    RegisterAction("<TCC_Save>", "保存")
-    RegisterAction("<TCC_Refresh>", "刷新比较")
-    RegisterAction("<TCC_Compare>", "开始比较")
-    RegisterAction("<TCC_BinaryMode>", "二进制模式")
-    RegisterAction("<TCC_ChangeCodepage>", "切换代码页")
+    RegisterAction("<TCC_Edit>", T("act.TCCompare.TCC_Edit"))
+    RegisterAction("<TCC_Recompare>", T("act.TCCompare.TCC_Recompare"))
+    RegisterAction("<TCC_ToggleBinary>", T("act.TCCompare.TCC_ToggleBinary"))
+    RegisterAction("<TCC_ToggleEncoding>", T("act.TCCompare.TCC_ToggleEncoding"))
+    RegisterAction("<TCC_NextDiff>", T("act.TCCompare.TCC_NextDiff"))
+    RegisterAction("<TCC_PrevDiff>", T("act.TCCompare.TCC_PrevDiff"))
+    RegisterAction("<TCC_Home>", T("act.TCCompare.TCC_Home"))
+    RegisterAction("<TCC_End>", T("act.TCCompare.TCC_End"))
+    RegisterAction("<TCC_Search>", T("act.TCCompare.TCC_Search"))
+    RegisterAction("<TCC_CopyToLeft>", T("act.TCCompare.TCC_CopyToLeft"))
+    RegisterAction("<TCC_CopyToRight>", T("act.TCCompare.TCC_CopyToRight"))
+    RegisterAction("<TCC_Save>", T("act.TCCompare.TCC_Save"))
+    RegisterAction("<TCC_Refresh>", T("act.TCCompare.TCC_Refresh"))
+    RegisterAction("<TCC_Compare>", T("act.TCCompare.TCC_Compare"))
+    RegisterAction("<TCC_BinaryMode>", T("act.TCCompare.TCC_BinaryMode"))
+    RegisterAction("<TCC_ChangeCodepage>", T("act.TCCompare.TCC_ChangeCodepage"))
 
     ; insert 模式映射
     MapKey("<enter>", "<enter>", "TCCompare", "insert")
@@ -92,7 +92,7 @@ TCC_ToggleEncoding() {
 
 TCC_ChangeCodepage() {
     try {
-        ibox := InputBox("输入代码页:`n65001 - UTF-8`n936 - 简体中文`n950 - 繁体中文", "切换代码页")
+        ibox := InputBox(T("tcc.codepage_prompt"), T("tcc.codepage_title"))
         codepage := ibox.Value
     } catch {
         return

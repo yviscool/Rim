@@ -32,20 +32,22 @@ class VimEditorPlugin {
     static lastCommand := ""
     static lastCommandArgs := ""
 
+    ; 值: 需翻译的存 i18n key (消费点经 T() 解析), 英文直通的保持原文
+    ; (static 初始化早于 I18nBoot, 此处禁止直接调 T())
     static EditorWindows := Map(
-        "Notepad", "记事本",
+        "Notepad", "ved.ed_notepad",
         "Typora", "Typora",
         "SublimeText", "Sublime",
         " mintty", "Git Bash",
-        "ConsoleWindowClass", "命令提示符",
+        "ConsoleWindowClass", "ved.ed_console",
         "PuTTY", "PuTTY",
         "Code", "VSCode",
-        "EditorPane", "编辑器",
+        "EditorPane", "ved.ed_editor",
         "Scintilla", "Scintilla",
         "TMemo", "TMemo",
         "RichEditD2DPT", "RichEdit",
         "Notepad++", "Notepad++",
-        "ThunderRT6TextBox", "VB编辑器"
+        "ThunderRT6TextBox", "ved.ed_vb"
     )
 
     static actions := Map()
@@ -56,117 +58,117 @@ class VimEditorPlugin {
     }
 
     InitActions() {
-        this.RegisterAction("VimEditor_InsertMode", "进入插入模式")
-        this.RegisterAction("VimEditor_NormalMode", "进入普通模式")
-        this.RegisterAction("VimEditor_VisualMode", "进入可视模式")
-        this.RegisterAction("VimEditor_VisualLineMode", "进入行可视模式")
-        this.RegisterAction("VimEditor_Toggle", "启用/禁用Vim编辑")
+        this.RegisterAction("VimEditor_InsertMode", T("act.VimEditor.VimEditor_InsertMode"))
+        this.RegisterAction("VimEditor_NormalMode", T("act.VimEditor.VimEditor_NormalMode"))
+        this.RegisterAction("VimEditor_VisualMode", T("act.VimEditor.VimEditor_VisualMode"))
+        this.RegisterAction("VimEditor_VisualLineMode", T("act.VimEditor.VimEditor_VisualLineMode"))
+        this.RegisterAction("VimEditor_Toggle", T("act.VimEditor.VimEditor_Toggle"))
 
-        this.RegisterAction("VimEditor_h", "左移(h)")
-        this.RegisterAction("VimEditor_j", "下移(j)")
-        this.RegisterAction("VimEditor_k", "上移(k)")
-        this.RegisterAction("VimEditor_l", "右移(l)")
-        this.RegisterAction("VimEditor_w", "下个词首(w)")
-        this.RegisterAction("VimEditor_WKey", "下个空白词首(W)")
-        this.RegisterAction("VimEditor_b", "词首(b)")
-        this.RegisterAction("VimEditor_BKey", "空白词首(B)")
-        this.RegisterAction("VimEditor_e", "词尾(e)")
-        this.RegisterAction("VimEditor_EKey", "空白词尾(E)")
-        this.RegisterAction("VimEditor_0", "行首(0)")
-        this.RegisterAction("VimEditor_Caret", "非空行首(^)")
-        this.RegisterAction("VimEditor_Dollar", "行尾($)")
-        this.RegisterAction("VimEditor_Go", "文件首行(gg)")
-        this.RegisterAction("VimEditor_GKey", "文件尾行(G)")
-        this.RegisterAction("VimEditor_HKey", "屏幕顶部(H)")
-        this.RegisterAction("VimEditor_MKey", "屏幕中部(M)")
-        this.RegisterAction("VimEditor_LKey", "屏幕底部(L)")
-        this.RegisterAction("VimEditor_CtrlU", "上翻半页(Ctrl+U)")
-        this.RegisterAction("VimEditor_CtrlD", "下翻半页(Ctrl+D)")
-        this.RegisterAction("VimEditor_CtrlB", "上翻一页(Ctrl+B)")
-        this.RegisterAction("VimEditor_CtrlF", "下翻一页(Ctrl+F)")
+        this.RegisterAction("VimEditor_h", T("act.VimEditor.VimEditor_h"))
+        this.RegisterAction("VimEditor_j", T("act.VimEditor.VimEditor_j"))
+        this.RegisterAction("VimEditor_k", T("act.VimEditor.VimEditor_k"))
+        this.RegisterAction("VimEditor_l", T("act.VimEditor.VimEditor_l"))
+        this.RegisterAction("VimEditor_w", T("act.VimEditor.VimEditor_w"))
+        this.RegisterAction("VimEditor_WKey", T("act.VimEditor.VimEditor_WKey"))
+        this.RegisterAction("VimEditor_b", T("act.VimEditor.VimEditor_b"))
+        this.RegisterAction("VimEditor_BKey", T("act.VimEditor.VimEditor_BKey"))
+        this.RegisterAction("VimEditor_e", T("act.VimEditor.VimEditor_e"))
+        this.RegisterAction("VimEditor_EKey", T("act.VimEditor.VimEditor_EKey"))
+        this.RegisterAction("VimEditor_0", T("act.VimEditor.VimEditor_0"))
+        this.RegisterAction("VimEditor_Caret", T("act.VimEditor.VimEditor_Caret"))
+        this.RegisterAction("VimEditor_Dollar", T("act.VimEditor.VimEditor_Dollar"))
+        this.RegisterAction("VimEditor_Go", T("act.VimEditor.VimEditor_Go"))
+        this.RegisterAction("VimEditor_GKey", T("act.VimEditor.VimEditor_GKey"))
+        this.RegisterAction("VimEditor_HKey", T("act.VimEditor.VimEditor_HKey"))
+        this.RegisterAction("VimEditor_MKey", T("act.VimEditor.VimEditor_MKey"))
+        this.RegisterAction("VimEditor_LKey", T("act.VimEditor.VimEditor_LKey"))
+        this.RegisterAction("VimEditor_CtrlU", T("act.VimEditor.VimEditor_CtrlU"))
+        this.RegisterAction("VimEditor_CtrlD", T("act.VimEditor.VimEditor_CtrlD"))
+        this.RegisterAction("VimEditor_CtrlB", T("act.VimEditor.VimEditor_CtrlB"))
+        this.RegisterAction("VimEditor_CtrlF", T("act.VimEditor.VimEditor_CtrlF"))
 
-        this.RegisterAction("VimEditor_f", "向右查找字符(f)")
-        this.RegisterAction("VimEditor_FKey", "向左查找字符(F)")
-        this.RegisterAction("VimEditor_t", "向右到字符前(t)")
-        this.RegisterAction("VimEditor_TKey", "向左到字符前(T)")
-        this.RegisterAction("VimEditor_semicolon", "重复f/F/t/T(;)")
+        this.RegisterAction("VimEditor_f", T("act.VimEditor.VimEditor_f"))
+        this.RegisterAction("VimEditor_FKey", T("act.VimEditor.VimEditor_FKey"))
+        this.RegisterAction("VimEditor_t", T("act.VimEditor.VimEditor_t"))
+        this.RegisterAction("VimEditor_TKey", T("act.VimEditor.VimEditor_TKey"))
+        this.RegisterAction("VimEditor_semicolon", T("act.VimEditor.VimEditor_semicolon"))
 
-        this.RegisterAction("VimEditor_i", "光标前插入(i)")
-        this.RegisterAction("VimEditor_a", "光标后插入(a)")
-        this.RegisterAction("VimEditor_o", "下方新建行(o)")
-        this.RegisterAction("VimEditor_IKey", "行首插入(I)")
-        this.RegisterAction("VimEditor_AKey", "行尾插入(A)")
-        this.RegisterAction("VimEditor_OKey", "上方新建行(O)")
+        this.RegisterAction("VimEditor_i", T("act.VimEditor.VimEditor_i"))
+        this.RegisterAction("VimEditor_a", T("act.VimEditor.VimEditor_a"))
+        this.RegisterAction("VimEditor_o", T("act.VimEditor.VimEditor_o"))
+        this.RegisterAction("VimEditor_IKey", T("act.VimEditor.VimEditor_IKey"))
+        this.RegisterAction("VimEditor_AKey", T("act.VimEditor.VimEditor_AKey"))
+        this.RegisterAction("VimEditor_OKey", T("act.VimEditor.VimEditor_OKey"))
 
-        this.RegisterAction("VimEditor_x", "删除光标下字符(x)")
-        this.RegisterAction("VimEditor_XKey", "删除光标前字符(X)")
-        this.RegisterAction("VimEditor_r", "替换字符(r)")
-        this.RegisterAction("VimEditor_dd", "删除整行(dd)")
-        this.RegisterAction("VimEditor_DKey", "删除至行尾(D)")
-        this.RegisterAction("VimEditor_CKey", "修改至行尾(C)")
-        this.RegisterAction("VimEditor_cc", "修改整行(cc)")
-        this.RegisterAction("VimEditor_s", "删除字符并插入(s)")
-        this.RegisterAction("VimEditor_SKey", "修改整行(S)")
-        this.RegisterAction("VimEditor_yy", "复制整行(yy)")
-        this.RegisterAction("VimEditor_y", "复制(y)")
-        this.RegisterAction("VimEditor_YKey", "复制整行(Y)")
-        this.RegisterAction("VimEditor_p", "粘贴(p)")
-        this.RegisterAction("VimEditor_PKey", "前粘贴(P)")
-        this.RegisterAction("VimEditor_u", "撤销(u)")
-        this.RegisterAction("VimEditor_CtrlR", "重做(Ctrl+R)")
-        this.RegisterAction("VimEditor_JKey", "合并行(J)")
-        this.RegisterAction("VimEditor_gJ", "合并行保留空格(gJ)")
-        this.RegisterAction("VimEditor_tilde", "大小写切换(~)")
-        this.RegisterAction("VimEditor_dot", "重复操作(.)")
+        this.RegisterAction("VimEditor_x", T("act.VimEditor.VimEditor_x"))
+        this.RegisterAction("VimEditor_XKey", T("act.VimEditor.VimEditor_XKey"))
+        this.RegisterAction("VimEditor_r", T("act.VimEditor.VimEditor_r"))
+        this.RegisterAction("VimEditor_dd", T("act.VimEditor.VimEditor_dd"))
+        this.RegisterAction("VimEditor_DKey", T("act.VimEditor.VimEditor_DKey"))
+        this.RegisterAction("VimEditor_CKey", T("act.VimEditor.VimEditor_CKey"))
+        this.RegisterAction("VimEditor_cc", T("act.VimEditor.VimEditor_cc"))
+        this.RegisterAction("VimEditor_s", T("act.VimEditor.VimEditor_s"))
+        this.RegisterAction("VimEditor_SKey", T("act.VimEditor.VimEditor_SKey"))
+        this.RegisterAction("VimEditor_yy", T("act.VimEditor.VimEditor_yy"))
+        this.RegisterAction("VimEditor_y", T("act.VimEditor.VimEditor_y"))
+        this.RegisterAction("VimEditor_YKey", T("act.VimEditor.VimEditor_YKey"))
+        this.RegisterAction("VimEditor_p", T("act.VimEditor.VimEditor_p"))
+        this.RegisterAction("VimEditor_PKey", T("act.VimEditor.VimEditor_PKey"))
+        this.RegisterAction("VimEditor_u", T("act.VimEditor.VimEditor_u"))
+        this.RegisterAction("VimEditor_CtrlR", T("act.VimEditor.VimEditor_CtrlR"))
+        this.RegisterAction("VimEditor_JKey", T("act.VimEditor.VimEditor_JKey"))
+        this.RegisterAction("VimEditor_gJ", T("act.VimEditor.VimEditor_gJ"))
+        this.RegisterAction("VimEditor_tilde", T("act.VimEditor.VimEditor_tilde"))
+        this.RegisterAction("VimEditor_dot", T("act.VimEditor.VimEditor_dot"))
 
-        this.RegisterAction("VimEditor_diw", "删除单词(diw)")
-        this.RegisterAction("VimEditor_daw", "删除含空格单词(daw)")
-        this.RegisterAction("VimEditor_ciw", "修改单词(ciw)")
-        this.RegisterAction("VimEditor_caw", "修改含空格单词(caw)")
-        this.RegisterAction("VimEditor_yiw", "复制单词(yiw)")
-        this.RegisterAction("VimEditor_yaw", "复制含空格单词(yaw)")
-        this.RegisterAction("VimEditor_dib", "删除括号内(dib)")
-        this.RegisterAction("VimEditor_dab", "删除含括号(dab)")
-        this.RegisterAction("VimEditor_cib", "修改括号内(cib)")
-        this.RegisterAction("VimEditor_cab", "修改含括号(cab)")
-        this.RegisterAction("VimEditor_diq", '删除双引号内(di")')
-        this.RegisterAction("VimEditor_diqq", "删除单引号内(di')")
-        this.RegisterAction("VimEditor_ciq", '修改双引号内(ci")')
-        this.RegisterAction("VimEditor_ciqq", "修改单引号内(ci')")
-        this.RegisterAction("VimEditor_yiq", '复制双引号内(yi")')
-        this.RegisterAction("VimEditor_yiqq", "复制单引号内(yi')")
-        this.RegisterAction("VimEditor_dia", "删除尖括号内(dia)")
-        this.RegisterAction("VimEditor_cia", "修改尖括号内(cia)")
+        this.RegisterAction("VimEditor_diw", T("act.VimEditor.VimEditor_diw"))
+        this.RegisterAction("VimEditor_daw", T("act.VimEditor.VimEditor_daw"))
+        this.RegisterAction("VimEditor_ciw", T("act.VimEditor.VimEditor_ciw"))
+        this.RegisterAction("VimEditor_caw", T("act.VimEditor.VimEditor_caw"))
+        this.RegisterAction("VimEditor_yiw", T("act.VimEditor.VimEditor_yiw"))
+        this.RegisterAction("VimEditor_yaw", T("act.VimEditor.VimEditor_yaw"))
+        this.RegisterAction("VimEditor_dib", T("act.VimEditor.VimEditor_dib"))
+        this.RegisterAction("VimEditor_dab", T("act.VimEditor.VimEditor_dab"))
+        this.RegisterAction("VimEditor_cib", T("act.VimEditor.VimEditor_cib"))
+        this.RegisterAction("VimEditor_cab", T("act.VimEditor.VimEditor_cab"))
+        this.RegisterAction("VimEditor_diq", T("act.VimEditor.VimEditor_diq"))
+        this.RegisterAction("VimEditor_diqq", T("act.VimEditor.VimEditor_diqq"))
+        this.RegisterAction("VimEditor_ciq", T("act.VimEditor.VimEditor_ciq"))
+        this.RegisterAction("VimEditor_ciqq", T("act.VimEditor.VimEditor_ciqq"))
+        this.RegisterAction("VimEditor_yiq", T("act.VimEditor.VimEditor_yiq"))
+        this.RegisterAction("VimEditor_yiqq", T("act.VimEditor.VimEditor_yiqq"))
+        this.RegisterAction("VimEditor_dia", T("act.VimEditor.VimEditor_dia"))
+        this.RegisterAction("VimEditor_cia", T("act.VimEditor.VimEditor_cia"))
 
-        this.RegisterAction("VimEditor_slash", "向下搜索(/)")
-        this.RegisterAction("VimEditor_question", "向上搜索(?)")
-        this.RegisterAction("VimEditor_n", "下一个匹配(n)")
-        this.RegisterAction("VimEditor_NKey", "上一个匹配(N)")
-        this.RegisterAction("VimEditor_star", "搜索光标下单词(*)")
-        this.RegisterAction("VimEditor_hash", "向上搜索光标下单词(#)")
-        this.RegisterAction("VimEditor_percent", "跳转匹配括号(%)")
+        this.RegisterAction("VimEditor_slash", T("act.VimEditor.VimEditor_slash"))
+        this.RegisterAction("VimEditor_question", T("act.VimEditor.VimEditor_question"))
+        this.RegisterAction("VimEditor_n", T("act.VimEditor.VimEditor_n"))
+        this.RegisterAction("VimEditor_NKey", T("act.VimEditor.VimEditor_NKey"))
+        this.RegisterAction("VimEditor_star", T("act.VimEditor.VimEditor_star"))
+        this.RegisterAction("VimEditor_hash", T("act.VimEditor.VimEditor_hash"))
+        this.RegisterAction("VimEditor_percent", T("act.VimEditor.VimEditor_percent"))
 
-        this.RegisterAction("VimEditor_VisualDelete", "删除选区")
-        this.RegisterAction("VimEditor_VisualCopy", "复制选区")
-        this.RegisterAction("VimEditor_VisualPaste", "粘贴替换选区")
-        this.RegisterAction("VimEditor_VisualU", "转小写")
-        this.RegisterAction("VimEditor_VisualU2", "转大写")
-        this.RegisterAction("VimEditor_VisualIndent", "右缩进")
-        this.RegisterAction("VimEditor_VisualOutdent", "左缩进")
-        this.RegisterAction("VimEditor_gg", "跳转首行(gg)")
-        this.RegisterAction("VimEditor_gw", "自动换行(gw)")
+        this.RegisterAction("VimEditor_VisualDelete", T("act.VimEditor.VimEditor_VisualDelete"))
+        this.RegisterAction("VimEditor_VisualCopy", T("act.VimEditor.VimEditor_VisualCopy"))
+        this.RegisterAction("VimEditor_VisualPaste", T("act.VimEditor.VimEditor_VisualPaste"))
+        this.RegisterAction("VimEditor_VisualU", T("act.VimEditor.VimEditor_VisualU"))
+        this.RegisterAction("VimEditor_VisualU2", T("act.VimEditor.VimEditor_VisualU2"))
+        this.RegisterAction("VimEditor_VisualIndent", T("act.VimEditor.VimEditor_VisualIndent"))
+        this.RegisterAction("VimEditor_VisualOutdent", T("act.VimEditor.VimEditor_VisualOutdent"))
+        this.RegisterAction("VimEditor_gg", T("act.VimEditor.VimEditor_gg"))
+        this.RegisterAction("VimEditor_gw", T("act.VimEditor.VimEditor_gw"))
 
-        this.RegisterAction("VimEditor_1", "数字1")
-        this.RegisterAction("VimEditor_2", "数字2")
-        this.RegisterAction("VimEditor_3", "数字3")
-        this.RegisterAction("VimEditor_4", "数字4/行尾($)")
-        this.RegisterAction("VimEditor_5", "数字5")
-        this.RegisterAction("VimEditor_6", "数字6/非空行首(^)")
-        this.RegisterAction("VimEditor_7", "数字7")
-        this.RegisterAction("VimEditor_8", "数字8")
-        this.RegisterAction("VimEditor_9", "数字9")
-        this.RegisterAction("VimEditor_q", "录制宏(q)")
-        this.RegisterAction("VimEditor_at", "执行宏(@)")
+        this.RegisterAction("VimEditor_1", T("act.VimEditor.VimEditor_1"))
+        this.RegisterAction("VimEditor_2", T("act.VimEditor.VimEditor_2"))
+        this.RegisterAction("VimEditor_3", T("act.VimEditor.VimEditor_3"))
+        this.RegisterAction("VimEditor_4", T("act.VimEditor.VimEditor_4"))
+        this.RegisterAction("VimEditor_5", T("act.VimEditor.VimEditor_5"))
+        this.RegisterAction("VimEditor_6", T("act.VimEditor.VimEditor_6"))
+        this.RegisterAction("VimEditor_7", T("act.VimEditor.VimEditor_7"))
+        this.RegisterAction("VimEditor_8", T("act.VimEditor.VimEditor_8"))
+        this.RegisterAction("VimEditor_9", T("act.VimEditor.VimEditor_9"))
+        this.RegisterAction("VimEditor_q", T("act.VimEditor.VimEditor_q"))
+        this.RegisterAction("VimEditor_at", T("act.VimEditor.VimEditor_at"))
     }
 
     RegisterAction(name, comment := "") {
@@ -310,7 +312,7 @@ class VimEditorPlugin {
 ; ====================================================================
 VimEditor_InsertMode() {
     VimEditorPlugin.currentMode := VimEditorPlugin.MODE_INSERT
-    ToolTip("Insert模式")
+    ToolTip(T("ved.mode_insert"))
     SetTimer () => ToolTip(), -600
 }
 
@@ -319,21 +321,21 @@ VimEditor_NormalMode() {
     if WinActive("ahk_class #32770")
         Send "{Escape}"
     Send "{Escape}"
-    ToolTip("Normal模式")
+    ToolTip(T("ved.mode_normal"))
     SetTimer () => ToolTip(), -600
 }
 
 VimEditor_VisualMode() {
     VimEditorPlugin.currentMode := VimEditorPlugin.MODE_VISUAL
     Send "{Shift down}{Right}{Shift up}"
-    ToolTip("Visual模式")
+    ToolTip(T("ved.mode_visual"))
     SetTimer () => ToolTip(), -600
 }
 
 VimEditor_VisualLineMode() {
     VimEditorPlugin.currentMode := VimEditorPlugin.MODE_VISUAL_LINE
     Send "{Home}+{End}"
-    ToolTip("Visual Line模式")
+    ToolTip(T("ved.mode_vline"))
     SetTimer () => ToolTip(), -600
 }
 
@@ -346,13 +348,15 @@ VimEditor_Toggle() {
             engine := Rim.engine
             engine.Copy("VimEditor_Global", wc, wc, "")
             engine.SetMode("normal", wc)
-            n := VimEditorPlugin.EditorWindows.Has(wc) ? VimEditorPlugin.EditorWindows[wc] : wc
-            ToolTip("Vim模式已启用 - " n)
+            ; Map 值是 i18n key 或英文直通原文, 经 T() 统一解析
+            ; (audit 视 ved.ed_* 为间接引用, 属已知白名单, 见 T(变量) 调用)
+            n := VimEditorPlugin.EditorWindows.Has(wc) ? T(VimEditorPlugin.EditorWindows[wc]) : wc
+            ToolTip(T("ved.enabled", n))
         } else {
-            ToolTip("当前窗口不是支持的编辑器")
+            ToolTip(T("ved.not_editor"))
         }
     } else {
-        ToolTip("Vim模式已禁用")
+        ToolTip(T("ved.disabled"))
     }
     SetTimer () => ToolTip(), -1500
 }
@@ -562,7 +566,7 @@ VimEditor_yy() {
     VimEditorPlugin.yankBuffer := A_Clipboard
     VimEditorPlugin.yankIsLine := true
     Send "{Left}"
-    ToolTip("已复制1行")
+    ToolTip(T("ved.yanked_line"))
     SetTimer () => ToolTip(), -600
 }
 VimEditor_p() {
@@ -784,7 +788,7 @@ VimEditor_VisualOutdent() {
 VimEditor_q() {
     if (VimEditorPlugin.macroRecording) {
         VimEditorPlugin.macroRecording := false
-        ToolTip("宏录制结束")
+        ToolTip(T("ved.macro_done"))
         SetTimer () => ToolTip(), -600
     } else {
         mk := ""
@@ -795,7 +799,7 @@ VimEditor_q() {
         if (mk != "") {
             VimEditorPlugin.macroRecording := true
             VimEditorPlugin.macroKey := mk
-            ToolTip("录制宏: " mk)
+            ToolTip(T("ved.macro_rec", mk))
             SetTimer () => ToolTip(), -600
         }
     }

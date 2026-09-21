@@ -4,10 +4,10 @@
 ; 移植自 RunZ 的 QRCode 插件
 
 RegisterPlugin_QRCode() {
-    RegisterCommand("QRCode", "function", "GenerateQRCode", "生成二维码")
-    RegisterCommand("QRText", "function", "QRFromText", "文本转二维码")
-    RegisterCommand("QRClip", "function", "QRFromClipboard", "剪切板转二维码")
-    RegisterCommand("QRUrl", "function", "QRFromUrl", "网址转二维码")
+    RegisterCommand("QRCode", "function", "GenerateQRCode", T("cmd.QRCode.QRCode"))
+    RegisterCommand("QRText", "function", "QRFromText", T("cmd.QRCode.QRText"))
+    RegisterCommand("QRClip", "function", "QRFromClipboard", T("cmd.QRCode.QRClip"))
+    RegisterCommand("QRUrl", "function", "QRFromUrl", T("cmd.QRCode.QRUrl"))
 }
 
 ; === 二维码生成 (Arg > 剪切板 > InputBox; 空输入 DisplayResult 报错) ===
@@ -22,9 +22,9 @@ QRCodePipeInput(prompt, title) {
 }
 
 GenerateQRCode() {
-    input := QRCodePipeInput("输入文本或网址:", "生成二维码")
+    input := QRCodePipeInput(T("qr.prompt_text_url"), T("qr.title_qr"))
     if (input = "") {
-        DisplayResult("* | 错误 | 二维码内容为空")
+        DisplayResult("* | " . T("qr.type_error") . " | " . T("qr.err_empty_content"))
         return
     }
 
@@ -32,9 +32,9 @@ GenerateQRCode() {
 }
 
 QRFromText() {
-    input := QRCodePipeInput("输入文本:", "文本转二维码")
+    input := QRCodePipeInput(T("qr.prompt_text"), T("qr.title_text"))
     if (input = "") {
-        DisplayResult("* | 错误 | 二维码内容为空")
+        DisplayResult("* | " . T("qr.type_error") . " | " . T("qr.err_empty_content"))
         return
     }
 
@@ -44,7 +44,7 @@ QRFromText() {
 QRFromClipboard() {
     text := Trim(A_Clipboard)
     if (text = "") {
-        DisplayResult("* | 错误 | 剪切板为空")
+        DisplayResult("* | " . T("qr.type_error") . " | " . T("qr.err_empty_clip"))
         return
     }
 
@@ -52,9 +52,9 @@ QRFromClipboard() {
 }
 
 QRFromUrl() {
-    input := QRCodePipeInput("输入网址:", "网址转二维码")
+    input := QRCodePipeInput(T("qr.prompt_url"), T("qr.title_url"))
     if (input = "") {
-        DisplayResult("* | 错误 | 二维码内容为空")
+        DisplayResult("* | " . T("qr.type_error") . " | " . T("qr.err_empty_content"))
         return
     }
 
@@ -96,25 +96,25 @@ GenerateAndShowQR(text) {
     tmpPng := A_Temp "\Rim.QR.png"
     try Download(qrUrl, tmpPng)
     catch {
-        DisplayResult("* | 错误 | 二维码下载失败, 请检查网络")
+        DisplayResult("* | " . T("qr.type_error") . " | " . T("qr.err_download"))
         return
     }
 
     ; 创建 GUI 显示二维码
-    myGui := Gui("+Resize", "二维码 - " SubStr(text, 1, 30))
-    myGui.AddText("w300 h20", "内容: " SubStr(text, 1, 50))
+    myGui := Gui("+Resize", T("qr.gui_title", SubStr(text, 1, 30)))
+    myGui.AddText("w300 h20", T("qr.content_label", SubStr(text, 1, 50)))
     myGui.Add("Picture", "w300 h300", tmpPng)
 
     ; 添加按钮
-    myGui.AddButton("w100 h30", "复制链接").OnEvent("Click", (*) => (A_Clipboard := qrUrl, MsgBox("链接已复制")))
-    myGui.AddButton("x+10 w100 h30", "保存图片").OnEvent("Click", (*) => SaveQRImage(text))
-    myGui.AddButton("x+10 w100 h30", "关闭").OnEvent("Click", (*) => myGui.Destroy())
+    myGui.AddButton("w100 h30", T("qr.btn_copy")).OnEvent("Click", (*) => (A_Clipboard := qrUrl, MsgBox(T("qr.link_copied"))))
+    myGui.AddButton("x+10 w100 h30", T("qr.btn_save")).OnEvent("Click", (*) => SaveQRImage(text))
+    myGui.AddButton("x+10 w100 h30", T("qr.btn_close")).OnEvent("Click", (*) => myGui.Destroy())
 
     myGui.Show("w320 h400")
 }
 
 SaveQRImage(text) {
-    filePath := FileSelect("S16", , "保存二维码", "图片文件 (*.png;*.jpg)")
+    filePath := FileSelect("S16", , T("qr.save_title"), T("qr.save_filter"))
     if (filePath = "")
         return
 
@@ -123,8 +123,8 @@ SaveQRImage(text) {
 
     try {
         Download(qrUrl, filePath)
-        MsgBox("二维码已保存到: " filePath, "保存成功")
+        MsgBox(T("qr.saved_to", filePath), T("qr.save_ok"))
     } catch as e {
-        MsgBox("保存失败: " e.Message, "错误")
+        MsgBox(T("qr.save_failed", e.Message), T("qr.err_title"))
     }
 }

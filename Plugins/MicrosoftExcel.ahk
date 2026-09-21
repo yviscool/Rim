@@ -6,7 +6,7 @@
 
 class Plugin_MicrosoftExcel extends Plugin {
     name := "MicrosoftExcel"
-    title := "Excel深度集成"
+    title := T("xl.plugin_title")
     excel := ""
 
     Setup() {
@@ -15,73 +15,73 @@ class Plugin_MicrosoftExcel extends Plugin {
 
         ; 注册动作
         ; 基础导航
-        RegisterAction("<XL_GoToFirstCell>", "跳转到首个单元格")
-        RegisterAction("<XL_GoToLastCell>", "跳转到最后一个单元格")
-        RegisterAction("<XL_GoToFirstRow>", "跳转到第一行")
-        RegisterAction("<XL_GoToLastRow>", "跳转到最后一行")
-        RegisterAction("<XL_GoToFirstCol>", "跳转到第一列")
-        RegisterAction("<XL_GoToLastCol>", "跳转到最后一列")
-        RegisterAction("<XL_GoToNextSheet>", "下一个工作表")
-        RegisterAction("<XL_GoToPrevSheet>", "上一个工作表")
-        RegisterAction("<XL_GoToSheet>", "跳转到指定工作表")
-        RegisterAction("<XL_GoToNamedRange>", "跳转到命名区域")
+        RegisterAction("<XL_GoToFirstCell>", T("act.MicrosoftExcel.XL_GoToFirstCell"))
+        RegisterAction("<XL_GoToLastCell>", T("act.MicrosoftExcel.XL_GoToLastCell"))
+        RegisterAction("<XL_GoToFirstRow>", T("act.MicrosoftExcel.XL_GoToFirstRow"))
+        RegisterAction("<XL_GoToLastRow>", T("act.MicrosoftExcel.XL_GoToLastRow"))
+        RegisterAction("<XL_GoToFirstCol>", T("act.MicrosoftExcel.XL_GoToFirstCol"))
+        RegisterAction("<XL_GoToLastCol>", T("act.MicrosoftExcel.XL_GoToLastCol"))
+        RegisterAction("<XL_GoToNextSheet>", T("act.MicrosoftExcel.XL_GoToNextSheet"))
+        RegisterAction("<XL_GoToPrevSheet>", T("act.MicrosoftExcel.XL_GoToPrevSheet"))
+        RegisterAction("<XL_GoToSheet>", T("act.MicrosoftExcel.XL_GoToSheet"))
+        RegisterAction("<XL_GoToNamedRange>", T("act.MicrosoftExcel.XL_GoToNamedRange"))
 
         ; 选择操作
-        RegisterAction("<XL_SelectToFirst>", "选择到首个单元格")
-        RegisterAction("<XL_SelectToLast>", "选择到最后一个单元格")
-        RegisterAction("<XL_SelectToFirstRow>", "选择到第一行")
-        RegisterAction("<XL_SelectToLastRow>", "选择到最后一行")
-        RegisterAction("<XL_SelectToFirstCol>", "选择到第一列")
-        RegisterAction("<XL_SelectToLastCol>", "选择到最后一列")
-        RegisterAction("<XL_SelectRow>", "选择整行")
-        RegisterAction("<XL_SelectCol>", "选择整列")
-        RegisterAction("<XL_SelectAll>", "选择全部")
-        RegisterAction("<XL_SelectRegion>", "选择当前区域")
+        RegisterAction("<XL_SelectToFirst>", T("act.MicrosoftExcel.XL_SelectToFirst"))
+        RegisterAction("<XL_SelectToLast>", T("act.MicrosoftExcel.XL_SelectToLast"))
+        RegisterAction("<XL_SelectToFirstRow>", T("act.MicrosoftExcel.XL_SelectToFirstRow"))
+        RegisterAction("<XL_SelectToLastRow>", T("act.MicrosoftExcel.XL_SelectToLastRow"))
+        RegisterAction("<XL_SelectToFirstCol>", T("act.MicrosoftExcel.XL_SelectToFirstCol"))
+        RegisterAction("<XL_SelectToLastCol>", T("act.MicrosoftExcel.XL_SelectToLastCol"))
+        RegisterAction("<XL_SelectRow>", T("act.MicrosoftExcel.XL_SelectRow"))
+        RegisterAction("<XL_SelectCol>", T("act.MicrosoftExcel.XL_SelectCol"))
+        RegisterAction("<XL_SelectAll>", T("act.MicrosoftExcel.XL_SelectAll"))
+        RegisterAction("<XL_SelectRegion>", T("act.MicrosoftExcel.XL_SelectRegion"))
 
         ; 格式化
-        RegisterAction("<XL_Bold>", "加粗")
-        RegisterAction("<XL_Italic>", "斜体")
-        RegisterAction("<XL_Underline>", "下划线")
-        RegisterAction("<XL_Strikethrough>", "删除线")
-        RegisterAction("<XL_FontColor>", "字体颜色")
-        RegisterAction("<XL_BackgroundColor>", "背景颜色")
-        RegisterAction("<XL_Borders>", "边框")
-        RegisterAction("<XL_FontSize>", "字体大小")
-        RegisterAction("<XL_FontName>", "字体名称")
+        RegisterAction("<XL_Bold>", T("act.MicrosoftExcel.XL_Bold"))
+        RegisterAction("<XL_Italic>", T("act.MicrosoftExcel.XL_Italic"))
+        RegisterAction("<XL_Underline>", T("act.MicrosoftExcel.XL_Underline"))
+        RegisterAction("<XL_Strikethrough>", T("act.MicrosoftExcel.XL_Strikethrough"))
+        RegisterAction("<XL_FontColor>", T("act.MicrosoftExcel.XL_FontColor"))
+        RegisterAction("<XL_BackgroundColor>", T("act.MicrosoftExcel.XL_BackgroundColor"))
+        RegisterAction("<XL_Borders>", T("act.MicrosoftExcel.XL_Borders"))
+        RegisterAction("<XL_FontSize>", T("act.MicrosoftExcel.XL_FontSize"))
+        RegisterAction("<XL_FontName>", T("act.MicrosoftExcel.XL_FontName"))
 
         ; 工作表操作
-        RegisterAction("<XL_NewSheet>", "新建工作表")
-        RegisterAction("<XL_DeleteSheet>", "删除工作表")
-        RegisterAction("<XL_RenameSheet>", "重命名工作表")
-        RegisterAction("<XL_MoveSheet>", "移动工作表")
-        RegisterAction("<XL_CopySheet>", "复制工作表")
+        RegisterAction("<XL_NewSheet>", T("act.MicrosoftExcel.XL_NewSheet"))
+        RegisterAction("<XL_DeleteSheet>", T("act.MicrosoftExcel.XL_DeleteSheet"))
+        RegisterAction("<XL_RenameSheet>", T("act.MicrosoftExcel.XL_RenameSheet"))
+        RegisterAction("<XL_MoveSheet>", T("act.MicrosoftExcel.XL_MoveSheet"))
+        RegisterAction("<XL_CopySheet>", T("act.MicrosoftExcel.XL_CopySheet"))
 
         ; 单元格操作
-        RegisterAction("<XL_MergeCells>", "合并单元格")
-        RegisterAction("<XL_UnmergeCells>", "取消合并")
-        RegisterAction("<XL_InsertRow>", "插入行")
-        RegisterAction("<XL_InsertCol>", "插入列")
-        RegisterAction("<XL_DeleteRow>", "删除行")
-        RegisterAction("<XL_DeleteCol>", "删除列")
-        RegisterAction("<XL_ClearContents>", "清除内容")
-        RegisterAction("<XL_ClearAll>", "清除全部")
+        RegisterAction("<XL_MergeCells>", T("act.MicrosoftExcel.XL_MergeCells"))
+        RegisterAction("<XL_UnmergeCells>", T("act.MicrosoftExcel.XL_UnmergeCells"))
+        RegisterAction("<XL_InsertRow>", T("act.MicrosoftExcel.XL_InsertRow"))
+        RegisterAction("<XL_InsertCol>", T("act.MicrosoftExcel.XL_InsertCol"))
+        RegisterAction("<XL_DeleteRow>", T("act.MicrosoftExcel.XL_DeleteRow"))
+        RegisterAction("<XL_DeleteCol>", T("act.MicrosoftExcel.XL_DeleteCol"))
+        RegisterAction("<XL_ClearContents>", T("act.MicrosoftExcel.XL_ClearContents"))
+        RegisterAction("<XL_ClearAll>", T("act.MicrosoftExcel.XL_ClearAll"))
 
         ; 文件操作
-        RegisterAction("<XL_Save>", "保存")
-        RegisterAction("<XL_SaveAs>", "另存为")
-        RegisterAction("<XL_Print>", "打印")
-        RegisterAction("<XL_Preview>", "打印预览")
-        RegisterAction("<XL_Undo>", "撤销")
-        RegisterAction("<XL_Redo>", "重做")
+        RegisterAction("<XL_Save>", T("act.MicrosoftExcel.XL_Save"))
+        RegisterAction("<XL_SaveAs>", T("act.MicrosoftExcel.XL_SaveAs"))
+        RegisterAction("<XL_Print>", T("act.MicrosoftExcel.XL_Print"))
+        RegisterAction("<XL_Preview>", T("act.MicrosoftExcel.XL_Preview"))
+        RegisterAction("<XL_Undo>", T("act.MicrosoftExcel.XL_Undo"))
+        RegisterAction("<XL_Redo>", T("act.MicrosoftExcel.XL_Redo"))
 
         ; 其他
-        RegisterAction("<XL_AutoFilter>", "自动筛选")
-        RegisterAction("<XL_Sort>", "排序")
-        RegisterAction("<XL_FindReplace>", "查找替换")
-        RegisterAction("<XL_GoTo>", "定位")
-        RegisterAction("<XL_SelectionInfo>", "选区信息")
-        RegisterAction("<XL_FreezePanes>", "冻结窗格")
-        RegisterAction("<XL_Split>", "拆分窗口")
+        RegisterAction("<XL_AutoFilter>", T("act.MicrosoftExcel.XL_AutoFilter"))
+        RegisterAction("<XL_Sort>", T("act.MicrosoftExcel.XL_Sort"))
+        RegisterAction("<XL_FindReplace>", T("act.MicrosoftExcel.XL_FindReplace"))
+        RegisterAction("<XL_GoTo>", T("act.MicrosoftExcel.XL_GoTo"))
+        RegisterAction("<XL_SelectionInfo>", T("act.MicrosoftExcel.XL_SelectionInfo"))
+        RegisterAction("<XL_FreezePanes>", T("act.MicrosoftExcel.XL_FreezePanes"))
+        RegisterAction("<XL_Split>", T("act.MicrosoftExcel.XL_Split"))
 
         ; 映射热键
         ; 导航
@@ -241,7 +241,7 @@ XL_GoToSheet() {
             result .= idx ": " name "`n"
 
         try {
-            ibox := InputBox(result, "选择工作表")
+            ibox := InputBox(result, T("xl.sheet_title"))
             choice := ibox.Value
         } catch {
             return
@@ -330,7 +330,7 @@ XL_Borders() {
 
 XL_FontSize() {
     try {
-        ibox := InputBox("输入字体大小:", "字体大小")
+        ibox := InputBox(T("xl.fontsize_prompt"), T("xl.fontsize_title"))
         size := ibox.Value
     } catch {
         return
@@ -345,7 +345,7 @@ XL_FontSize() {
 
 XL_FontName() {
     try {
-        ibox := InputBox("输入字体名称:", "字体名称")
+        ibox := InputBox(T("xl.fontname_prompt"), T("xl.fontname_title"))
         name := ibox.Value
     } catch {
         return
@@ -460,11 +460,11 @@ XL_SelectionInfo() {
         xl := ComObject("Excel.Application")
         sel := xl.Selection
 
-        info := "选区信息:`n"
-        info .= "地址: " sel.Address "`n"
-        info .= "行数: " sel.Rows.Count "`n"
-        info .= "列数: " sel.Columns.Count "`n"
-        info .= "值: " sel.Value "`n"
+        info := T("xl.sel_info") . "`n"
+        info .= T("xl.sel_address", sel.Address) . "`n"
+        info .= T("xl.sel_rows", sel.Rows.Count) . "`n"
+        info .= T("xl.sel_cols", sel.Columns.Count) . "`n"
+        info .= T("xl.sel_value", sel.Value) . "`n"
 
         ToolTip(info)
         SetTimer () => ToolTip(), -3000

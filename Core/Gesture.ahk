@@ -451,7 +451,7 @@ Gesture_SetTryMode(on) {
     g_Gesture["tryMode"] := on ? 1 : 0
     try {
         if (g_SkinConf["ShowTrayIcon"] = "1")
-            A_TrayMenu.ToggleCheck("试笔模式 &T")
+            A_TrayMenu.ToggleCheck(T("gesture.tray_try"))
     } catch {
     }
 }
@@ -463,7 +463,7 @@ Gesture_IsTryMode() {
 
 ToggleTryMode(*) {
     Gesture_SetTryMode(!Gesture_IsTryMode())
-    try ToolTip(Gesture_IsTryMode() ? "试笔模式开 (只识别不执行)" : "试笔模式关")
+    try ToolTip(Gesture_IsTryMode() ? T("gesture.try_on") : T("gesture.try_off"))
     catch {
     }
     SetTimer(Gesture_HideTip, -900)
@@ -473,7 +473,7 @@ ToggleTryMode(*) {
 Gesture_IgnoreNext() {
     global g_Gesture
     g_Gesture["ignoreNext"] := 1
-    try ToolTip("下一笔手势将被忽略")
+    try ToolTip(T("gesture.next_ignored"))
     catch {
     }
     SetTimer(Gesture_HideTip, -900)
@@ -521,7 +521,7 @@ Gesture_Poll() {
             catch {
             }
             if (g_Gesture["showOSD"])
-                ToolTip("手势已取消")
+                ToolTip(T("gesture.cancelled"))
             return
         }
     }
@@ -636,15 +636,15 @@ Gesture_DirOf(dx, dy) {
 Gesture_OSD() {
     global g_Gesture
     g := g_Gesture["gesture"]
-    txt := "手势: " . (g = "" ? "..." : g)
+    txt := T("gesture.osd_gesture", (g = "" ? "..." : g))
     if (g_Gesture["recording"])
-        txt := "录制中: " . (g = "" ? "..." : g)
+        txt := T("gesture.osd_recording", (g = "" ? "..." : g))
     else if (g != "") {
         Gesture_GetActiveIds(&exe, &cls, &title)
         mods := Gesture_ActiveMods()
         res := Gesture_ResolveFor(g, exe, cls, mods, title)
         if (res[1] != "")
-            txt .= "`n动作: " . res[1] . " [" . res[2] . "]"
+            txt .= "`n" . T("gesture.osd_action", res[1], res[2])
     }
     ToolTip(txt)
 }
@@ -675,7 +675,7 @@ Gesture_Up(*) {
             g_Gesture["recorded"] := gesture
             cb := g_Gesture["recordCb"]
             Gesture_CancelRecord()
-            try ToolTip("已录得: " . gesture)
+            try ToolTip(T("gesture.recorded_is", gesture))
             catch {
             }
             SetTimer(Gesture_HideTip, -1200)
@@ -692,7 +692,7 @@ Gesture_Up(*) {
             enc := ""
             try {
                 enc := Tpl_Encode(Tpl_Prepare(g_Gesture["points"]))
-                ToolTip("模板已录得")
+                ToolTip(T("gesture.tpl_recorded2"))
             } catch {
             }
             SetTimer(Gesture_HideTip, -1200)
@@ -708,7 +708,7 @@ Gesture_Up(*) {
             ; 试笔模式: 只报不执行
             if (g_Gesture["tryMode"]) {
                 disp := mods . gesture
-                try ToolTip("试笔: " . disp . "`n动作: " . res[1] . " [" . res[2] . "]")
+                try ToolTip(T("gesture.try_hit", disp, res[1], res[2]))
                 catch {
                 }
                 SetTimer(Gesture_HideTip, -2000)
@@ -718,7 +718,7 @@ Gesture_Up(*) {
             return
         }
         if (g_Gesture["tryMode"]) {
-            try ToolTip("试笔: " . gesture . " 未命中")
+            try ToolTip(T("gesture.try_miss", gesture))
             catch {
             }
             SetTimer(Gesture_HideTip, -2000)
@@ -738,7 +738,7 @@ Gesture_Up(*) {
             catch {
             }
         }
-        try ToolTip("未知手势: " . gesture)
+        try ToolTip(T("gesture.unknown", gesture))
         catch {
         }
         SetTimer(Gesture_HideTip, -900)
@@ -797,7 +797,7 @@ Gesture_Wheel(which) {
     if (Gesture_ComboActive()) {
         if (which = "WheelUp" || which = "WheelDown") {
             if (g_Gesture["tryMode"]) {
-                try ToolTip("试笔组合缩放: " . which)
+                try ToolTip(T("gesture.try_zoom", which))
                 catch {
                 }
                 SetTimer(Gesture_HideTip, -1200)
@@ -825,7 +825,7 @@ Gesture_Wheel(which) {
     res := Gesture_ResolveFor(which, exe, cls, mods, title)
     if (res[1] != "") {
         if (g_Gesture["tryMode"]) {
-            try ToolTip("试笔滚轮: " . (mods . which) . "`n动作: " . res[1] . " [" . res[2] . "]")
+            try ToolTip(T("gesture.try_wheel", (mods . which), res[1], res[2]))
             catch {
             }
             SetTimer(Gesture_HideTip, -2000)
@@ -833,7 +833,7 @@ Gesture_Wheel(which) {
         }
         Gesture_DoAction(res[1])
         if (g_Gesture["showOSD"]) {
-            try ToolTip("滚轮: " . (mods . which) . "`n动作: " . res[1] . " [" . res[2] . "]")
+            try ToolTip(T("gesture.wheel", (mods . which), res[1], res[2]))
             catch {
             }
             SetTimer(Gesture_HideTip, -900)
@@ -908,11 +908,11 @@ Gesture_ComboArm(action) {
     if (kind = "zoom") {
         g_Gesture["comboUntil"] := A_TickCount + 1500
         if (g_Gesture["tryMode"]) {
-            try ToolTip("试笔组合: 将武装滚轮缩放")
+            try ToolTip(T("gesture.arm_zoom"))
             catch {
             }
         } else {
-            try ToolTip("组合就绪: 滚轮缩放 (1.5秒)")
+            try ToolTip(T("gesture.zoom_ready"))
             catch {
             }
         }
