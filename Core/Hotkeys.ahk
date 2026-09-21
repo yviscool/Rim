@@ -147,6 +147,14 @@ ExitRunZ(*) {
 }
 
 HideOrExit(*) {
+    global g_Conf, g_MainGui
+    ; 防御: g_Conf 未就绪时默认隐藏 (不触发 ExitApp), 见 Config.ahk 注释
+    if (!IsSet(g_Conf) || !IsObject(g_Conf)) {
+        try g_MainGui.Hide()
+        catch {
+        }
+        return
+    }
     if (g_Conf["Config"]["RunInBackground"] = "1")
         g_MainGui.Hide()
     else

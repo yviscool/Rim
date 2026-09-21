@@ -131,7 +131,11 @@ global g_FuncAlias := Map()
 ; ==================== 全局错误网 (本构建无 IsFunc/Func, 运行时错转日志不断线) ====================
 Rim_OnError(e, mode) {
     try {
-        FileAppend(A_Now . " ERROR: " . e.Message . " what=" . e.What . " extra=" . e.Extra . " @ " . e.Line . " " . e.File . "`n", A_ScriptDir . "\Rim.error.log")
+        stack := ""
+        try stack := StrReplace(e.Stack, "`n", " <- ")
+        catch {
+        }
+        FileAppend(A_Now . " ERROR: " . e.Message . " what=" . e.What . " extra=" . e.Extra . " @ " . e.Line . " " . e.File . " stack=" . stack . "`n", A_ScriptDir . "\Rim.error.log")
     }
     return -1
 }

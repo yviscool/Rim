@@ -7,6 +7,11 @@
 SaveAutoConf() {
     global g_Conf, g_AutoConf, g_AutoConfFile, g_CurrentInput, g_HistoryCommands
 
+    ; 防御: 启动早期/异常时序下 g_Conf 可能尚未赋值, 无配置可存直接返回
+    ; (曾表现为每次启动后的 4 连 ERROR: WM_ACTIVATE→HideOrExit→SaveAutoConf×2)
+    if (!IsSet(g_Conf) || !IsObject(g_Conf))
+        return
+
     if (g_Conf["Config"]["SaveInputText"] = "1") {
         g_AutoConf.DeleteKey("Auto", "InputText")
         g_AutoConf.AddKey("Auto", "InputText", g_CurrentInput)

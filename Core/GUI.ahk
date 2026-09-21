@@ -154,7 +154,7 @@ WM_ACTIVATE(wParam, lParam, msg, hwnd) {
         return
     else if (wParam <= 0) {
         if (!WinExist("RunZ.ahk")) {
-            if (g_Conf.Get("Config", "KeepInputText", "1") != "1") {
+            if (!IsSet(g_Conf) || !IsObject(g_Conf) || g_Conf.Get("Config", "KeepInputText", "1") != "1") {
                 try g_InputEdit.Value := ""
             }
             HideOrExit()
