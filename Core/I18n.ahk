@@ -86,6 +86,19 @@ I18nLoadedLang(fallback := "") {
     return fallback != "" ? fallback : "zh-CN"
 }
 
+; ---- 应用根目录 (相对本模块定位, 不依赖 A_ScriptDir) ----
+; 探针/测试脚本可能放在子目录 (如 tools/) 运行, 此时 A_ScriptDir\Lang 不存在;
+; 以本文件所在 Core\ 的父目录为准, 生产环境与 A_ScriptDir 一致.
+I18nRoot() {
+    try {
+        SplitPath(A_LineFile, , &dir)
+        if (dir != "" && InStr(FileExist(dir), "D"))
+            return dir . "\.."
+    } catch {
+    }
+    return A_ScriptDir
+}
+
 ; ---- 当前生效语言 ----
 I18nGetLang() {
     global g_I18nLang
@@ -96,7 +109,7 @@ I18nGetLang() {
 I18nAvailable() {
     langs := []
     try {
-        Loop Files, A_ScriptDir "\Lang\*.ini" {
+        Loop Files, I18nRoot() "\Lang\*.ini" {
             SplitPath(A_LoopFileName, , , , &stem)
             if (stem != "")
                 langs.Push(stem)
@@ -151,7 +164,7 @@ I18nOsLang() {
     ; 有语言包就用 (ja/de/fr/...), 否则回落 en (占位包缺键时 T() 再逐键回落英文)
     candidates := [code, lc, SubStr(lc, 1, 2)]
     for c in candidates {
-        if (c != "" && FileExist(A_ScriptDir . "\Lang\" . c . ".ini"))
+        if (c != "" && FileExist(I18nRoot() . "\Lang\" . c . ".ini"))
             return c
     }
     return "en"
@@ -161,7 +174,7 @@ I18nOsLang() {
 I18nLoadLangFile(lang) {
     global g_I18nLastLoaded
     m := Map()
-    path := A_ScriptDir . "\Lang\" . lang . ".ini"
+    path := I18nRoot() . "\Lang\" . lang . ".ini"
     if (!FileExist(path))
         return m
     content := ""

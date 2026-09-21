@@ -375,3 +375,17 @@ if !IsSet(g_I18nStrings)
 ; 原理：`#Include` 文件的顶层语句按 auto-execute 顺序在 include 行位置执行，
 ; 不是“先于一切”——凡是在 include 行之前就运行的代码（如启动早期的 Boot），
 ; 其写入的全局量都会被后执行的顶层 `:=` 覆盖。见 Core/I18n.ahk 顶层守卫。
+
+### 错误 19：库文件用 `A_ScriptDir` 定位资源，换目录运行就失联
+
+```ahk
+; ❌ 实测翻车 (tools/ 下跑冒烟探针, Lang/ 读不到, 静默空表全员 raw key)：
+path := A_ScriptDir . "\Lang\" . lang . ".ini"
+; ✅ 相对模块自身定位 (A_LineFile 在函数体内即本文件)：
+I18nRoot() {
+    SplitPath(A_LineFile, , &dir)
+    return dir . "\.."
+}
+```
+; 探针/测试脚本常放在子目录，`A_ScriptDir` 只对主入口可靠；
+; 库自带资源一律相对模块路径解析，并给探针加“语言表为空直接失败”的金丝雀。
