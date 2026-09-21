@@ -111,11 +111,11 @@ DisplaySearchResult(result) {
 
     if ((g_SkinConf.Has("ShowCurrentCommand") ? g_SkinConf["ShowCurrentCommand"] : "1") = "1") {
         commandToShow := SubStr(g_CurrentCommand, InStr(g_CurrentCommand, " | ") + 3)
-        ; 与列表同语言: 类型中文化 (原版此处英文原串, 列表中文, 统一为中文)
-        commandToShow := StrReplace(commandToShow, "file | ", Chr(0x6587) . Chr(0x4EF6) . " | ")
-        commandToShow := StrReplace(commandToShow, "function | ", Chr(0x529F) . Chr(0x80FD) . " | ")
-        commandToShow := StrReplace(commandToShow, "cmd | ", Chr(0x547D) . Chr(0x4EE4) . " | ")
-        commandToShow := StrReplace(commandToShow, "url | ", Chr(0x7F51) . Chr(0x5740) . " | ")
+        ; 与列表同语言: 类型经 TypeLabel 本地化 (原版此处英文原串, 列表中文, 现统一走语言包)
+        commandToShow := StrReplace(commandToShow, "file | ", TypeLabel("file"))
+        commandToShow := StrReplace(commandToShow, "function | ", TypeLabel("function"))
+        commandToShow := StrReplace(commandToShow, "cmd | ", TypeLabel("cmd"))
+        commandToShow := StrReplace(commandToShow, "url | ", TypeLabel("url"))
         try g_CommandEdit.Value := commandToShow
     }
 }

@@ -193,6 +193,6 @@ GetAllFunctions() {
         if ((InStr(element, "function | ") = 1 || InStr(element, " | function | ") > 0) && !InStr(result, element "`n"))
             result .= "* | " element "`n"
     }
-    result := StrReplace(result, "function | ", Chr(0x529F) . Chr(0x80FD) . " | ")
+    result := StrReplace(result, "function | ", TypeLabel("function"))
     return AlignText(result)
 }

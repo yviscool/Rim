@@ -88,7 +88,7 @@ AddCommand(element) {
         SplitPath(splitedElement[2], &fileName, , , &fileNameNoExt)
 
         cmdObj["type"] := "file"
-        cmdObj["typeLabel"] := g_SkinConf.Has("HideCol2") && g_SkinConf["HideCol2"] = "1" ? "" : Chr(0x6587) . Chr(0x4EF6) . " | "
+        cmdObj["typeLabel"] := g_SkinConf.Has("HideCol2") && g_SkinConf["HideCol2"] = "1" ? "" : TypeLabel("file")
         cmdObj["fileName"] := fileName
         cmdObj["fileNameNoExt"] := fileNameNoExt
         fileDir := ""
@@ -154,18 +154,18 @@ AddCommand(element) {
     g_CommandObjects.Push(cmdObj)
 }
 
-; 类型标签映射
+; 类型标签映射 (经 TypeLabel 走语言包; 原先 Chr(0x..) 硬编码中文)
 MapTypeLabel(type) {
     if (type = "file")
-        return Chr(0x6587) . Chr(0x4EF6) . " | "
+        return TypeLabel("file")
     else if (type = "function")
-        return Chr(0x529F) . Chr(0x80FD) . " | "
+        return TypeLabel("function")
     else if (type = "cmd")
-        return Chr(0x547D) . Chr(0x4EE4) . " | "
+        return TypeLabel("cmd")
     else if (type = "url")
-        return Chr(0x7F51) . Chr(0x5740) . " | "
+        return TypeLabel("url")
     else if (type = "run")
-        return Chr(0x8FD0) . Chr(0x884C) . " | "
+        return TypeLabel("run")
     return ""
 }
 

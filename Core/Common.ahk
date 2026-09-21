@@ -88,6 +88,21 @@ BootMark(tag) {
     }
 }
 
+; === 启动器类型标签 (列表/详情区显示; 原先用 Chr(0x..) 硬编码中文, 审计扫不到) ===
+TypeLabel(type) {
+    if (type = "file")
+        return T("type.file") . " | "
+    else if (type = "function")
+        return T("type.function") . " | "
+    else if (type = "cmd")
+        return T("type.cmd") . " | "
+    else if (type = "url")
+        return T("type.url") . " | "
+    else if (type = "run")
+        return T("type.run") . " | "
+    return ""
+}
+
 ; 获取焦点控件类名 (v2 ControlGetFocus 返回 HWND, 类名判断须转一道)
 FocusedClassNN(winTitle := "A") {
     try {

@@ -18,7 +18,7 @@ ShowGestureManager(*) {
     }
     mg := Gui(, T("gesture.title"))
     mg.SetFont("S10", "微软雅黑")
-    tabs := mg.Add("Tab3", "w660 h430", [T("gesture.tab_gestures"), T("gesture.tab_tpl"), T("gesture.tab_blacklist"), T("gesture.tab_settings")])
+    tabs := mg.Add("Tab3", "w800 h430", [T("gesture.tab_gestures"), T("gesture.tab_tpl"), T("gesture.tab_blacklist"), T("gesture.tab_settings")])
 
     ; ---- 手势页 ----
     ; 注意: "全部"/"全局" 是层存储标识 (ini 键 + Core 过滤比较), 禁止翻译, 保持原文
@@ -32,11 +32,12 @@ ShowGestureManager(*) {
     mg.Add("Button", "x+6 w60", T("gesture.btn_delete")).OnEvent("Click", GestureMgr_OnDel)
     mg.Add("Button", "x+6 w80", T("gesture.btn_toggle")).OnEvent("Click", GestureMgr_OnToggle)
     mg.Add("Button", "x+6 w80", T("gesture.btn_layer_off")).OnEvent("Click", GestureMgr_OnLayerOff)
-    lv := mg.Add("ListView", "xm y+8 w500 h300", [T("gesture.col_layer"), T("gesture.col_gesture"), T("gesture.col_action"), T("gesture.col_status")])
+    lv := mg.Add("ListView", "xm y+8 w640 h300", [T("gesture.col_layer"), T("gesture.col_gesture"), T("gesture.col_action"), T("gesture.col_desc"), T("gesture.col_status")])
     lv.ModifyCol(1, 90)
     lv.ModifyCol(2, 90)
-    lv.ModifyCol(3, 250)
-    lv.ModifyCol(4, 50)
+    lv.ModifyCol(3, 230)
+    lv.ModifyCol(4, 140)
+    lv.ModifyCol(5, 50)
     try lv.OnEvent("DoubleClick", GestureMgr_OnEdit)
     catch {
     }
@@ -49,27 +50,30 @@ ShowGestureManager(*) {
     ; ---- 字母模板页 ----
     tabs.UseTab(2)
     mg.Add("Text", "xm ym+30 w640", T("gesture.tpl_note"))
-    tplLv := mg.Add("ListView", "xm y+8 w500 h300", [T("gesture.col_tpl"), T("gesture.col_action"), T("gesture.col_source"), T("gesture.col_status")])
+    tplLv := mg.Add("ListView", "xm y+8 w640 h300", [T("gesture.col_tpl"), T("gesture.col_action"), T("gesture.col_source"), T("gesture.col_status")])
     tplLv.ModifyCol(1, 60)
-    tplLv.ModifyCol(2, 340)
+    tplLv.ModifyCol(2, 480)
     tplLv.ModifyCol(3, 60)
     tplLv.ModifyCol(4, 50)
     try tplLv.OnEvent("ItemFocus", GestureMgr_OnTplPreview)
     catch {
     }
-    tplPic := mg.Add("Picture", "x+10 yp w120 h120 +Border +0xE")
-    tplTx := mg.Add("Text", "xp y+4 w120 Center", T("gesture.no_selection"))
+    ; 按钮行紧跟列表 (原先跟在右侧预览小图后面, 会落进列表中间; 预改前布局即如此, 非 i18n 引入)
     mg.Add("Button", "xm y+8 w110", T("gesture.btn_record_tpl")).OnEvent("Click", GestureMgr_OnTplAdd)
     mg.Add("Button", "x+6 w110", T("gesture.btn_edit_action")).OnEvent("Click", GestureMgr_OnTplEdit)
     mg.Add("Button", "x+6 w90", T("gesture.btn_delete")).OnEvent("Click", GestureMgr_OnTplDel)
     mg.Add("Button", "x+6 w80", T("gesture.btn_toggle")).OnEvent("Click", GestureMgr_OnTplToggle)
     mg.Add("Button", "x+6 w80", T("gesture.btn_append_sample")).OnEvent("Click", GestureMgr_OnTplAppend)
+    ; 预览图保持右上: 相对列表定位 (显式拼接, 禁止隐式串联)
+    tplLv.GetPos(&tplX, &tplY)
+    tplPic := mg.Add("Picture", "x" . (tplX + 650) . " y" . tplY . " w120 h120 +Border +0xE")
+    tplTx := mg.Add("Text", "x" . (tplX + 650) . " y" . (tplY + 124) . " w120 Center", T("gesture.no_selection"))
 
     ; ---- 黑名单页 ----
     tabs.UseTab(3)
-    mg.Add("Text", "xm ym+30 w640", T("gesture.bl_note"))
-    blLv := mg.Add("ListView", "xm y+8 w640 h300", [T("gesture.col_pattern"), T("gesture.col_status")])
-    blLv.ModifyCol(1, 540)
+    mg.Add("Text", "xm ym+30 w780", T("gesture.bl_note"))
+    blLv := mg.Add("ListView", "xm y+8 w780 h300", [T("gesture.col_pattern"), T("gesture.col_status")])
+    blLv.ModifyCol(1, 680)
     blLv.ModifyCol(2, 60)
     mg.Add("Button", "xm y+8 w90", T("gesture.btn_add")).OnEvent("Click", GestureMgr_OnBlAdd)
     mg.Add("Button", "x+6 w90", T("gesture.btn_delete")).OnEvent("Click", GestureMgr_OnBlDel)
@@ -114,7 +118,7 @@ ShowGestureManager(*) {
     }
 
     tabs.UseTab()
-    status := mg.Add("Text", "xm y+8 w640", T("gesture.status_ready"))
+    status := mg.Add("Text", "xm y+8 w780", T("gesture.status_ready"))
     mg.OnEvent("Close", (*) => mg.Hide())
 
     g_GestureMgr["gui"] := mg
@@ -192,7 +196,10 @@ GestureMgr_RefreshGestures() {
             if (filter != "全部" && row[1] != filter)
                 continue
             st := Gesture_ChainOff(row[1], row[2]) ? T("gesture.st_off") : T("gesture.st_on")
-            lv.Add("", row[1], row[2], row[3], st)
+            d := Gesture_GetGestureDesc(row[1], row[2])
+            if (d = "")
+                d := GestureMgr_DescribeAction(row[3])
+            lv.Add("", row[1], row[2], row[3], d, st)
             count++
         }
         GestureMgr_SetStatus(T("gesture.st_gesture_count", count, filter))
@@ -452,6 +459,106 @@ GestureMgr_OnFilter(*) {
     }
 }
 
+; 由动作串派生精准含义 (无用户自定义时列表显示; 与存储无关, 跟语言走)
+; 优先级: ①引擎已注册动作的注释 (P2 精翻, 最准) ②常见按键语义表 ③动作类型原文
+; 前缀与 Rim.ahk VIMD_CMD 派发一致: run|/key|/dir|/tccmd|/wshkey|/function|
+GestureMgr_DescribeAction(action) {
+    global g_VimEngine
+    action := Trim(action)
+    ; ① <动作名>: 取引擎注释
+    if (SubStr(action, 1, 1) = "<" && SubStr(action, -1) = ">") {
+        try {
+            if (IsObject(g_VimEngine) && g_VimEngine.ActionList.Has(action)) {
+                c := Trim(g_VimEngine.ActionList[action].Comment)
+                if (c != "")
+                    return c
+            }
+        } catch {
+        }
+        return SubStr(action, 2, StrLen(action) - 2)
+    }
+    ; ② 按键: 语义表优先
+    if (SubStr(action, 1, 4) = "key|") {
+        m := GestureMgr_KeyMeaning(Trim(SubStr(action, 5)))
+        if (m != "")
+            return m
+        return T("gesture.desc_key", Trim(SubStr(action, 5)))
+    }
+    if (SubStr(action, 1, 7) = "wshkey|") {
+        m := GestureMgr_KeyMeaning(Trim(SubStr(action, 8)))
+        if (m != "")
+            return m
+        return T("gesture.desc_key", Trim(SubStr(action, 8)))
+    }
+    if (SubStr(action, 1, 4) = "run|")
+        return T("gesture.desc_run", SubStr(action, 5))
+    if (SubStr(action, 1, 9) = "function|")
+        return T("gesture.desc_function", SubStr(action, 10))
+    if (SubStr(action, 1, 4) = "dir|")
+        return T("gesture.desc_dir", SubStr(action, 5))
+    if (SubStr(action, 1, 6) = "tccmd|")
+        return T("gesture.desc_tccmd", SubStr(action, 7))
+    return action
+}
+
+; 常见按键语义表 (按键名大小写不敏感; 未命中返回 "")
+GestureMgr_KeyMeaning(k) {
+    k := StrUpper(Trim(k))
+    if (k = "^C")
+        return T("gesture.mean_copy")
+    if (k = "^V")
+        return T("gesture.mean_paste")
+    if (k = "^X")
+        return T("gesture.mean_cut")
+    if (k = "^Z")
+        return T("gesture.mean_undo")
+    if (k = "^Y")
+        return T("gesture.mean_redo")
+    if (k = "^A")
+        return T("gesture.mean_selectall")
+    if (k = "^S")
+        return T("gesture.mean_save")
+    if (k = "^F")
+        return T("gesture.mean_find")
+    if (k = "{BROWSER_BACK}")
+        return T("gesture.mean_back")
+    if (k = "{BROWSER_FORWARD}")
+        return T("gesture.mean_forward")
+    if (k = "{ENTER}")
+        return T("gesture.mean_enter")
+    if (k = "{ESCAPE}" || k = "{ESC}")
+        return T("gesture.mean_esc")
+    if (k = "{TAB}")
+        return T("gesture.mean_tab")
+    if (k = "{DELETE}" || k = "{DEL}")
+        return T("gesture.mean_del")
+    if (k = "{BACKSPACE}" || k = "{BS}")
+        return T("gesture.mean_bs")
+    if (k = "{HOME}")
+        return T("gesture.mean_home")
+    if (k = "{END}")
+        return T("gesture.mean_end")
+    if (k = "{PGUP}")
+        return T("gesture.mean_pgup")
+    if (k = "{PGDN}")
+        return T("gesture.mean_pgdn")
+    if (k = "{MEDIA_PLAY_PAUSE}")
+        return T("gesture.mean_playpause")
+    if (k = "{MEDIA_NEXT}")
+        return T("gesture.mean_next")
+    if (k = "{MEDIA_PREV}")
+        return T("gesture.mean_prev")
+    if (k = "{MEDIA_STOP}")
+        return T("gesture.mean_stop")
+    if (k = "{VOLUME_UP}")
+        return T("gesture.mean_volup")
+    if (k = "{VOLUME_DOWN}")
+        return T("gesture.mean_voldn")
+    if (k = "{VOLUME_MUTE}")
+        return T("gesture.mean_mute")
+    return ""
+}
+
 GestureMgr_SelectedGestureRow() {
     global g_GestureMgr
     try {
@@ -459,7 +566,12 @@ GestureMgr_SelectedGestureRow() {
         row := lv.GetNext(0)
         if (row = 0)
             return ""
-        return [lv.GetText(row, 1), lv.GetText(row, 2), lv.GetText(row, 3)]
+        ; 第 4 元为存储的说明 (非派生值, 免得打开编辑框就把派生文本固化下来)
+        d := ""
+        try d := Gesture_GetGestureDesc(lv.GetText(row, 1), lv.GetText(row, 2))
+        catch {
+        }
+        return [lv.GetText(row, 1), lv.GetText(row, 2), lv.GetText(row, 3), d]
     } catch {
         return ""
     }
@@ -510,12 +622,12 @@ GestureMgr_OnTplPreview(*) {
 }
 
 GestureMgr_OnAdd(*) {
-    GestureEditDialog("new", "全局", "", "")
+    GestureEditDialog("new", "全局", "", "", "")
 }
 
 GestureMgr_OnRecordNew(*) {
     ; 先开空对话框并立即进入录制, 画完自动填入
-    dlg := GestureEditDialog("new", "全局", "", "")
+    dlg := GestureEditDialog("new", "全局", "", "", "")
     if (IsObject(dlg))
         GestureDlg_ArmRecord(dlg)
 }
@@ -526,7 +638,7 @@ GestureMgr_OnEdit(*) {
         GestureMgr_SetStatus(T("gesture.st_pick_edit"))
         return
     }
-    GestureEditDialog("edit", row[1], row[2], row[3])
+    GestureEditDialog("edit", row[1], row[2], row[3], row[4])
 }
 
 GestureMgr_OnDel(*) {
@@ -805,7 +917,8 @@ GesturePkg_OnImport(*) {
 
 ; ==================== 新增/编辑对话框 ====================
 ; 返回对话框 refs Map (供录制回调), 失败返回 ""
-GestureEditDialog(mode, layer, gesture, action) {
+; desc: 作用说明 (UI 展示, 存 [GestureDesc], 可空)
+GestureEditDialog(mode, layer, gesture, action, desc := "") {
     global g_GestureMgr
     try {
         if (IsObject(g_GestureMgr["editGui"])) {
@@ -841,13 +954,16 @@ GestureEditDialog(mode, layer, gesture, action) {
     de.Add("Text", "xm y+10", T("gesture.tpl_action_label"))
     actionEdit := de.Add("Edit", "xm y+4 w490", action)
     de.Add("Text", "xm y+4 w490", T("gesture.dlg_example"))
+    de.Add("Text", "xm y+10", T("gesture.dlg_desc_label"))
+    descEdit := de.Add("Edit", "xm y+4 w490", desc)
     saveBtn := de.Add("Button", "xm y+10 w100", T("gesture.btn_save"))
     de.Add("Button", "x+8 w100", T("gesture.btn_cancel")).OnEvent("Click", (*) => GestureDlg_Close(false))
     hint := de.Add("Text", "xm y+6 w490", mode = "new" ? T("gesture.dlg_hint_new") : "")
     saveBtn.OnEvent("Click", (*) => GestureDlg_OnSave(mode))
 
     dlg := Map("gui", de, "layers", layers, "layerDdl", layerDdl
-        , "gestureEdit", gestureEdit, "actionEdit", actionEdit, "hint", hint, "mode", mode
+        , "gestureEdit", gestureEdit, "actionEdit", actionEdit, "descEdit", descEdit
+        , "hint", hint, "mode", mode, "origLayer", layer, "origGesture", gesture
         , "pic", dlgPic, "tx", dlgTx)
     g_GestureMgr["editGui"] := dlg
     de.OnEvent("Close", (*) => GestureDlg_Close(false))
@@ -978,10 +1094,12 @@ GestureDlg_OnSave(mode) {
     layer := "全局"
     gesture := ""
     action := ""
+    desc := ""
     try {
         layer := dlg["layerDdl"].Text
         gesture := dlg["gestureEdit"].Text
         action := dlg["actionEdit"].Text
+        desc := dlg["descEdit"].Text
     } catch {
         return
     }
@@ -997,6 +1115,14 @@ GestureDlg_OnSave(mode) {
             return
     }
     if (GestureStore_SetGesture(layer, gesture, action)) {
+        ; 存作用说明; 编辑时若改了层/手势, 老键的说明同步清掉防孤儿
+        try {
+            if (mode = "edit" && dlg.Has("origLayer")
+                && (dlg["origLayer"] != layer || Gesture_Normalize(dlg["origGesture"]) != Gesture_Normalize(gesture)))
+                GestureStore_DelGestureDesc(dlg["origLayer"], dlg["origGesture"])
+        } catch {
+        }
+        GestureStore_SetGestureDesc(layer, gesture, desc)
         GestureMgr_SetStatus(T("gesture.st_gesture_saved", layer, Gesture_Normalize(gesture), Trim(action)))
         GestureDlg_Close(true)
     } else {

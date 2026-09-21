@@ -804,15 +804,15 @@ BingFanyiFull(word) {
                     usI := InStr(desc, Chr(32654) . "[")
                     if (usI > 0) {
                         ue := InStr(desc, "]", false, usI)
-                        if (ue > usI)
-                            result .= Chr(32654) . " [" . SubStr(desc, usI + 2, ue - usI - 2) . "] "
+                    if (ue > usI)
+                        result .= T("misc.dict_us", SubStr(desc, usI + 2, ue - usI - 2)) . " "
                     }
                     ; 英式音标
                     ukI := InStr(desc, Chr(33521) . "[")
                     if (ukI > 0) {
                         ue := InStr(desc, "]", false, ukI)
                         if (ue > ukI)
-                            result .= Chr(33521) . " [" . SubStr(desc, ukI + 2, ue - ukI - 2) . "]`n"
+                            result .= T("misc.dict_uk", SubStr(desc, ukI + 2, ue - ukI - 2)) . "`n"
                     }
                 }
             }

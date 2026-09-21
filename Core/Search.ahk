@@ -33,7 +33,7 @@ SearchCommand(command := "", firstRun := false) {
         g_CurrentCommandList := []
         g_CurrentCommandList.Push(g_CurrentCommand)
         result .= Chr(g_FirstChar) ">| "
-            . StrReplace(g_CurrentCommand, "function | ", Chr(0x529F) . Chr(0x80FD) . " | ")
+            . StrReplace(g_CurrentCommand, "function | ", TypeLabel("function"))
         DisplaySearchResult(result)
         return result
     }
@@ -185,11 +185,11 @@ SearchCommand(command := "", firstRun := false) {
         result := StrReplace(result, "url | ")
         result := StrReplace(result, "run | ")
     } else {
-        result := StrReplace(result, "file | ", Chr(0x6587) . Chr(0x4EF6) . " | ")
-        result := StrReplace(result, "function | ", Chr(0x529F) . Chr(0x80FD) . " | ")
-        result := StrReplace(result, "cmd | ", Chr(0x547D) . Chr(0x4EE4) . " | ")
-        result := StrReplace(result, "url | ", Chr(0x7F51) . Chr(0x5740) . " | ")
-        result := StrReplace(result, "run | ", Chr(0x8FD0) . Chr(0x884C) . " | ")
+        result := StrReplace(result, "file | ", TypeLabel("file"))
+        result := StrReplace(result, "function | ", TypeLabel("function"))
+        result := StrReplace(result, "cmd | ", TypeLabel("cmd"))
+        result := StrReplace(result, "url | ", TypeLabel("url"))
+        result := StrReplace(result, "run | ", TypeLabel("run"))
     }
 
     DisplaySearchResult(result)

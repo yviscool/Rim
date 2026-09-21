@@ -172,6 +172,7 @@ def scan_t_usage(files):
 def scan_hardcoded(files):
     """返回 [(file, line, text)] : 字符串字面量里残留 CJK, 且不是 T() 的 key 参数."""
     hits = []
+    chr_re = re.compile(r"Chr\(\s*(0[xX][0-9a-fA-F]+|\d+)\s*\)")
     for p in files:
         rel = p.relative_to(ROOT).as_posix()
         try:
@@ -193,6 +194,16 @@ def scan_hardcoded(files):
                 if any(s >= ts and e <= te + 2 for ts, te in t_key_spans):
                     continue
                 hits.append((rel, ln, text.strip()[:80]))
+            # Chr() 拼的中文 (如 Chr(0x6587) 文件): 字面扫描看不见, 单列
+            for m in chr_re.finditer(code):
+                num = m.group(1)
+                cp = int(num, 16) if num.lower().startswith("0x") else int(num)
+                if cp in (0xFEFF,) or cp < 0x3000:
+                    continue
+                if ((0x3040 <= cp <= 0x30FF) or (0x3400 <= cp <= 0x4DBF)
+                        or (0x4E00 <= cp <= 0x9FFF) or (0xF900 <= cp <= 0xFAFF)
+                        or (0xFF00 <= cp <= 0xFFEF)):
+                    hits.append((rel, ln, f"Chr({num})={chr(cp)}"))
     return hits
 
 

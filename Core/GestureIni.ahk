@@ -331,8 +331,57 @@ GestureStore_DelGesture(layer, gesture) {
     try g_Conf.DeleteKey(sec, GestureConf_KeyExact(sec, gesture))
     catch {
     }
+    ; 同步清作用说明, 不留孤儿
+    try GestureStore_DelGestureDesc(layer, gesture)
+    catch {
+    }
     Gesture_ReloadLayers()
     return true
+}
+
+; ---- 手势作用说明 (纯 UI 展示, 与引擎无关) ----
+; 存 [GestureDesc] 段, 键沿用禁用集的 layer:gesture 格式; 空说明即删键, ini 保持干净
+GestureDescId(layer, gesture) {
+    return layer . ":" . Gesture_Normalize(gesture)
+}
+
+GestureStore_SetGestureDesc(layer, gesture, desc) {
+    global g_Conf, g_ConfFile
+    id := GestureDescId(layer, gesture)
+    desc := Trim(desc)
+    sec := "GestureDesc"
+    if (desc = "") {
+        GestureIni_Delete(g_ConfFile, sec, id)
+        try g_Conf.DeleteKey(sec, GestureConf_KeyExact(sec, id))
+        catch {
+        }
+        return true
+    }
+    if (!GestureIni_Upsert(g_ConfFile, sec, id, desc))
+        return false
+    try g_Conf.Set(sec, GestureConf_KeyExact(sec, id), desc)
+    catch {
+    }
+    return true
+}
+
+GestureStore_DelGestureDesc(layer, gesture) {
+    global g_Conf, g_ConfFile
+    id := GestureDescId(layer, gesture)
+    sec := "GestureDesc"
+    GestureIni_Delete(g_ConfFile, sec, id)
+    try g_Conf.DeleteKey(sec, GestureConf_KeyExact(sec, id))
+    catch {
+    }
+    return true
+}
+
+Gesture_GetGestureDesc(layer, gesture) {
+    global g_Conf
+    try return g_Conf.Get("GestureDesc", GestureDescId(layer, gesture), "")
+    catch {
+    }
+    return ""
 }
 
 GestureStore_SetAppMatch(appName, exe, cls, title := "", titleRx := "", noglobal := "") {
