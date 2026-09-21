@@ -354,5 +354,5 @@ ChangeRank(cmd, show := false, inc := 1) {
     }
 
     if (show)
-        ToolTip("Rank of " cmd " adjusted to " cmdRank)
+        ToolTip(T("rank.adjusted", cmd, cmdRank))
 }

@@ -105,16 +105,16 @@ OpenContextMenu(*) {
     }
     contextMenu := Menu()
     if (!g_UseDisplay)
-        contextMenu.Add(currentCommandText ">  Run &Z", RunCurrentCommand)
+        contextMenu.Add(currentCommandText . ">  " . T("ctx.run"), RunCurrentCommand)
     contextMenu.Add()
-    contextMenu.Add("Edit Config &E", EditConfig)
-    contextMenu.Add("Reindex &S", ReindexFiles)
-    contextMenu.Add("History &H", DisplayHistoryCommands)
-    contextMenu.Add("Update Path &C", ChangePath)
+    contextMenu.Add(T("ctx.edit"), EditConfig)
+    contextMenu.Add(T("ctx.reindex"), ReindexFiles)
+    contextMenu.Add(T("ctx.history"), DisplayHistoryCommands)
+    contextMenu.Add(T("ctx.updatepath"), ChangePath)
     contextMenu.Add()
-    contextMenu.Add("Help &A", Help)
-    contextMenu.Add("Restart &R", RestartRunZ)
-    contextMenu.Add("Exit &X", ExitRunZ)
+    contextMenu.Add(T("ctx.help"), Help)
+    contextMenu.Add(T("ctx.restart"), RestartRunZ)
+    contextMenu.Add(T("ctx.exit"), ExitRunZ)
     contextMenu.Show()
 }
 
@@ -192,11 +192,11 @@ GotoCommand(*) {
 
 ReindexFiles(*) {
     if WinActive(g_WindowName)
-        ToolTip("Reindexing...")
+        ToolTip(T("ctx.reindexing"))
     GenerateSearchFileList()
     CleanupRank()  ; 内含 LoadFiles(false)→清理→LoadFiles(), 无需预 LoadFiles
     if WinActive(g_WindowName) {
-        ToolTip("Reindex done")
+        ToolTip(T("ctx.reindexed"))
         SetTimer(RemoveToolTip, -800)
     }
 }

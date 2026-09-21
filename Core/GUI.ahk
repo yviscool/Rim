@@ -162,39 +162,9 @@ WM_ACTIVATE(wParam, lParam, msg, hwnd) {
     }
 }
 
-; 按键帮助文本
+; 按键帮助文本 (双语见 Lang/*.ini help.keytext, 对齐仍走 AlignText)
 KeyHelpText() {
-    return AlignText(""
-    . "* | Key | Shift + F1  | Show pinned key help`n"
-    . "* | Key | Alt + F4    | Close pinned key help`n"
-    . "* | Key | Enter       | Run current command`n"
-    . "* | Key | Esc         | Close window`n"
-    . "* | Key | Alt +       | Run by first char per row`n"
-    . "* | Key | Tab +       | Then press first char to run`n"
-    . "* | Key | Tab +       | Then Shift + char to locate`n"
-    . "* | Key | Win  + j    | Toggle window`n"
-    . "* | Key | Ctrl + j    | Move to next command`n"
-    . "* | Key | Ctrl + k    | Move to previous command`n"
-    . "* | Key | Ctrl + f    | Page down in output`n"
-    . "* | Key | Ctrl + b    | Page up in output`n"
-    . "* | Key | Ctrl + h    | Show history`n"
-    . "* | Key | Ctrl + n    | Increase command weight`n"
-    . "* | Key | Ctrl + p    | Decrease command weight`n"
-    . "* | Key | Ctrl + l    | Clear input box`n"
-    . "* | Key | Ctrl + r    | Rebuild file index`n"
-    . "* | Key | Ctrl + q    | Restart`n"
-    . "* | Key | Ctrl + d    | Open current file dir in TC`n"
-    . "* | Key | Ctrl + s    | Show and copy full file path`n"
-    . "* | Key | Ctrl + x    | Delete current file`n"
-    . "* | Key | Ctrl + i    | Move cursor to line start`n"
-    . "* | Key | Ctrl + o    | Move cursor to line end`n"
-    . "* | Key | F2          | Edit config file`n"
-    . "* | Key | F3          | Edit auto config file`n"
-    . "* | Func | URL input  | Enter www or http URL directly`n"
-    . "* | Func | `; prefix   | Command run by ahk`n"
-    . "* | Func | : prefix   | Command run by cmd`n"
-    . "* | Func | No result  | Enter runs via ahk`n"
-    . "* | Func | Space      | Lock search results")
+    return AlignText(T("help.keytext"))
 }
 
 ; 列对齐 (对齐原版 RunZ/Core/GUI.ahk AlignText)

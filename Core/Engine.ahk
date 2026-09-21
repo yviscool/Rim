@@ -969,7 +969,7 @@ class WinObj {
 
         ; 显示提示 (行格式: 按键 \t 中文注释, 对原版 key\tcomment; 注释缺失回落动作名)
         if (matches.Count > 0) {
-            tip .= "Available:`n"
+            tip .= T("engine.available") . "`n"
             for key, action in matches {
                 cmt := action
                 full := keyTemp != "" ? keyTemp . key : key
