@@ -169,9 +169,13 @@ VimCfg_OnSave(*) {
     }
     g_VimCfg["dirty"] := Map()
     if (newLang != "") {
-        ; 语言切换: 托盘即时重建, 其余界面重启生效
+        ; 语言切换: 托盘即时重建, 问是否重启使全部界面生效
         try {
             if (I18nApplyTray(newLang)) {
+                if (MsgBox(T("cfg.lang_restart_prompt"), T("cfg.lang_restart_title"), "YesNo") = "Yes") {
+                    RestartRunZ()
+                    return
+                }
                 ToolTip(T("cfg.lang_applied"))
                 SetTimer(RemoveToolTip, -2000)
                 return
@@ -434,10 +438,18 @@ VimCfg_BuildKvTab(g, sec, tag) {
     g.Add("Button", "x20 y410 w70", T("cfg.kv_add")).OnEvent("Click", VimCfg_KvAdd)
     g.Add("Button", "x+10 w70", T("cfg.kv_edit")).OnEvent("Click", VimCfg_KvEdit)
     g.Add("Button", "x+10 w70", T("cfg.kv_delete")).OnEvent("Click", VimCfg_KvDel)
+    g.Add("Text", "x560 y414 w60", T("cfg.kv_filter"))
+    kved := g.Add("Edit", "x625 y410 w235 h25")
+    kved.OnEvent("Change", VimCfg_KvFilter)
     g_VimCfg["kv_" tag] := lv
     g_VimCfg["kvrows_" tag] := []
+    g_VimCfg["kvfilter_" tag] := kved
     lv.OnEvent("DoubleClick", VimCfg_KvDblEdit)
     VimCfg_KvReload(sec)
+}
+
+VimCfg_KvFilter(*) {
+    VimCfg_KvReload()
 }
 
 VimCfg_KvTag() {
@@ -495,9 +507,13 @@ VimCfg_KvReload(sec := "") {
     }
     rows := kept
     g_VimCfg["kvrows_" tag] := rows
+    needle := ""
+    try needle := Trim(g_VimCfg["kvfilter_" tag].Value)
     try lv.Delete()
     for r in rows {
-        try lv.Add("", r["key"], r["action"])
+        if (needle = "" || InStr(r["key"] " " r["action"], needle)) {
+            try lv.Add("", r["key"], r["action"])
+        }
     }
 }
 
@@ -557,9 +573,17 @@ VimCfg_BuildPluginTab(g) {
     lv.ModifyCol(2, 520)
     g.Add("Button", "x20 y410 w110", T("cfg.plugin_toggle")).OnEvent("Click", VimCfg_PluginToggle)
     g.Add("Button", "x+10 w110", T("cfg.plugin_restart")).OnEvent("Click", VimCfg_PluginRestart)
+    g.Add("Text", "x560 y414 w60", T("cfg.plugin_filter"))
+    pluged := g.Add("Edit", "x625 y410 w235 h25")
+    pluged.OnEvent("Change", VimCfg_PluginFilter)
     g_VimCfg["plug"] := lv
     g_VimCfg["plugrows"] := []
+    g_VimCfg["plugfilter"] := pluged
     lv.OnEvent("DoubleClick", VimCfg_PluginToggle)
+    VimCfg_PluginReload()
+}
+
+VimCfg_PluginFilter(*) {
     VimCfg_PluginReload()
 }
 
@@ -599,9 +623,13 @@ VimCfg_PluginReload() {
         }
     }
     g_VimCfg["plugrows"] := rows
+    needle := ""
+    try needle := Trim(g_VimCfg["plugfilter"].Value)
     try lv.Delete()
     for r in rows {
-        try lv.Add("", r["key"], r["on"] ? T("cfg.plugin_on") : T("cfg.plugin_off"))
+        if (needle = "" || InStr(r["key"], needle)) {
+            try lv.Add("", r["key"], r["on"] ? T("cfg.plugin_on") : T("cfg.plugin_off"))
+        }
     }
 }
 

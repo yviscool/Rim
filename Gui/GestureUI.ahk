@@ -17,8 +17,8 @@ ShowGestureManager(*) {
         }
     }
     mg := Gui(, T("gesture.title"))
-    mg.SetFont("S10", "微软雅黑")
-    tabs := mg.Add("Tab3", "w800 h430", [T("gesture.tab_gestures"), T("gesture.tab_tpl"), T("gesture.tab_blacklist"), T("gesture.tab_settings")])
+    mg.SetFont("s10", "Microsoft YaHei")
+    tabs := mg.Add("Tab3", "w800 h470", [T("gesture.tab_gestures"), T("gesture.tab_tpl"), T("gesture.tab_blacklist"), T("gesture.tab_settings")])
 
     ; ---- 手势页 ----
     ; 注意: "全部"/"全局" 是层存储标识 (ini 键 + Core 过滤比较), 禁止翻译, 保持原文
@@ -32,6 +32,9 @@ ShowGestureManager(*) {
     mg.Add("Button", "x+6 w60", T("gesture.btn_delete")).OnEvent("Click", GestureMgr_OnDel)
     mg.Add("Button", "x+6 w80", T("gesture.btn_toggle")).OnEvent("Click", GestureMgr_OnToggle)
     mg.Add("Button", "x+6 w80", T("gesture.btn_layer_off")).OnEvent("Click", GestureMgr_OnLayerOff)
+    mg.Add("Text", "xm y+6 w60", T("gesture.filter_label"))
+    geFilter := mg.Add("Edit", "x+6 w200 h25")
+    geFilter.OnEvent("Change", GestureMgr_OnGeFilter)
     lv := mg.Add("ListView", "xm y+8 w640 h300", [T("gesture.col_layer"), T("gesture.col_gesture"), T("gesture.col_action"), T("gesture.col_desc"), T("gesture.col_status")])
     lv.ModifyCol(1, 90)
     lv.ModifyCol(2, 90)
@@ -50,6 +53,9 @@ ShowGestureManager(*) {
     ; ---- 字母模板页 ----
     tabs.UseTab(2)
     mg.Add("Text", "xm ym+30 w640", T("gesture.tpl_note"))
+    mg.Add("Text", "xm y+6 w60", T("gesture.filter_label"))
+    tplFilter := mg.Add("Edit", "x+6 w200 h25")
+    tplFilter.OnEvent("Change", GestureMgr_OnTplFilter)
     tplLv := mg.Add("ListView", "xm y+8 w640 h300", [T("gesture.col_tpl"), T("gesture.col_action"), T("gesture.col_source"), T("gesture.col_status")])
     tplLv.ModifyCol(1, 60)
     tplLv.ModifyCol(2, 480)
@@ -72,6 +78,9 @@ ShowGestureManager(*) {
     ; ---- 黑名单页 ----
     tabs.UseTab(3)
     mg.Add("Text", "xm ym+30 w780", T("gesture.bl_note"))
+    mg.Add("Text", "xm y+6 w60", T("gesture.filter_label"))
+    blFilter := mg.Add("Edit", "x+6 w200 h25")
+    blFilter.OnEvent("Change", GestureMgr_OnBlFilter)
     blLv := mg.Add("ListView", "xm y+8 w780 h300", [T("gesture.col_pattern"), T("gesture.col_status")])
     blLv.ModifyCol(1, 680)
     blLv.ModifyCol(2, 60)
@@ -86,6 +95,7 @@ ShowGestureManager(*) {
     cfgTrigger := mg.Add("DropDownList", "x+6 w120", ["RButton", "MButton", "XButton1", "XButton2"])
     mg.Add("Text", "x+20", T("gesture.set_nomatch"))
     cfgNoMatch := mg.Add("DropDownList", "x+6 w120", ["swallow", "passthrough", "sound"])
+    mg.Add("Text", "x+8 w300", T("gesture.set_nomatch_hint"))
     mg.Add("Text", "xm y+12", T("gesture.set_threshold"))
     cfgThreshold := mg.Add("Slider", "x+6 w180 Range10-60", 20)
     cfgThresholdTx := mg.Add("Text", "x+6 w40", "20")
@@ -98,15 +108,18 @@ ShowGestureManager(*) {
     cfgTplTh := mg.Add("Slider", "x+6 w180 Range50-95", 75)
     cfgTplThTx := mg.Add("Text", "x+6 w40", "75")
     cfgTplTh.OnEvent("Change", (*) => GestureCfg_ShowVal("TplTh"))
+    mg.Add("Text", "x+8 w300", T("gesture.set_tplth_hint"))
     mg.Add("Text", "xm y+10", T("gesture.set_trailw"))
     cfgTrailW := mg.Add("Slider", "x+6 w180 Range1-10", 5)
     cfgTrailWTx := mg.Add("Text", "x+6 w40", "5")
     cfgTrailW.OnEvent("Change", (*) => GestureCfg_ShowVal("TrailW"))
     mg.Add("Text", "xm y+10", T("gesture.set_ignorekey"))
     cfgIgnoreKey := mg.Add("Edit", "x+6 w100", "")
+    mg.Add("Text", "x+8 w300", T("gesture.set_ignore_hint"))
     cfgOSD := mg.Add("CheckBox", "xm y+12", T("gesture.set_osd"))
     cfgTrail := mg.Add("CheckBox", "x+20", T("gesture.set_trail"))
     cfgOnlyDef := mg.Add("CheckBox", "x+20", T("gesture.set_onlydef"))
+    mg.Add("Text", "xm y+4 w400", T("gesture.set_onlydef_hint"))
     cfgTry := mg.Add("CheckBox", "xm y+10", T("gesture.set_try"))
     cfgTry.OnEvent("Click", (*) => Gesture_SetTryMode(cfgTry.Value ? true : false))
     mg.Add("Button", "xm y+12 w110", T("gesture.btn_save_settings")).OnEvent("Click", GestureCfg_OnSave)
@@ -126,12 +139,15 @@ ShowGestureManager(*) {
     g_GestureMgr["filter"] := filterDdl
     g_GestureMgr["filterItems"] := ["全部"]
     g_GestureMgr["lv"] := lv
+    g_GestureMgr["gefilter"] := geFilter
     g_GestureMgr["prevPic"] := prevPic
     g_GestureMgr["prevTx"] := prevTx
     g_GestureMgr["tplLv"] := tplLv
+    g_GestureMgr["tplfilter"] := tplFilter
     g_GestureMgr["tplPic"] := tplPic
     g_GestureMgr["tplTx"] := tplTx
     g_GestureMgr["blLv"] := blLv
+    g_GestureMgr["blfilter"] := blFilter
     g_GestureMgr["cfg"] := Map("enable", cfgEnable, "trigger", cfgTrigger, "noMatch", cfgNoMatch
         , "threshold", cfgThreshold, "thresholdTx", cfgThresholdTx
         , "segment", cfgSegment, "segmentTx", cfgSegmentTx
@@ -191,9 +207,14 @@ GestureMgr_RefreshGestures() {
         lv := g_GestureMgr["lv"]
         lv.Delete()
         filter := GestureMgr_CurrentFilter()
+        needle := ""
+        try needle := Trim(g_GestureMgr["gefilter"].Value)
         count := 0
         for i, row in Gesture_ListAll() {
             if (filter != "全部" && row[1] != filter)
+                continue
+            text := row[1] . " " . row[2] . " " . row[3]
+            if (needle != "" && !InStr(text, needle))
                 continue
             st := Gesture_ChainOff(row[1], row[2]) ? T("gesture.st_off") : T("gesture.st_on")
             d := Gesture_GetGestureDesc(row[1], row[2])
@@ -202,7 +223,10 @@ GestureMgr_RefreshGestures() {
             lv.Add("", row[1], row[2], row[3], d, st)
             count++
         }
-        GestureMgr_SetStatus(T("gesture.st_gesture_count", count, filter))
+        if (count = 0 && needle = "")
+            GestureMgr_SetStatus(T("gesture.empty_gestures"))
+        else
+            GestureMgr_SetStatus(T("gesture.st_gesture_count", count, filter))
         ; 无选中时自动预览第一行, 避免预览框空着
         try {
             if (lv.GetNext(0) = 0 && count > 0) {
@@ -220,10 +244,23 @@ GestureMgr_RefreshBlacklist() {
     try {
         blLv := g_GestureMgr["blLv"]
         blLv.Delete()
-        for i, pat in Gesture_ListBlacklist()
+        needle := ""
+        try needle := Trim(g_GestureMgr["blfilter"].Value)
+        n := 0
+        for i, pat in Gesture_ListBlacklist() {
+            if (needle != "" && !InStr(pat, needle))
+                continue
             blLv.Add("", pat, Gesture_BlOff(pat) ? T("gesture.st_off") : T("gesture.st_on"))
+            n++
+        }
+        if (n = 0 && needle = "")
+            GestureMgr_SetStatus(T("gesture.empty_bl"))
     } catch {
     }
+}
+
+GestureMgr_OnBlFilter(*) {
+    GestureMgr_RefreshBlacklist()
 }
 
 ; ==================== 字母模板页 ====================
@@ -232,15 +269,26 @@ GestureMgr_RefreshTemplates() {
     try {
         tplLv := g_GestureMgr["tplLv"]
         tplLv.Delete()
+        needle := ""
+        try needle := Trim(g_GestureMgr["tplfilter"].Value)
         count := 0
         for i, row in Tpl_List() {
+            if (needle != "" && !InStr(row[1] . " " . row[2] . " " . row[3], needle))
+                continue
             st := Gesture_TplOff(row[1]) ? T("gesture.st_off") : T("gesture.st_on")
             tplLv.Add("", row[1], row[2], row[3], st)
             count++
         }
-        GestureMgr_SetStatus(T("gesture.st_tpl_count", count))
+        if (count = 0 && needle = "")
+            GestureMgr_SetStatus(T("gesture.empty_tpl"))
+        else
+            GestureMgr_SetStatus(T("gesture.st_tpl_count", count))
     } catch {
     }
+}
+
+GestureMgr_OnTplFilter(*) {
+    GestureMgr_RefreshTemplates()
 }
 
 GestureMgr_SelectedTplRow() {
@@ -291,7 +339,7 @@ GestureMgr_OnTplDel(*) {
 TplEditDialog(name, action) {
     global g_GestureMgr
     de := Gui(, name = "" ? T("gesture.tpl_dlg_new") : T("gesture.tpl_dlg_edit"))
-    de.SetFont("S10", "微软雅黑")
+    de.SetFont("s10", "Microsoft YaHei")
     de.Add("Text", "xm ym", T("gesture.tpl_name_label"))
     nameEdit := de.Add("Edit", "x+6 w120", name)
     if (name != "") {
@@ -435,6 +483,10 @@ TplDlg_OnSave() {
         catch {
         }
     }
+}
+
+GestureMgr_OnGeFilter(*) {
+    GestureMgr_RefreshGestures()
 }
 
 GestureMgr_OnFilter(*) {
@@ -928,7 +980,7 @@ GestureEditDialog(mode, layer, gesture, action, desc := "") {
         }
     }
     de := Gui(, mode = "new" ? T("gesture.dlg_new") : T("gesture.dlg_edit"))
-    de.SetFont("S10", "微软雅黑")
+    de.SetFont("s10", "Microsoft YaHei")
     de.Add("Text", "xm ym", T("gesture.dlg_layer"))
     layers := ["全局"]
     for i, n in Gesture_ListAppNames()
@@ -1000,45 +1052,93 @@ GestureDlg_CurrentDlg() {
     return ""
 }
 
+; ---- 新应用层: 单对话框一次填完 (原先 5 连 InputBox + 1 确认框) ----
 GestureDlg_OnNewApp(*) {
+    global g_GestureMgr
     dlg := GestureDlg_CurrentDlg()
     if (dlg = "")
         return
-    r1 := InputBox(T("gesture.layer_name_prompt"), T("gesture.layer_new_title"))
-    if (r1.Result != "OK" || Trim(r1.Value) = "")
+    if (g_GestureMgr.Has("newapp")) {
+        try {
+            g_GestureMgr["newapp"]["gui"].Destroy()
+        } catch {
+        }
+    }
+    na := Gui("+Owner" dlg["gui"].Hwnd, T("gesture.layer_new_title"))
+    na.SetFont("s10", "Microsoft YaHei")
+    na.Add("Text", "x15 y15 w110", T("gesture.layer_name_label"))
+    naName := na.Add("Edit", "x130 y12 w230 h25")
+    na.Add("Text", "x15 y50 w110", T("gesture.layer_exe_label"))
+    naExe := na.Add("Edit", "x130 y47 w230 h25")
+    na.Add("Text", "x15 y85 w110", T("gesture.layer_cls_label"))
+    naCls := na.Add("Edit", "x130 y82 w230 h25")
+    na.Add("Text", "x15 y120 w110", T("gesture.layer_title_label"))
+    naTitle := na.Add("Edit", "x130 y117 w230 h25")
+    na.Add("Text", "x15 y155 w110", T("gesture.layer_rx_label"))
+    naRx := na.Add("Edit", "x130 y152 w230 h25")
+    naNoG := na.Add("CheckBox", "x15 y187 w345", T("gesture.layer_noglobal_check"))
+    na.Add("Button", "x130 y215 w80 Default", T("gesture.dlg_ok")).OnEvent("Click", GestureDlg_OnNewAppOK)
+    na.Add("Button", "x+10 w80", T("gesture.dlg_cancel")).OnEvent("Click", GestureDlg_OnNewAppCancel)
+    g_GestureMgr["newapp"] := Map("gui", na, "name", naName, "exe", naExe, "cls", naCls
+        , "title", naTitle, "rx", naRx, "nog", naNoG, "parent", dlg)
+    na.OnEvent("Close", (*) => GestureDlg_OnNewAppCancel())
+    na.Show("w375 h260")
+}
+
+GestureDlg_OnNewAppCancel(*) {
+    global g_GestureMgr
+    try g_GestureMgr["newapp"]["gui"].Destroy()
+    catch {
+    }
+    try g_GestureMgr.Delete("newapp")
+    catch {
+    }
+}
+
+GestureDlg_OnNewAppOK(*) {
+    global g_GestureMgr
+    na := ""
+    try na := g_GestureMgr["newapp"]
+    if (na = "")
         return
-    appName := Trim(r1.Value)
+    appName := ""
+    exe := ""
+    cls := ""
+    title := ""
+    rx := ""
+    nog := false
+    try {
+        appName := Trim(na["name"].Value)
+        exe := Trim(na["exe"].Value)
+        cls := Trim(na["cls"].Value)
+        title := Trim(na["title"].Value)
+        rx := Trim(na["rx"].Value)
+        nog := na["nog"].Value ? true : false
+    } catch {
+        return
+    }
+    if (appName = "")
+        return
     if (InStr(appName, ":") || InStr(appName, "=") || InStr(appName, "|")) {
         MsgBox(T("gesture.layer_badchar"), T("gesture.layer_new_title"), 48)
         return
     }
-    r2 := InputBox(T("gesture.layer_exe_prompt"), T("gesture.layer_title_with", appName))
-    if (r2.Result != "OK")
-        return
-    r3 := InputBox(T("gesture.layer_cls_prompt"), T("gesture.layer_title_with", appName))
-    if (r3.Result != "OK")
-        return
-    r4 := InputBox(T("gesture.layer_title_prompt"), T("gesture.layer_title_with", appName))
-    if (r4.Result != "OK")
-        return
-    r5 := InputBox(T("gesture.layer_rx_prompt"), T("gesture.layer_title_with", appName))
-    if (r5.Result != "OK")
-        return
-    if (Trim(r2.Value) = "" && Trim(r3.Value) = "" && Trim(r4.Value) = "" && Trim(r5.Value) = "") {
+    if (exe = "" && cls = "" && title = "" && rx = "") {
         MsgBox(T("gesture.layer_need_one"), T("gesture.layer_new_title"), 48)
         return
     }
-    noG := MsgBox(T("gesture.layer_noglobal"), T("gesture.layer_title_with", appName), 36)
-    if (!GestureStore_SetAppMatch(appName, r2.Value, r3.Value, r4.Value, r5.Value, noG = "Yes" ? "1" : "0")) {
+    if (!GestureStore_SetAppMatch(appName, exe, cls, title, rx, nog ? "1" : "0")) {
         MsgBox(T("gesture.layer_write_failed"), T("gesture.layer_new_title"), 16)
         return
     }
     try {
-        dlg["layers"].Push(appName)
-        dlg["layerDdl"].Add([appName])
-        dlg["layerDdl"].Choose(dlg["layers"].Length)
+        parent := na["parent"]
+        parent["layers"].Push(appName)
+        parent["layerDdl"].Add([appName])
+        parent["layerDdl"].Choose(parent["layers"].Length)
     } catch {
     }
+    GestureDlg_OnNewAppCancel()
     GestureMgr_RefreshFilter()
 }
 
