@@ -5,16 +5,24 @@
 FileEncoding "UTF-8"
 SendMode "Input"
 SetWorkingDir(A_ScriptDir)
-; 重启链路灯: 进程一起就记, 若卡死/崩溃, 日志停在哪段一目了然
-try FileAppend(A_Now . " STARTUP begin`n", A_ScriptDir . "\Rim.error.log")
+; 启动瞬间先藏托盘图标: 解释器一起就带默认菜单, 藏到自建菜单就绪再亮,
+; 用户就看不到默认菜单闪现 (ShowTrayIcon=0 则全程隐藏, 原先启动期会短暂冒出)
+try A_IconHidden := true
 catch {
 }
+; 启动计时原点 + 错误日志轮转 (函数来自 Core/Common.ahk, 编译期可用)
+global g_BootT0 := A_TickCount
+try RotateErrorLog()
+catch {
+}
+; 重启链路灯: 进程一起就记, 若卡死/崩溃, 日志停在哪段一目了然
+BootMark("STARTUP begin")
 ; 防洪阈值对齐 v1 (#MaxHotkeysPerInterval 200 等价)
 A_MaxHotkeysPerInterval := 200
 ; i18n 抢跑: g_Conf 尚未加载, 先按 OS 语言起 (备份提示/配置失败提示要用)
 I18nBoot()
 ; 构建号 (配置中心帮助页显示, 日志 BUILD 行同源)
-global g_BuildTag := "20260921-I18N2"
+global g_BuildTag := "20260921-I18N4"
 
 ; ==================== 兼容层: 供插件引用 Rim.xxx ====================
 class Rim {
@@ -52,9 +60,7 @@ if (!IsObject(g_Conf) || !g_Conf.HasSection("Config")) {
     MsgBox(T("msg.config_load_failed", g_ConfFile))
     ExitApp(1)
 }
-try FileAppend(A_Now . " STARTUP config-ok`n", A_ScriptDir . "\Rim.error.log")
-catch {
-}
+BootMark("STARTUP config-ok")
 
 ; 语言初始化 (尊重 [Config] Language, auto 跟系统; 此前 I18nBoot 已按 OS 语言兜底)
 I18nInit()
@@ -75,6 +81,14 @@ skinDefaults := Map("ShowInputBoxOnlyIfEmpty", "0", "BackgroundPicture", "", "Ro
 for k, v in skinDefaults
     if !g_SkinConf.Has(k)
         g_SkinConf[k] := v
+
+; ==================== 托盘菜单 (尽早构建一次: 默认菜单闪现窗口从 ~200ms 压到 ~10ms) ====================
+; 回调名编译期已解析, 运行时引用安全; 失败也不拦启动, 后面正式位置会再建一次兜底
+try {
+    if (BuildTrayMenu())
+        A_IconHidden := false
+} catch {
+}
 
 ; 运行时状态
 global Arg := ""
@@ -160,6 +174,7 @@ global g_CommandArea := "Edit4"
 #Include Lib\MonsterEval.ahk
 #Include Core\Common.ahk
 #Include Core\I18n.ahk
+#Include Core\Tray.ahk
 
 ; ==================== 加载 Core 模块 ====================
 #Include Core\Config.ahk
@@ -213,21 +228,8 @@ Loop Files, pluginDir "\*.ahk" {
         g_Plugins.Push(pluginName)
 }
 
-; ==================== 托盘菜单 ====================
-if (g_SkinConf["ShowTrayIcon"] = "1") {
-    A_TrayMenu.Delete()
-    if (g_Conf["Config"]["RunInBackground"] = "1") {
-        A_TrayMenu.Add(T("tray.show"), ActivateRunZ)
-        A_TrayMenu.Default := T("tray.show")
-        A_TrayMenu.ClickCount := 1
-    }
-    A_TrayMenu.Add(T("tray.gesture"), ShowGestureManager)
-    A_TrayMenu.Add(T("tray.config"), VimConfig_Show)
-    A_TrayMenu.Add()
-    A_TrayMenu.Add(T("tray.suspend"), ToggleSuspend)
-    A_TrayMenu.Add(T("tray.restart"), RestartRunZ)
-    A_TrayMenu.Add(T("tray.exit"), ExitRunZ)
-}
+; ==================== 托盘菜单 (重建兜底: 前面已建过一次, 这里幂等重建; 语言切换即时生效亦走此函数, 见 Core/Tray.ahk) ====================
+BuildTrayMenu()
 
 ; ==================== 加载文件 ====================
 if (FileExist(g_SearchFileList))
@@ -309,6 +311,8 @@ if (g_Conf["Config"]["ExitIfInactivate"])
     OnMessage(0x06, WM_ACTIVATE)
 
 OnMessage(0x0200, WM_MOUSEMOVE)
+
+BootMark("STARTUP gui-shown")
 
 ; ==================== 绑定热键 (经 BindKey 统一 $ 前缀, 防 Send 回环) ====================
 HotIfWinActive(g_WindowName)
@@ -445,9 +449,11 @@ VimPluginOn(name) {
 ; ==================== 文件监控 ====================
 SetTimer(WatchUserFileList, 3000)
 
-; 启动胎记: 对版本 confusion, error.log 首行即构建号
+BootMark("STARTUP plugins-ready")
+
+; 启动胎记: 对版本 confusion, error.log 首行即构建号 (附启动总耗时)
 try {
-    FileAppend("BUILD " . g_BuildTag . " started " . A_Now . "`n", A_ScriptDir . "\Rim.error.log")
+    FileAppend("BUILD " . g_BuildTag . " ready +" . (A_TickCount - g_BootT0) . "ms " . A_Now . "`n", A_ScriptDir . "\Rim.error.log")
 }
 
 ; ==================== 兼容层: 供插件 RegisterCommand 调用 ====================

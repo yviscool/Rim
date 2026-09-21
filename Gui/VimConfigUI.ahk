@@ -153,7 +153,8 @@ VimCfg_OnSave(*) {
         MsgBox(T("cfg.save_failed", e.Message), T("cfg.title"), 16)
         return
     }
-    ; 同步内存 (新段自动建; 删键同步删)
+    ; 同步内存 (新段自动建; 删键同步删), 顺带记下语言是否变了
+    newLang := ""
     try {
         for sk, d in dirty {
             pos := InStr(sk, Chr(1))
@@ -162,9 +163,22 @@ VimCfg_OnSave(*) {
                 g_Conf.DeleteKey(sec, d["key"])
             else
                 g_Conf.Set(sec, d["key"], d["val"])
+            if (sec = "Config" && d["key"] = "Language" && !d["del"])
+                newLang := d["val"]
         }
     }
     g_VimCfg["dirty"] := Map()
+    if (newLang != "") {
+        ; 语言切换: 托盘即时重建, 其余界面重启生效
+        try {
+            if (I18nApplyTray(newLang)) {
+                ToolTip(T("cfg.lang_applied"))
+                SetTimer(RemoveToolTip, -2000)
+                return
+            }
+        } catch {
+        }
+    }
     ToolTip(T("cfg.saved"))
     SetTimer(RemoveToolTip, -1500)
 }

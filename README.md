@@ -64,7 +64,7 @@ Rim/
 - UI 文案一律走 `T("key")` / `T("key", arg...)`（`Core/I18n.ahk`），占位符 `{1} {2}...`，
   缺键自动回落英文，永不抛错。`g_WindowName` 是窗口匹配哨兵，禁止翻译。
 - 语言包 `Lang/<bcp47>.ini`（`[Strings]` 段，UTF-8，`\n` 换行），`zh-CN` / `en` 全量，
-  其余占位。切换：配置中心 → 启动器 → 界面语言（或 `[Config] Language=auto`）。
+  其余占位。切换：配置中心 → 启动器 → 界面语言（托盘即时生效，完整生效需重启）。
 - 审计（新增 / 改查 / 覆盖率 / 残留扫描）：
   `python tools/i18n_audit.py audit --check`（CI 门禁），
   `stats` 看覆盖率，`query <key>` 查值与引用，

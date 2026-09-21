@@ -359,3 +359,19 @@ out .= "LEAK:" . TryEvalInput(x)
 tmp := TryEvalInput(x)
 out .= "LEAK:" . tmp
 ```
+
+### 错误 18：`#Include` 文件的顶层 `global X := ...` 会清空早前已赋值
+
+```ahk
+; ❌ 实测翻车 (i18n 托盘显示 raw key)：主入口 15 行调 I18nBoot() 填好语言表，
+;   163 行 #Include Core\I18n.ahk 的顶层 global g_I18nStrings := Map() 又把它清空
+; ✅ 只在未赋值时初始化
+global g_I18nLang, g_I18nStrings
+if !IsSet(g_I18nLang)
+    g_I18nLang := "zh-CN"
+if !IsSet(g_I18nStrings)
+    g_I18nStrings := Map()
+```
+; 原理：`#Include` 文件的顶层语句按 auto-execute 顺序在 include 行位置执行，
+; 不是“先于一切”——凡是在 include 行之前就运行的代码（如启动早期的 Boot），
+; 其写入的全局量都会被后执行的顶层 `:=` 覆盖。见 Core/I18n.ahk 顶层守卫。

@@ -12,9 +12,18 @@
 ;   - g_WindowName ("RunZ    ") 是窗口匹配哨兵, 禁止翻译, 禁止进语言包
 ;   - 本文件零依赖 (不走 EasyIni/Common), 保证启动最早阶段可用 (I18nBoot)
 
-global g_I18nLang := "zh-CN"
-global g_I18nStrings := Map()
-global g_I18nFallback := Map()
+; 顶层初始化守卫 (AGENTS.md 坑点):
+; #Include 文件的顶层语句按 auto-execute 顺序在 include 行位置执行,
+; 而主入口在 include 行之前就调过 I18nBoot() (备份提示要先有语言).
+; 直接 global X := ... 会清空已加载的语言表 (托盘显示 raw key 即此因),
+; 必须只在未赋值时初始化.
+global g_I18nLang, g_I18nStrings, g_I18nFallback, g_I18nLastLoaded
+if !IsSet(g_I18nLang)
+    g_I18nLang := "zh-CN"
+if !IsSet(g_I18nStrings)
+    g_I18nStrings := Map()
+if !IsSet(g_I18nFallback)
+    g_I18nFallback := Map()
 
 ; ---- 启动最早阶段调用 (g_Conf 尚未加载, 只按 OS 语言) ----
 I18nBoot() {

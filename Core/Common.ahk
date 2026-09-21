@@ -54,6 +54,40 @@ ReadFileLines(filePath, encoding := "UTF-8") {
     return lines
 }
 
+; === 错误日志轮转 (启动时调一次即可; 日志每次 FileAppend 开关文件, 无句柄占用) ===
+; 超过 maxBytes 就把当前日志挪到 .1 (只留一份历史, 防无界增长)
+RotateErrorLog(maxBytes := 1048576) {
+    path := A_ScriptDir . "\Rim.error.log"
+    try {
+        if (!FileExist(path))
+            return
+        f := FileOpen(path, "r")
+        size := f.Length
+        f.Close()
+        if (size < maxBytes)
+            return
+        try FileDelete(path . ".1")
+        catch {
+        }
+        try FileMove(path, path . ".1")
+        catch {
+        }
+    } catch {
+    }
+}
+
+; === 启动打点 (g_BootT0 由主入口最早赋值; 永不抛错) ===
+BootMark(tag) {
+    global g_BootT0
+    t0 := 0
+    try t0 := g_BootT0 + 0
+    catch {
+    }
+    try FileAppend(A_Now . " +" . (A_TickCount - t0) . "ms " . tag . "`n", A_ScriptDir . "\Rim.error.log")
+    catch {
+    }
+}
+
 ; 获取焦点控件类名 (v2 ControlGetFocus 返回 HWND, 类名判断须转一道)
 FocusedClassNN(winTitle := "A") {
     try {
