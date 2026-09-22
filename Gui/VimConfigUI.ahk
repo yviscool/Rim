@@ -23,7 +23,7 @@ VimConfig_Show(*) {
     g.SetFont("s10", "Microsoft YaHei")
     g_VimCfg["gui"] := g
     g_VimCfg["dirty"] := Map()
-    tabs := g.Add("Tab3", "w880 h470", [T("cfg.tab_keys"), T("cfg.tab_globalhotkey"), T("cfg.tab_plugins"), T("cfg.tab_tc"), T("cfg.tab_launcher"), T("cfg.tab_actions"), T("cfg.tab_help")])
+    tabs := g.Add("Tab3", "w880 h470", [T("cfg.tab_keys"), T("cfg.tab_globalhotkey"), T("cfg.tab_plugins"), T("cfg.tab_tc"), T("cfg.tab_launcher"), T("cfg.tab_statsball"), T("cfg.tab_actions"), T("cfg.tab_help")])
     g_VimCfg["tabs"] := tabs
 
     tabs.UseTab(1)
@@ -37,15 +37,19 @@ VimConfig_Show(*) {
     tabs.UseTab(5)
     VimCfg_BuildLauncherTab(g)
     tabs.UseTab(6)
-    VimCfg_BuildActionsTab(g)
+    VimCfg_BuildStatsBallTab(g)
     tabs.UseTab(7)
+    VimCfg_BuildActionsTab(g)
+    tabs.UseTab(8)
     VimCfg_BuildHelpTab(g)
     tabs.UseTab()
 
-    g.Add("Button", "xm y+10 w110", T("cfg.save")).OnEvent("Click", VimCfg_OnSave)
+    ; 按钮行/警告条用固定 Y (不用 y+10 相对锚点: 锚点是最后建的帮助页尾控件,
+    ; 页内容一溢出就会盖住按钮; 固定坐标后任何页都够不着)
+    g.Add("Button", "x10 y488 w110", T("cfg.save")).OnEvent("Click", VimCfg_OnSave)
     g.Add("Button", "x+10 w130", T("cfg.open_in_editor")).OnEvent("Click", VimCfg_OnTextEdit)
     g.Add("Text", "x+14 yp+6 w560", T("cfg.save_hint"))
-    wb := g.Add("Edit", "xm y+8 w880 h40 ReadOnly -VScroll +BackgroundFFFFE0")
+    wb := g.Add("Edit", "x10 y522 w880 h40 ReadOnly -VScroll +BackgroundFFFFE0")
     g_VimCfg["warnbar"] := wb
     g.OnEvent("Close", VimCfg_OnClose)
     g.Show("w900 h610")
@@ -55,12 +59,55 @@ VimConfig_Show(*) {
 
 VimCfg_OnClose(*) {
     global g_VimCfg
+    ; 关窗时还有未保存的更改: 问一下, 否则 toggles/勾选静默丢失
+    ; (Clear 会连 dirty 一起清掉)
+    try {
+        if (g_VimCfg.Has("dirty") && g_VimCfg["dirty"].Count > 0) {
+            ans := MsgBox(T("cfg.unsaved_prompt"), T("cfg.unsaved_title"), "YesNoCancel")
+            if (ans = "Cancel")
+                return
+            if (ans = "Yes") {
+                VimCfg_OnSave()
+                if (g_VimCfg.Has("dirty") && g_VimCfg["dirty"].Count > 0)
+                    return
+            }
+        }
+    } catch {
+    }
+    ; 必须真销毁窗体: 只 Clear 会漏一个活窗口在屏幕上堆叠,
+    ; 后开的窗与其像素级重叠, 用户点到哪层全看运气 ("怎么点都没反应"的主谋之一)
+    try {
+        if (g_VimCfg.Has("gui")) {
+            try g_VimCfg["gui"].Hide()
+            catch {
+            }
+            try g_VimCfg["gui"].Destroy()
+            catch {
+            }
+        }
+    } catch {
+    }
     g_VimCfg.Clear()
 }
 
 VimCfg_OnTextEdit(*) {
+    try {
+        VimCfg_OnTextEditInner()
+    } catch as e {
+        VimCfg_ShowErr("OnTextEdit", e)
+        try MsgBox(T("cfg.save_failed", e.Message), T("cfg.title"), 16)
+        catch {
+        }
+    }
+}
+
+VimCfg_OnTextEditInner(*) {
     EditConfig()
 }
+
+; 事件处理器兜底上报: 全局 OnError 会吞掉处理器里的异常 ("点了没反应"),
+; 这里记 VIMCFG-ERR 日志并在警告条露出原文, 把静默失败变可见.
+; (pick 类高频处理器只写警告条不弹窗; 保存/打开走 MsgBox 强提醒)
 
 ; ==================== 保存层 (纯函数, 可单测) ====================
 ; final: Map, key = sec Chr(1) key, value = {val: "...", del: true/false}
@@ -134,9 +181,51 @@ VimCfg_MarkDirty(sec, key, val := "", del := false) {
     g_VimCfg["dirty"][sec . Chr(1) . key] := Map("key", key, "val", val, "del", del)
 }
 
+VimCfg_LogErr(fn, e) {
+    try {
+        extra := ""
+        try extra := e.Extra
+        catch {
+        }
+        line := ""
+        try line := e.Line
+        catch {
+        }
+        FileAppend(A_Now . " VIMCFG-ERR " . fn . ": " . e.Message . " @line=" . line . " extra=" . extra . "`n", A_ScriptDir . "\Rim.error.log")
+    } catch {
+    }
+}
+
+VimCfg_ShowErr(fn, e) {
+    VimCfg_LogErr(fn, e)
+    global g_VimCfg
+    try {
+        if (g_VimCfg.Has("warnbar")) {
+            cur := ""
+            try cur := g_VimCfg["warnbar"].Value
+            catch {
+            }
+            g_VimCfg["warnbar"].Value := cur . "`n✖ " . T("cfg.handler_failed", fn, e.Message)
+        }
+    } catch {
+    }
+}
+
 VimCfg_OnSave(*) {
-    global g_VimCfg, g_Conf
+    try {
+        VimCfg_OnSaveInner()
+    } catch as e {
+        VimCfg_ShowErr("OnSave", e)
+        try MsgBox(T("cfg.save_failed", e.Message), T("cfg.title"), 16)
+        catch {
+        }
+    }
+}
+
+VimCfg_OnSaveInner(*) {
+    global g_VimCfg, g_Conf, g_AutoConf
     VimCfg_CollectLauncherTab()
+    VimCfg_CollectStatsBallTab()
     VimCfg_CollectTCTab()
     VimCfg_CollectPluginTab()
     VimCfg_RefreshWarnBar()
@@ -167,6 +256,19 @@ VimCfg_OnSave(*) {
                 newLang := d["val"]
         }
     }
+    ; 保存必触发 3s 后的全重启 (WatchUserFileList), 配置窗会被杀:
+    ; 立旗为证, 新进程起来后自动把配置窗找回来 (所见即所得, 不用怀疑人生)
+    try {
+        if (IsObject(g_AutoConf)) {
+            try g_AutoConf.Set("UI", "ReopenConfig", "1")
+            catch {
+            }
+            try g_AutoConf.Save()
+            catch {
+            }
+        }
+    } catch {
+    }
     g_VimCfg["dirty"] := Map()
     if (newLang != "") {
         ; 语言切换: 托盘即时重建, 问是否重启使全部界面生效
@@ -194,14 +296,14 @@ VimCfg_BuildKeysTab(g) {
     lbw := g.Add("ListBox", "x20 y65 w190 R13", [])
     g.Add("GroupBox", "x10 y350 w210 h80", T("cfg.keys_mode"))
     lbm := g.Add("ListBox", "x20 y375 w190 R3", [])
-    g.Add("GroupBox", "x10 y440 w210 h61", T("cfg.keys_filter"))
-    ed := g.Add("Edit", "x20 y465 w190 h25")
-    g.Add("GroupBox", "x230 y40 w650 h461", T("cfg.keys_mapping"))
-    lv := g.Add("ListView", "x240 y65 w630 h400 grid", [T("cfg.keys_col_key"), T("cfg.keys_col_action"), T("cfg.keys_col_desc")])
+    g.Add("GroupBox", "x10 y440 w210 h40", T("cfg.keys_filter"))
+    ed := g.Add("Edit", "x20 y450 w190 h25")
+    g.Add("GroupBox", "x230 y40 w650 h425", T("cfg.keys_mapping"))
+    lv := g.Add("ListView", "x240 y65 w630 h370 grid", [T("cfg.keys_col_key"), T("cfg.keys_col_action"), T("cfg.keys_col_desc")])
     lv.ModifyCol(1, 110)
     lv.ModifyCol(2, 230)
     lv.ModifyCol(3, 271)
-    g.Add("Button", "x240 y475 w70", T("cfg.keys_add")).OnEvent("Click", VimCfg_KeyAdd)
+    g.Add("Button", "x240 y445 w70", T("cfg.keys_add")).OnEvent("Click", VimCfg_KeyAdd)
     g.Add("Button", "x+10 w70", T("cfg.keys_edit")).OnEvent("Click", VimCfg_KeyEdit)
     g.Add("Button", "x+10 w70", T("cfg.keys_delete")).OnEvent("Click", VimCfg_KeyDel)
     g_VimCfg["kw"] := lbw
@@ -218,7 +320,8 @@ VimCfg_BuildKeysTab(g) {
 VimCfg_EngineWins() {
     global g_VimEngine
     wins := []
-    if IsObject(g_VimEngine) {
+    ; IsSet 兜底: 引擎未初始化时 IsObject 会抛"未赋值", 对话框砸脸且中断刷新
+    if (IsSet(g_VimEngine) && IsObject(g_VimEngine)) {
         for wname, wobj in g_VimEngine.WinList {
             if (wname = "__global__")
                 continue
@@ -244,6 +347,14 @@ VimCfg_KeyWinRefresh() {
 }
 
 VimCfg_KeyWinPick(*) {
+    try {
+        VimCfg_KeyWinPickInner()
+    } catch as e {
+        VimCfg_ShowErr("KeyWinPick", e)
+    }
+}
+
+VimCfg_KeyWinPickInner(*) {
     global g_VimCfg, g_VimEngine
     lbw := g_VimCfg["kw"]
     wname := ""
@@ -252,24 +363,39 @@ VimCfg_KeyWinPick(*) {
     g_VimCfg["kmode"] := ""
     lbm := g_VimCfg["km"]
     try lbm.Delete()
-    if (wname != "" && IsObject(g_VimEngine)) {
+    ; 模式按字母序枚举恒为 [insert, normal, ...], 首项 insert 各窗样板相同会显" frozen";
+    ; 默认切 normal (各窗动作差异页), 找不到才回落首项
+    pickIdx := 1
+    mi := 0
+    if (wname != "" && IsSet(g_VimEngine) && IsObject(g_VimEngine)) {
         w := g_VimEngine.GetWin(wname)
         if IsObject(w) {
             for mname, mobj in w.modeList {
                 try lbm.Add([mname])
+                mi++
+                if (mname = "normal")
+                    pickIdx := mi
             }
         }
     }
     g_VimCfg["krows"] := []
     VimCfg_KeyFilter()
-    ; 默认选中首个模式
+    ; 默认选中 normal (回落首个模式)
     try {
-        lbm.Choose(1)
+        lbm.Choose(pickIdx)
         VimCfg_KeyModePick(lbm)
     }
 }
 
 VimCfg_KeyModePick(*) {
+    try {
+        VimCfg_KeyModePickInner()
+    } catch as e {
+        VimCfg_ShowErr("KeyModePick", e)
+    }
+}
+
+VimCfg_KeyModePickInner(*) {
     global g_VimCfg, g_VimEngine
     lbm := g_VimCfg["km"]
     mname := ""
@@ -277,7 +403,7 @@ VimCfg_KeyModePick(*) {
     g_VimCfg["kmode"] := mname
     rows := []
     wname := g_VimCfg.Has("kwin") ? g_VimCfg["kwin"] : ""
-    if (wname != "" && mname != "" && IsObject(g_VimEngine)) {
+    if (wname != "" && mname != "" && IsSet(g_VimEngine) && IsObject(g_VimEngine)) {
         w := g_VimEngine.GetWin(wname)
         if IsObject(w) && w.modeList.Has(mname) {
             modeObj := w.modeList[mname]
@@ -776,10 +902,34 @@ VimCfg_LauncherSpecs() {
     ]
 }
 
-VimCfg_BuildLauncherTab(g) {
+; ==================== 雷达页 (独立 tab: 启动器页 35 项已爆框, 雷达 9 项搬出来) ====================
+VimCfg_StatsBallSpecs() {
+    return [
+        Map("sec", "StatsBall", "key", "Enable", "label", T("cfg.opt_statsball_enable"), "type", "bool"),
+        Map("sec", "StatsBall", "key", "RefreshMs", "label", T("cfg.opt_statsball_refresh"), "type", "slider", "min", 500, "max", 5000),
+        Map("sec", "StatsBall", "key", "StripW", "label", T("cfg.opt_statsball_stripw"), "type", "slider", "min", 120, "max", 480),
+        Map("sec", "StatsBall", "key", "StripH", "label", T("cfg.opt_statsball_striph"), "type", "slider", "min", 32, "max", 80),
+        Map("sec", "StatsBall", "key", "Opacity", "label", T("cfg.opt_statsball_opacity"), "type", "slider", "min", 80, "max", 255),
+        Map("sec", "StatsBall", "key", "TopMost", "label", T("cfg.opt_statsball_topmost"), "type", "bool"),
+        Map("sec", "StatsBall", "key", "LockPos", "label", T("cfg.opt_statsball_lock"), "type", "bool"),
+        Map("sec", "StatsBall", "key", "SnapEdge", "label", T("cfg.opt_statsball_snap"), "type", "bool"),
+        Map("sec", "StatsBall", "key", "AlertThreshold", "label", T("cfg.opt_statsball_alert"), "type", "slider", "min", 50, "max", 100)
+    ]
+}
+
+VimCfg_BuildStatsBallTab(g) {
+    VimCfg_BuildSpecsTab(g, T("cfg.statsball_title"), VimCfg_StatsBallSpecs(), "sbspecs")
+}
+
+VimCfg_CollectStatsBallTab() {
+    VimCfg_CollectSpecsTab("sbspecs")
+}
+
+; 通用 specs 双列表 (启动器/雷达共用; storeKey = g_VimCfg 存储键)
+; rowH 行距: 启动器 28 项用 26 压进框, 雷达 12 项用默认 32
+VimCfg_BuildSpecsTab(g, title, specs, storeKey, rowH := 32) {
     global g_VimCfg, g_Conf
-    g.Add("GroupBox", "x10 y40 w860 h400", T("cfg.launcher_title"))
-    specs := VimCfg_LauncherSpecs()
+    g.Add("GroupBox", "x10 y40 w860 h400", title)
     x := 25
     y := 70
     col := 0
@@ -818,27 +968,100 @@ VimCfg_BuildLauncherTab(g) {
             }
             ctl := g.Add("DropDownList", "x" x + 130 " y" y " w270", names)
             try ctl.Choose(1)
+        } else if (sp["type"] = "choice") {
+            g.Add("Text", "x" x " y" y + 3 " w150", sp["label"])
+            opts := sp.Has("options") ? sp["options"] : []
+            ctl := g.Add("DropDownList", "x" x + 160 " y" y " w240", opts)
+            try {
+                curStr := String(cur)
+                picked := false
+                for i, o in opts {
+                    if (String(o) = curStr) {
+                        ctl.Choose(i)
+                        picked := true
+                        break
+                    }
+                }
+                if (!picked && opts.Length > 0)
+                    ctl.Choose(1)
+            }
+        } else if (sp["type"] = "slider") {
+            g.Add("Text", "x" x " y" y + 3 " w150", sp["label"])
+            lo := sp.Has("min") ? sp["min"] : 0
+            hi := sp.Has("max") ? sp["max"] : 100
+            ctl := g.Add("Slider", "x" x + 160 " y" y " w190 h25 Range" lo "-" hi, Integer(cur ? cur : lo))
+            buddy := g.Add("Text", "x" x + 355 " y" y + 3 " w45", String(ctl.Value))
+            ctl.OnEvent("Change", VimCfg_SliderSync(ctl, buddy))
+            sp["buddy"] := buddy
         } else {
             g.Add("Text", "x" x " y" y + 3 " w150", sp["label"])
             ctl := g.Add("Edit", "x" x + 160 " y" y " w240 h25")
             try ctl.Value := cur
         }
         sp["ctl"] := ctl
+        ; 用户改动即记 dirty (插件页早已如此): 勾选立刻进未保存计数,
+        ; 改回去自动销账; 关窗确认与保存都依赖它. lang/skin 走保存时特殊逻辑, 不绑
+        ; 注意 v2 CheckBox 没有 Change 事件 (只有 Click), 绑错直接抛错
+        if (sp["type"] = "bool")
+            ctl.OnEvent("Click", VimCfg_SpecChangeBind(sp))
+        else if (sp["type"] = "choice" || sp["type"] = "slider" || sp["type"] = "text" || sp["type"] = "int")
+            ctl.OnEvent("Change", VimCfg_SpecChangeBind(sp))
         if (col = 1) {
-            y += 32
+            y += rowH
             col := 0
         } else {
             col := 1
         }
     }
-    g_VimCfg["lspecs"] := specs
+    g_VimCfg[storeKey] := specs
 }
 
-VimCfg_CollectLauncherTab() {
+VimCfg_BuildLauncherTab(g) {
+    VimCfg_BuildSpecsTab(g, T("cfg.launcher_title"), VimCfg_LauncherSpecs(), "lspecs", 26)
+}
+
+; 滑块数值联动工厂 (每次调用自带局部量, 避开循环闭包共享变量坑)
+VimCfg_SliderSync(ctl, buddy) {
+    return (*) => (buddy.Text := ctl.Value)
+}
+
+; specs 改动事件工厂 (同上, 闭包捕获当轮 sp)
+VimCfg_SpecChangeBind(sp) {
+    return (*) => VimCfg_SpecChanged(sp)
+}
+
+; specs 控件用户改动即记 dirty, 改回原值自动销账, 警告条实时计数
+VimCfg_SpecChanged(sp) {
     global g_VimCfg, g_Conf
-    if !g_VimCfg.Has("lspecs") || !IsObject(g_Conf)
+    if (!IsObject(g_Conf) || !g_VimCfg.Has("dirty"))
         return
-    for sp in g_VimCfg["lspecs"] {
+    ctl := sp["ctl"]
+    val := ""
+    try {
+        if (sp["type"] = "bool")
+            val := ctl.Value ? "1" : "0"
+        else if (sp["type"] = "choice")
+            val := ctl.Text
+        else if (sp["type"] = "slider")
+            val := String(Integer(ctl.Value))
+        else
+            val := Trim(ctl.Value)
+    } catch {
+        return
+    }
+    sk := sp["sec"] . Chr(1) . sp["key"]
+    if (g_Conf.Get(sp["sec"], sp["key"], "") != val)
+        VimCfg_MarkDirty(sp["sec"], sp["key"], val)
+    else if (g_VimCfg["dirty"].Has(sk))
+        g_VimCfg["dirty"].Delete(sk)
+    VimCfg_RefreshWarnBar()
+}
+
+VimCfg_CollectSpecsTab(storeKey) {
+    global g_VimCfg, g_Conf
+    if !g_VimCfg.Has(storeKey) || !IsObject(g_Conf)
+        return
+    for sp in g_VimCfg[storeKey] {
         ctl := sp["ctl"]
         val := ""
         if (sp["type"] = "bool") {
@@ -852,16 +1075,37 @@ VimCfg_CollectLauncherTab() {
                     break
                 }
             }
+            ; auto 保持: ini 里是 auto 且用户没换选项时不误写成具体语言
+            if (g_Conf.Get(sp["sec"], sp["key"], "") = "auto") {
+                curDn := ""
+                for l in I18nAvailable() {
+                    if (l = I18nGetLang())
+                        curDn := I18nDisplayName(l)
+                }
+                try {
+                    if (ctl.Text = curDn)
+                        val := "auto"
+                } catch {
+                }
+            }
             if (val = "")
                 val := g_Conf.Get(sp["sec"], sp["key"], "auto")
         } else if (sp["type"] = "skin") {
             try val := ctl.Text
+        } else if (sp["type"] = "choice") {
+            try val := ctl.Text
+        } else if (sp["type"] = "slider") {
+            try val := String(Integer(ctl.Value))
         } else {
             try val := Trim(ctl.Value)
         }
         if (g_Conf.Get(sp["sec"], sp["key"], "") != val)
             VimCfg_MarkDirty(sp["sec"], sp["key"], val)
     }
+}
+
+VimCfg_CollectLauncherTab() {
+    VimCfg_CollectSpecsTab("lspecs")
 }
 
 ; ==================== 动作页 (替代托盘 插件P: 按插件浏览动作, 双击定位源码) ====================
@@ -1035,6 +1279,11 @@ VimCfg_RefreshWarnBar() {
         return
     list := VimCfg_CheckConflicts()
     txt := ""
+    try {
+        if (g_VimCfg.Has("dirty") && g_VimCfg["dirty"].Count > 0)
+            txt .= T("cfg.unsaved_n", g_VimCfg["dirty"].Count) "`n"
+    } catch {
+    }
     for w in list
         txt .= (w["level"] = "warn" ? "⚠ " : "ℹ ") w["text"] "`n"
     if (txt = "")
