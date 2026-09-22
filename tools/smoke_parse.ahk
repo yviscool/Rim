@@ -21,6 +21,7 @@
 #Include ..\Plugins\Misc.ahk
 #Include ..\Plugins\QRCode.ahk
 #Include ..\Plugins\StrokePlus.ahk
+#Include ..\Plugins\StatsBall.ahk
 #Include ..\Plugins\TCCompare.ahk
 #Include ..\Plugins\TCDialog.ahk
 #Include ..\Plugins\TotalCommander.ahk

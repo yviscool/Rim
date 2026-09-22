@@ -36,7 +36,7 @@ jobs:
           & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut tools/smoke_parse.ahk
           if ($LASTEXITCODE -ne 0) { exit 1 }
           if ((Get-Content smoke_parse.out.txt -Raw).Trim() -ne "smoke-parse-ok") { exit 1 }
-      - name: Register smoke (15 RegisterPlugin_* must resolve, en zero missing)
+      - name: Register smoke (16 RegisterPlugin_* must resolve, en zero missing)
         run: |
           & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut tools/smoke_register.ahk
           if ($LASTEXITCODE -ne 0) { exit 1 }

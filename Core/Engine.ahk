@@ -537,6 +537,55 @@ class VimEngine {
             return
         }
 
+        ; 菜单开着: 全键提前透传 (F/S 等是多键前缀, 走不到下面的 BeforeActionDo,
+        ; 会被 KeyTemp 吞掉致菜单键盘全死; 对齐原版"菜单开着就透传", 仅 TTOTAL_CMD)
+        if (winName = "TTOTAL_CMD") {
+            global g_TCLastCmd
+            tcMenuOpen := WinExist("ahk_class #32768") || WinExist("ahk_class Xaml_WindowedPopupClass")
+            if (tcMenuOpen && g_TCLastCmd != 572) {
+                Send(this.ConvertFromVim(vimKey, true))
+                win.KeyTemp := ""
+                win.Count := 0
+                win.HideMore()
+                return
+            }
+            ; 我们的 Gui 菜单开着但还没抢到焦点 (打开瞬间竞态): 直接路由到菜单,
+            ; 不经 Send —— $ 前缀热键收不到 Send 来的键, 且 WinActivate+Sleep 会把
+            ; i 后快速跟的 f 送进 TC 变成 KeyTemp 前缀 (fa/ff 的 f), 导致 if 必须停顿.
+            ; 免回车 (i 菜单唯一首字母直接执行) 靠 TC_MenuLetterJump, 与焦点无关.
+            try {
+                if WinExist("TCMenu ahk_class AutoHotkeyGUI") {
+                    routed := false
+                    try routed := TC_MenuRouteKey(vimKey)
+                    catch as _rte {
+                        try FileAppend(A_Now . " IFDBG route-ERR key=" vimKey " msg=" _rte.Message "`n", A_ScriptDir "\Rim.error.log")
+                        catch {
+                        }
+                    }
+                    try FileAppend(A_Now . " IFDBG keyhandler key=" vimKey " menu=1 routed=" (routed ? 1 : 0) "`n", A_ScriptDir "\Rim.error.log")
+                    catch {
+                    }
+                    if (routed) {
+                        win.KeyTemp := ""
+                        win.Count := 0
+                        win.HideMore()
+                        return
+                    }
+                    ; 路由不消费 (数字/符号等非菜单键): 仍激活菜单再透传, 避免键落错窗
+                    if !WinActive("TCMenu ahk_class AutoHotkeyGUI") {
+                        try WinActivate("TCMenu ahk_class AutoHotkeyGUI")
+                        catch {
+                        }
+                    }
+                    Send(this.ConvertFromVim(vimKey, true))
+                    win.KeyTemp := ""
+                    win.Count := 0
+                    win.HideMore()
+                    return
+                }
+            }
+        }
+
         ; 全局回退: 本窗未映射(且非组合中)则查 __global__ (对齐原版 KeyList 回退)
         if (winName != "__global__" && win.KeyTemp = "") {
             hasLocal := win.KeyList.Has(vimKey)
@@ -851,6 +900,9 @@ class VimEngine {
     ; === 超时处理 (补齐回调与 lastAction) ===
     TimeOut(win) {
         if (win.KeyTemp != "") {
+            try FileAppend(A_Now . " IFDBG timeout win=" win.Name " keytemp=" win.KeyTemp "`n", A_ScriptDir "\Rim.error.log")
+            catch {
+            }
             ; 检查当前窗口当前模式是否有匹配
             modeObj := win.modeList.Has(win.currentMode) ? win.modeList[win.currentMode] : ""
             if IsObject(modeObj) && modeObj.keymapList.Has(win.KeyTemp) {
@@ -1080,7 +1132,7 @@ DoTimes(act, count) {
 ; 热键跳板: 与启动器热键同形态 (普通函数引用; BoundFunc 在此构建行为存疑)
 VimKeyTrampoline(*) {
     global g_VimEngine
-    if IsObject(g_VimEngine) {
+    if (IsSet(g_VimEngine) && IsObject(g_VimEngine)) {
         try {
             g_VimEngine.KeyHandler(A_ThisHotkey)
         } catch as _e {

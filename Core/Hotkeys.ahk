@@ -370,19 +370,28 @@ ChangePath(*) {
 WatchUserFileList(*) {
     static lastUserFileListModifyTime := ""
     static lastConfFileModifyTime := ""
+    ; 注意: FileGetTime 失败回 "" (杀软/同步盘/编辑器短暂锁文件);
+    ; 空串绝不能当"变化"处理, 更不能存进 last (一次抖动会连炸两次重启,
+    ; 配置窗被杀、dirty 丢失 —— "勾选不上/保存无效"的根因之一)
     try {
         newUserFileListModifyTime := FileGetTime(g_UserFileList)
-        if (newUserFileListModifyTime = "")
-            FileAppend("", g_UserFileList)
-        if (lastUserFileListModifyTime != "" && lastUserFileListModifyTime != newUserFileListModifyTime)
-            LoadFiles()
-        lastUserFileListModifyTime := newUserFileListModifyTime
+        if (newUserFileListModifyTime = "") {
+            try FileAppend("", g_UserFileList)
+            catch {
+            }
+        } else {
+            if (lastUserFileListModifyTime != "" && lastUserFileListModifyTime != newUserFileListModifyTime)
+                LoadFiles()
+            lastUserFileListModifyTime := newUserFileListModifyTime
+        }
     }
     try {
         newConfFileModifyTime := FileGetTime(g_ConfFile)
-        if (lastConfFileModifyTime != "" && lastConfFileModifyTime != newConfFileModifyTime)
-            RestartRunZ()
-        lastConfFileModifyTime := newConfFileModifyTime
+        if (newConfFileModifyTime != "") {
+            if (lastConfFileModifyTime != "" && lastConfFileModifyTime != newConfFileModifyTime)
+                RestartRunZ()
+            lastConfFileModifyTime := newConfFileModifyTime
+        }
     }
 }
 

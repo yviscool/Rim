@@ -2,7 +2,7 @@
 #Warn All, Off
 
 ; 常驻冒烟探针 2/2: 注册线束 (CI + 本地)
-; 用桩替换注册 API, 依次调用 15 个 RegisterPlugin_*, 导出动作/命令描述;
+; 用桩替换注册 API, 依次调用 16 个 RegisterPlugin_*, 导出动作/命令描述;
 ; 外部断言: 0 退出 + 无 F| 行 + 描述无空/CJK/raw-key.
 ; (en 下跑: 证明英文包零缺键; 详见 tools/i18n_audit.py)
 #Include ..\Core\I18n.ahk
@@ -89,6 +89,7 @@ ExcludeWindow(n) {
 #Include ..\Plugins\LauncherSystem.ahk
 #Include ..\Plugins\Misc.ahk
 #Include ..\Plugins\QRCode.ahk
+#Include ..\Plugins\StatsBall.ahk
 #Include ..\Plugins\StrokePlus.ahk
 #Include ..\Plugins\TCCompare.ahk
 #Include ..\Plugins\TCDialog.ahk
@@ -123,6 +124,7 @@ TryReg("RegisterPlugin_LauncherCore")
 TryReg("RegisterPlugin_LauncherSystem")
 TryReg("RegisterPlugin_Misc")
 TryReg("RegisterPlugin_QRCode")
+TryReg("RegisterPlugin_StatsBall")
 TryReg("RegisterPlugin_StrokePlus")
 TryReg("RegisterPlugin_TCCompare")
 TryReg("RegisterPlugin_TCDialog")

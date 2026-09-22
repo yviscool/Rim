@@ -149,11 +149,13 @@ RegisterPlugin_General() {
     MapKey("zn", "<wm_min>", "General", "normal")
     MapKey("zr", "<wm_restore>", "General", "normal")
 
-    ; 鼠标操作
-    MapKey("<c-j>", "<MouseDown>", "General", "normal")
-    MapKey("<c-k>", "<MouseUp>", "General", "normal")
-    MapKey("<c-h>", "<MouseLeft>", "General", "normal")
-    MapKey("<c-l>", "<MouseRight>", "General", "normal")
+    ; 鼠标操作 (默认不绑: General 窗无类名限制, 绑了就是全局钩子,
+    ;  会吃掉浏览器/IDE 的 Ctrl+H/J/K/L; 原版亦只注册动作不绑键, 需用自行在 ini 里绑)
+    ;   例: 在 [Notepad] 等窗口段加 <c-h>=<MouseLeft> 等, 或全局段按需绑定
+    ;   MapKey("<c-j>", "<MouseDown>", "General", "normal")
+    ;   MapKey("<c-k>", "<MouseUp>", "General", "normal")
+    ;   MapKey("<c-h>", "<MouseLeft>", "General", "normal")
+    ;   MapKey("<c-l>", "<MouseRight>", "General", "normal")
 
     ; 窗口控制
     MapKey("za", "<Gen_AlwaysOnTop>", "General", "normal")

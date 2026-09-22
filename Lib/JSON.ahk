@@ -24,14 +24,14 @@ class JSON {
 
     static ConvertJsObject(obj) {
         try {
-            ; 尝试转换为 Map
-            map := Map()
+            ; 尝试转换为 Map (m: 避名坑, 局部 map 会遮蔽 Map 类)
+            m := Map()
             keys := obj.GetKeys()
             for key in keys {
                 value := obj[key]
-                map[key] := this.ConvertJsValue(value)
+                m[key] := this.ConvertJsValue(value)
             }
-            return map
+            return m
         } catch {
             return obj
         }

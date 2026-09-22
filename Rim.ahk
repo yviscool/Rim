@@ -22,7 +22,7 @@ A_MaxHotkeysPerInterval := 200
 ; i18n 抢跑: g_Conf 尚未加载, 先按 OS 语言起 (备份提示/配置失败提示要用)
 I18nBoot()
 ; 构建号 (配置中心帮助页显示, 日志 BUILD 行同源)
-global g_BuildTag := "20260921-I18N4"
+global g_BuildTag := "20260921-IFDBG1"
 
 ; ==================== 兼容层: 供插件引用 Rim.xxx ====================
 class Rim {
@@ -210,6 +210,7 @@ global g_CommandArea := "Edit4"
 #Include *i Plugins\LauncherSystem.ahk
 #Include *i Plugins\General.ahk
 #Include *i Plugins\StrokePlus.ahk
+#Include *i Plugins\StatsBall.ahk
 ; VimDesktop 风格插件 (需 VimEngine, 已接线; Excel 待 COM 重移植)
 #Include *i Plugins\Explorer.ahk
 #Include *i Plugins\TCCompare.ahk
@@ -448,12 +449,35 @@ VimPluginOn(name) {
     ; 右键按住拖拽=手势, 短点=普通右键; 映射见 [Gesture]/[Gestures]
     if (VimPluginOn("StrokePlus"))
         RegisterPlugin_StrokePlus()
+    if (VimPluginOn("StatsBall"))
+        RegisterPlugin_StatsBall()
     GestureInit()
 
 ; ==================== 文件监控 ====================
 SetTimer(WatchUserFileList, 3000)
 
 BootMark("STARTUP plugins-ready")
+
+; 雷达挂件启动自恢复 (配置保存/手动重启后新进程自动亮球, 不用再点托盘)
+try StatsBall_AutoShow()
+catch {
+}
+
+; 配置中心保存重启后的恢复 (VimCfg_OnSave 立旗): 窗闪一下但回来, 所见即所得
+try {
+    if (IsObject(g_AutoConf) && g_AutoConf.Get("UI", "ReopenConfig", "0") = "1") {
+        try g_AutoConf.Set("UI", "ReopenConfig", "0")
+        catch {
+        }
+        try g_AutoConf.Save()
+        catch {
+        }
+        try VimConfig_Show()
+        catch {
+        }
+    }
+} catch {
+}
 
 ; 启动胎记: 对版本 confusion, error.log 首行即构建号 (附启动总耗时)
 try {
@@ -505,37 +529,37 @@ RegisterCommand(name, type, content, description := "") {
 
 RegisterAction(name, comment := "") {
     global g_VimEngine
-    if IsObject(g_VimEngine)
+    if (IsSet(g_VimEngine) && IsObject(g_VimEngine))
         g_VimEngine.SetAction(name, comment)
 }
 
 RegisterWin(name, winClass := "", winFile := "") {
     global g_VimEngine
-    if IsObject(g_VimEngine)
+    if (IsSet(g_VimEngine) && IsObject(g_VimEngine))
         g_VimEngine.SetWin(name, winClass, winFile)
 }
 
 RegisterMode(mode, winName := "") {
     global g_VimEngine
-    if IsObject(g_VimEngine)
+    if (IsSet(g_VimEngine) && IsObject(g_VimEngine))
         g_VimEngine.SetMode(mode, winName)
 }
 
 MapKey(key, action, winName := "", mode := "normal") {
     global g_VimEngine
-    if IsObject(g_VimEngine)
+    if (IsSet(g_VimEngine) && IsObject(g_VimEngine))
         g_VimEngine.MapKey(key, action, winName, mode)
 }
 
 MapGlobal(key, action) {
     global g_VimEngine
-    if IsObject(g_VimEngine)
+    if (IsSet(g_VimEngine) && IsObject(g_VimEngine))
         g_VimEngine.MapGlobal(key, action)
 }
 
 ExcludeWindow(name) {
     global g_VimEngine
-    if IsObject(g_VimEngine)
+    if (IsSet(g_VimEngine) && IsObject(g_VimEngine))
         g_VimEngine.ExcludeWin(name)
 }
 

@@ -18,6 +18,7 @@ BuildTrayMenu() {
     }
     A_TrayMenu.Add(T("tray.gesture"), ShowGestureManager)
     A_TrayMenu.Add(T("tray.config"), VimConfig_Show)
+    A_TrayMenu.Add(T("tray.statsball"), StatsBall_Toggle)
     A_TrayMenu.Add()
     A_TrayMenu.Add(T("tray.suspend"), ToggleSuspend)
     A_TrayMenu.Add(T("tray.restart"), RestartRunZ)
