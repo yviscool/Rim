@@ -114,7 +114,7 @@ Tpl_RotateBy(pts, rad) {
     return out
 }
 
-; ---- 缩放到正方形 ----
+; ---- 等比缩放, 保留手写字母的宽高比 ----
 Tpl_ScaleTo(pts, size) {
     minX := pts[1].x
     maxX := pts[1].x
@@ -132,10 +132,11 @@ Tpl_ScaleTo(pts, size) {
     }
     w := maxX - minX
     h := maxY - minY
+    scale := size / Max(1, Max(maxX - minX, maxY - minY))
     out := []
     for i, p in pts {
-        qx := w > 0 ? (p.x - minX) * size / w : 0.0
-        qy := h > 0 ? (p.y - minY) * size / h : 0.0
+        qx := (p.x - minX) * scale
+        qy := (p.y - minY) * scale
         out.Push(Tpl_Pt(qx, qy))
     }
     return out
@@ -150,16 +151,29 @@ Tpl_TranslateToOrigin(pts) {
     return out
 }
 
-; ---- 完整归一化: 重采样->去旋转(指示角)->缩放->平移 ----
+; ---- 方向敏感的 $1 预处理: 等弧长采样、等比缩放、平移 ----
 Tpl_Normalize(pts) {
     global g_TplNPT, g_TplSize
     r := Tpl_Resample(pts, g_TplNPT)
-    c := Tpl_Centroid(r)
-    theta := Tpl_Atan2(c[2] - r[1].y, c[1] - r[1].x)
-    r := Tpl_RotateBy(r, -theta)
     r := Tpl_ScaleTo(r, g_TplSize)
     r := Tpl_TranslateToOrigin(r)
     return r
+}
+
+; Unmarked user samples were saved by the earlier rotation-invariant matcher.
+Tpl_PrepareLegacy(rawPts) {
+    global g_TplNPT, g_TplSize
+    r := Tpl_Resample(rawPts, g_TplNPT)
+    c := Tpl_Centroid(r)
+    theta := Tpl_Atan2(c[2] - r[1].y, c[1] - r[1].x)
+    r := Tpl_RotateBy(r, -theta)
+    bb := Tpl_BBox(r)
+    w := bb[3] - bb[1], h := bb[4] - bb[2]
+    old := []
+    for i, p in r
+        old.Push(Tpl_Pt(w > 0 ? (p.x - bb[1]) * g_TplSize / w : 0,
+            h > 0 ? (p.y - bb[2]) * g_TplSize / h : 0))
+    return Tpl_Decode(Tpl_Encode(Tpl_ScaleShiftBack(Tpl_TranslateToOrigin(old))))
 }
 
 ; ---- 平均点距 ----
@@ -200,6 +214,8 @@ Tpl_Encode(pts) {
 Tpl_Decode(s) {
     pts := []
     s := Trim(s)
+    if (SubStr(s, 1, 3) = "v2:" || SubStr(s, 1, 3) = "v1:")
+        s := SubStr(s, 4)
     if (s = "")
         return pts
     for i, tok in StrSplit(s, " ") {
@@ -347,14 +363,18 @@ Tpl_LoadAll() {
                 act := Trim(SubStr(_v, 1, pos - 1))
                 rest := Trim(SubStr(_v, pos + 3))
                 samples := []
+                versions := []
                 for i, sp in StrSplit(rest, "||||") {
-                    pts := Tpl_Decode(Trim(sp))
-                    if (pts.Length > 0)
+                    sp := Trim(sp)
+                    pts := Tpl_Decode(sp)
+                    if (pts.Length > 0) {
                         samples.Push(pts)
+                        versions.Push(SubStr(sp, 1, 3) = "v2:" ? 2 : 1)
+                    }
                 }
                 if (act = "" || samples.Length = 0)
                     continue
-                g_Templates[_k] := {action: act, samples: samples, builtin: 0}
+                g_Templates[_k] := {action: act, samples: samples, versions: versions, builtin: 0}
             }
         }
     }
@@ -374,8 +394,10 @@ Tpl_Match(rawPts, minSize := 0, onlyName := "") {
             return ["", 0]
     }
     cand := Tpl_Prepare(rawPts)
+    oldCand := ""
     bestName := ""
     bestDist := 1e18
+    secondDist := 1e18
     for name, t in g_Templates {
         if (onlyName != "" && StrUpper(name) != StrUpper(onlyName))
             continue
@@ -385,10 +407,18 @@ Tpl_Match(rawPts, minSize := 0, onlyName := "") {
         } catch {
         }
         for i, samp in t.samples {
-            d := Tpl_PathDistance(cand, samp)
+            version := 2
+            try version := t.versions[i]
+            if (version = 1 && !IsObject(oldCand))
+                oldCand := Tpl_PrepareLegacy(rawPts)
+            d := Tpl_PathDistance(version = 1 ? oldCand : cand, samp)
             if (d < bestDist) {
+                if (name != bestName)
+                    secondDist := bestDist
                 bestDist := d
                 bestName := name
+            } else if (name != bestName && d < secondDist) {
+                secondDist := d
             }
         }
     }
@@ -396,6 +426,8 @@ Tpl_Match(rawPts, minSize := 0, onlyName := "") {
         return ["", 0]
     half := 0.5 * Sqrt(g_TplSize * g_TplSize * 2)
     score := (1 - bestDist / half) * 100
+    if (onlyName = "" && secondDist < 1e17 && (secondDist - bestDist) / half * 100 < 4)
+        return ["", 0]
     return [bestName, score]
 }
 
@@ -414,7 +446,9 @@ Tpl_JoinSamples(t) {
     try {
         i := 1
         for _, samp in t.samples {
-            s .= (i > 1 ? "||||" : "") . Tpl_Encode(samp)
+            version := 2
+            try version := t.versions[i]
+            s .= (i > 1 ? "||||" : "") . (version = 1 ? "v1:" : "v2:") . Tpl_Encode(samp)
             i++
         }
     }

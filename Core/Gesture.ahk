@@ -836,33 +836,77 @@ Gesture_PollComboArm() {
     }
 }
 
-; ---- 全量识别: 锚点步进, 步长 segment, 方向去重 ----
-Gesture_Recognize() {
-    global g_Gesture
-    pts := g_Gesture["points"]
-    seg := g_Gesture["segment"]
+; Preserve meaningful corners while suppressing small hand jitter.
+Gesture_Simplify(pts, tolerance) {
+    if (pts.Length < 3)
+        return pts
+    kept := Map(1, 1, pts.Length, 1)
+    stack := [[1, pts.Length]]
+    while (stack.Length) {
+        span := stack.Pop()
+        a := span[1], b := span[2]
+        vx := pts[b].x - pts[a].x, vy := pts[b].y - pts[a].y
+        len2 := vx * vx + vy * vy
+        far := 0.0, farIdx := 0
+        Loop b - a - 1 {
+            i := a + A_Index
+            wx := pts[i].x - pts[a].x, wy := pts[i].y - pts[a].y
+            t := len2 > 0 ? Max(0, Min(1, (wx * vx + wy * vy) / len2)) : 0
+            dx := wx - t * vx, dy := wy - t * vy
+            dist2 := dx * dx + dy * dy
+            if (dist2 > far) {
+                far := dist2, farIdx := i
+            }
+        }
+        if (farIdx && far > tolerance * tolerance) {
+            kept[farIdx] := 1
+            stack.Push([a, farIdx], [farIdx, b])
+        }
+    }
+    out := []
+    for i, p in pts
+        if kept.Has(i)
+            out.Push(p)
+    return out
+}
+
+Gesture_DirectionChain(pts, segment := 6) {
     if (pts.Length < 2)
-        return
+        return ""
+    bb := Tpl_BBox(pts)
+    size := Max(bb[3] - bb[1], bb[4] - bb[2])
+    if (size < segment)
+        return ""
+    simplifyTol := Max(4, Max(segment * 0.8, size * 0.045))
+    corners := Gesture_Simplify(pts, simplifyTol)
+    minLeg := Max(10, Max(segment * 1.5, size * 0.09))
     dirs := []
-    ax := pts[1].x
-    ay := pts[1].y
-    for i in Gesture_Range(2, pts.Length) {
-        px := pts[i].x
-        py := pts[i].y
-        dx := px - ax
-        dy := py - ay
-        if (dx * dx + dy * dy < seg * seg)
+    anchor := corners[1]
+    for i in Gesture_Range(2, corners.Length) {
+        p := corners[i]
+        dx := p.x - anchor.x, dy := p.y - anchor.y
+        if (dx * dx + dy * dy < minLeg * minLeg)
             continue
         d := Gesture_DirOf(dx, dy)
         if (dirs.Length = 0 || dirs[dirs.Length] != d)
             dirs.Push(d)
-        ax := px
-        ay := py
+        anchor := p
     }
-    g_Gesture["dirs"] := dirs
     s := ""
     for i, d in dirs
         s .= (i > 1 ? "_" : "") . d
+    return s
+}
+
+; ---- 全量识别: 轨迹简化后编码有意义的方向段 ----
+Gesture_Recognize() {
+    global g_Gesture
+    pts := g_Gesture["points"]
+    if (pts.Length < 2)
+        return
+    s := Gesture_DirectionChain(pts, g_Gesture["segment"])
+    dirs := (s = "") ? [] : StrSplit(s, "_")
+    g_Gesture["dirs"] := dirs
     g_Gesture["gesture"] := s
 }
 
@@ -988,7 +1032,7 @@ Gesture_UpCore() {
             g_Gesture["tplRecordCb"] := ""
             enc := ""
             try {
-                enc := Tpl_Encode(Tpl_Prepare(g_Gesture["points"]))
+                enc := "v2:" . Tpl_Encode(Tpl_Prepare(g_Gesture["points"]))
                 ToolTip(T("gesture.tpl_recorded2"))
             } catch {
             }

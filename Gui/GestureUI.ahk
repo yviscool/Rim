@@ -97,11 +97,11 @@ ShowGestureManager(*) {
     cfgNoMatch := mg.Add("DropDownList", "x+6 w120", ["swallow", "passthrough", "sound"])
     mg.Add("Text", "x+8 w300", T("gesture.set_nomatch_hint"))
     mg.Add("Text", "xm y+12", T("gesture.set_threshold"))
-    cfgThreshold := mg.Add("Slider", "x+6 w180 Range10-60", 20)
+    cfgThreshold := mg.Add("Slider", "x+6 w180 Range2-60", 20)
     cfgThresholdTx := mg.Add("Text", "x+6 w40", "20")
     cfgThreshold.OnEvent("Change", (*) => GestureCfg_ShowVal("Threshold"))
     mg.Add("Text", "xm y+10", T("gesture.set_segment"))
-    cfgSegment := mg.Add("Slider", "x+6 w180 Range10-60", 30)
+    cfgSegment := mg.Add("Slider", "x+6 w180 Range2-60", 30)
     cfgSegmentTx := mg.Add("Text", "x+6 w40", "30")
     cfgSegment.OnEvent("Change", (*) => GestureCfg_ShowVal("Segment"))
     mg.Add("Text", "xm y+10", T("gesture.set_tplth"))
@@ -785,8 +785,11 @@ TplAppend_Save(name, enc) {
         return
     }
     arr := []
-    for _, samp in t.samples
-        arr.Push(Tpl_Encode(samp))
+    for i, samp in t.samples {
+        version := 2
+        try version := t.versions[i]
+        arr.Push((version = 1 ? "v1:" : "v2:") . Tpl_Encode(samp))
+    }
     arr.Push(enc)
     if (GestureStore_SetTemplateSamples(name, t.action, arr))
         GestureMgr_SetStatus(T("gesture.st_samples_added", name, arr.Length))
