@@ -78,7 +78,7 @@ m := Tpl_Match(rawU, 6)
 Chk("tpl-match-U", m[1] = "U" && m[2] >= 75)
 
 ; ---- 3. 链优先 + TPL 全局覆盖 ----
-g_GestureMap := Map("U", "key|^c", "TPL:U", "key|^z")
+g_GestureMap := Map("U", "key|^c", "U_D", "key|{F5}", "TPL:U", "key|^z")
 res := Gesture_ResolveStroke("U", [{x: 0, y: 0}], "x.exe", "cls", "", "")
 Chk("chain-first", res[1] = "key|^c")
 res2 := Gesture_ResolveTpl("", rawU, "x.exe", "cls", "", "")
@@ -134,6 +134,9 @@ Chk("tpl-real-U-wins", mS[1] = "U" && mS[2] >= 75)
 
 ; ---- 10. Browser direction and template scope ----
 browserMap := Map("U_UR", "key|!{Right}", "U_UL", "key|!{Left}", "R_U", "key|{F11}",
+    "DR_UR", "key|{F5}", "UR_DR", "key|^+t", "UL_DL", "key|^+t", "DL_UR", "key|{F5}",
+    "U_D", "key|^+t", "TPL:U", "key|{F5}",
+    "TPL:V", "key|{F5}", "TPL:INVV", "key|^+t",
     "TPL:Z", "combo|zoom", "TPL:B", "key|^d", "TPL:J", "key|^j",
     "TPL:H", "key|{Browser_Home}", "TPL:3", "key|^t")
 g_GestureApps.Push({name: "Browsers", exe: "chrome.exe | firefox.exe | iexplore.exe", cls: "",
@@ -147,6 +150,28 @@ resB2 := Gesture_ResolveFor("R_U", "chrome.exe", "Chrome_WidgetWin_1", "", "")
 Chk("browsers-r-u", resB2[1] = "key|{F11}")
 resB3 := Gesture_ResolveFor("U_UR", "notepad.exe", "Notepad", "", "")
 Chk("browsers-scope", resB3[1] = "")
+resBV := Gesture_ResolveFor("DR_UR", "chrome.exe", "Chrome_WidgetWin_1", "", "")
+Chk("browsers-v-refresh", resBV[1] = "key|{F5}")
+resBInvV := Gesture_ResolveFor("UR_DR", "chrome.exe", "Chrome_WidgetWin_1", "", "")
+Chk("browsers-inverted-v-reopen", resBInvV[1] = "key|^+t")
+resBInvVRightToLeft := Gesture_ResolveFor("UL_DL", "chrome.exe", "Chrome_WidgetWin_1", "", "")
+Chk("browsers-inverted-v-reopen-reverse", resBInvVRightToLeft[1] = "key|^+t")
+resBVRightToLeft := Gesture_ResolveFor("DL_UR", "chrome.exe", "Chrome_WidgetWin_1", "", "")
+Chk("browsers-v-refresh-reverse", resBVRightToLeft[1] = "key|{F5}")
+resBUpDown := Gesture_ResolveFor("U_D", "chrome.exe", "Chrome_WidgetWin_1", "", "")
+Chk("browsers-strokesplus-up-down-reopen", resBUpDown[1] = "key|^+t")
+invVNoisy := []
+for _, xy in [[0,100],[1,88],[0,76],[2,64],[1,52],[12,40],[24,28],[36,16],[48,5],[50,0],
+    [50,0],[53,3],[64,16],[76,28],[88,40],[98,52],[100,64],[99,76],[101,88],[100,100]]
+    invVNoisy.Push(Tpl_Pt(xy[1], xy[2]))
+resBInvVShape := Gesture_ResolveStroke("U_UR_D", invVNoisy, "chrome.exe", "Chrome_WidgetWin_1", "")
+Chk("browsers-inverted-v-noisy-shape", resBInvVShape[1] = "key|^+t")
+resBInvVShape2 := Gesture_ResolveStroke("UR_DR_D", invVNoisy, "chrome.exe", "Chrome_WidgetWin_1", "")
+Chk("browsers-inverted-v-noisy-shape-2", resBInvVShape2[1] = "key|^+t")
+resOtherInvVShape := Gesture_ResolveStroke("U_UR_D", invVNoisy, "notepad.exe", "Notepad", "")
+Chk("inverted-v-template-keeps-global-noop", resOtherInvVShape[1] = "function|Gesture_NoOp")
+resOtherUpDown := Gesture_ResolveFor("U_D", "notepad.exe", "Notepad", "", "")
+Chk("non-browser-up-down-remains-refresh", resOtherUpDown[1] = "key|{F5}")
 
 builtinDefs := Tpl_BuiltinDefs()
 for tplName in ["Z", "B", "J", "h", "3"] {

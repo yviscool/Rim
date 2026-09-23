@@ -870,6 +870,59 @@ Gesture_Simplify(pts, tolerance) {
     return out
 }
 
+; Canonicalize chevrons before direction quantization. This prevents a pause or
+; a few samples near the apex from turning V/InvV into U_UR_D/UR_DR_D.
+Gesture_ChevronApex(corners, idx, size) {
+    if (idx <= 1 || idx >= corners.Length)
+        return false
+    first := corners[1]
+    apex := corners[idx]
+    last := corners[corners.Length]
+    leftDx := apex.x - first.x
+    rightDx := last.x - apex.x
+    if (Abs(leftDx) < Max(6, size * 0.12) || Abs(rightDx) < Max(6, size * 0.12))
+        return false
+    if ((leftDx > 0) != (rightDx > 0))
+        return false
+    baseY := first.y + (last.y - first.y) * ((apex.x - first.x) / Max(1, last.x - first.x))
+    if (Abs(apex.y - baseY) < size * 0.28)
+        return false
+    p1 := corners[idx - 1]
+    p2 := corners[idx + 1]
+    v1x := apex.x - p1.x, v1y := apex.y - p1.y
+    v2x := p2.x - apex.x, v2y := p2.y - apex.y
+    l1 := Sqrt(v1x * v1x + v1y * v1y)
+    l2 := Sqrt(v2x * v2x + v2y * v2y)
+    if (l1 <= 0 || l2 <= 0)
+        return false
+    if (Abs(v1x) < l1 * 0.22 || Abs(v2x) < l2 * 0.22)
+        return false
+    return true
+}
+
+Gesture_ChevronChain(corners, size) {
+    if (corners.Length < 3 || corners.Length > 4)
+        return ""
+    minIdx := 2
+    maxIdx := 2
+    for i in Gesture_Range(3, corners.Length - 1) {
+        if (corners[i].y < corners[minIdx].y)
+            minIdx := i
+        if (corners[i].y > corners[maxIdx].y)
+            maxIdx := i
+    }
+    first := corners[1]
+    last := corners[corners.Length]
+    if (Abs(last.y - first.y) > Max(12, size * 0.26))
+        return ""
+    baseY := (first.y + last.y) * 0.5
+    if (corners[minIdx].y < baseY - size * 0.20 && Gesture_ChevronApex(corners, minIdx, size))
+        return (corners[minIdx].x > first.x) ? "UR_DR" : "UL_DL"
+    if (corners[maxIdx].y > baseY + size * 0.20 && Gesture_ChevronApex(corners, maxIdx, size))
+        return (corners[maxIdx].x > first.x) ? "DR_UR" : "DL_UR"
+    return ""
+}
+
 Gesture_DirectionChain(pts, segment := 6) {
     if (pts.Length < 2)
         return ""
@@ -880,6 +933,9 @@ Gesture_DirectionChain(pts, segment := 6) {
     simplifyTol := Max(4, Max(segment * 0.8, size * 0.045))
     corners := Gesture_Simplify(pts, simplifyTol)
     minLeg := Max(10, Max(segment * 1.5, size * 0.09))
+    chevron := Gesture_ChevronChain(corners, size)
+    if (chevron != "")
+        return chevron
     dirs := []
     anchor := corners[1]
     for i in Gesture_Range(2, corners.Length) {
