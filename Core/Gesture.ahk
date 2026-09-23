@@ -502,6 +502,65 @@ Gesture_MatchApp(exe, cls, title := "", ownerCls := "", ctrlCls := "", ctrlTitle
 
 ; ---- 分层解析 (纯逻辑, 可单测): 返回 [动作, 层名], 未命中返回 ["", ""] ----
 ; 顺序: 应用层[修饰] -> 应用层[裸] -> 全局[修饰] -> 全局[裸]; noglobal 切断全局回退
+; Return keys in the unified namespace first, then the explicit legacy
+; DIR:/TPL: namespaces. This lets old profiles keep working while new
+; profiles bind a template exactly like any other gesture.
+Gesture_BindingKeys(kind, name, mods := "") {
+    n := Gesture_Normalize(name)
+    prefix := (kind = "template") ? "TPL:" : "DIR:"
+    out := []
+    seen := Map()
+    add := (key) => (seen.Has(key) ? 0 : (seen[key] := 1, out.Push(key)))
+    ; When both namespaces use the same literal (U is the common case), an
+    ; explicit legacy prefix wins. New names still work bare when no legacy
+    ; collision exists.
+    if (kind = "template") {
+        if (mods != "") {
+            add(Gesture_NormalizeFull(mods . "+" . prefix . n))
+            add(Gesture_NormalizeFull(mods . "+" . n))
+        }
+        add(prefix . n)
+        add(n)
+    } else {
+        if (mods != "") {
+            add(Gesture_NormalizeFull(mods . "+" . n))
+            add(Gesture_NormalizeFull(mods . "+" . prefix . n))
+        }
+        add(n)
+        add(prefix . n)
+    }
+    return out
+}
+
+Gesture_LookupBinding(mapObj, kind, name, mods, layer, &usedKey := "") {
+    usedKey := ""
+    if !IsObject(mapObj)
+        return ""
+    for _, key in Gesture_BindingKeys(kind, name, mods) {
+        try {
+            if mapObj.Has(key) && !Gesture_ChainOff(layer, key) {
+                usedKey := key
+                return mapObj[key]
+            }
+        }
+    }
+    return ""
+}
+
+Gesture_HasBinding(kind, name, exe, cls, title, mods := "", ownerCls := "", ctrlCls := "", ctrlTitle := "") {
+    global g_GestureMap
+    app := Gesture_MatchApp(exe, cls, title, ownerCls, ctrlCls, ctrlTitle)
+    if (IsObject(app)) {
+        if (Gesture_LookupBinding(app.map, kind, name, mods, app.name, &key) != "")
+            return {found: 1, canonical: !InStr(key, (kind = "template" ? "TPL:" : "DIR:"))}
+        if (Gesture_AppField(app, "noglobal"))
+            return {found: 0, blocked: 1, canonical: 0}
+    }
+    if (Gesture_LookupBinding(g_GestureMap, kind, name, mods, "全局", &key) != "")
+        return {found: 1, canonical: !InStr(key, (kind = "template" ? "TPL:" : "DIR:"))}
+    return {found: 0, blocked: 0, canonical: 0}
+}
+
 Gesture_ResolveFor(gesture, exe, cls, mods := "", title := "", ownerCls := "", ctrlCls := "", ctrlTitle := "") {
     global g_GestureMap
     g := Gesture_Normalize(gesture)
@@ -509,21 +568,15 @@ Gesture_ResolveFor(gesture, exe, cls, mods := "", title := "", ownerCls := "", c
         return ["", ""]
     app := Gesture_MatchApp(exe, cls, title, ownerCls, ctrlCls, ctrlTitle)
     if (IsObject(app)) {
-        try {
-            if (mods != "" && app.map.Has(mods . g) && !Gesture_ChainOff(app.name, mods . g))
-                return [app.map[mods . g], app.name]
-            if (app.map.Has(g) && !Gesture_ChainOff(app.name, g))
-                return [app.map[g], app.name]
-        }
+        action := Gesture_LookupBinding(app.map, "direction", g, mods, app.name)
+        if (action != "")
+            return [action, app.name]
         if (Gesture_AppField(app, "noglobal"))
             return ["", ""]
     }
-    try {
-        if (mods != "" && g_GestureMap.Has(mods . g) && !Gesture_ChainOff("全局", mods . g))
-            return [g_GestureMap[mods . g], "全局"]
-        if (g_GestureMap.Has(g) && !Gesture_ChainOff("全局", g))
-            return [g_GestureMap[g], "全局"]
-    }
+    action := Gesture_LookupBinding(g_GestureMap, "direction", g, mods, "全局")
+    if (action != "")
+        return [action, "全局"]
     return ["", ""]
 }
 
@@ -571,25 +624,43 @@ Gesture_IsBypass(consumeNext := true, ctx := "") {
 ; (应用层 -> 全局层), 都没有才用模板自带动作. 因此直线 U 不会再遮蔽字母 U.
 Gesture_ResolveStroke(gestureStr, pts, exe, cls, title, mods := "", ownerCls := "", ctrlCls := "", ctrlTitle := "") {
     global g_Gesture, g_TplThreshold, g_GestureMap
+    forced := ""
+    name := gestureStr
     if (gestureStr != "") {
-        ; "TPL:X"/"DIR:X" 显式命名空间直达, 跳过另一空间
         up := StrUpper(gestureStr)
         if (SubStr(up, 1, 4) = "TPL:") {
-            res := Gesture_ResolveTpl(SubStr(gestureStr, 5), pts, exe, cls, title, mods, ownerCls, ctrlCls, ctrlTitle)
-            if (res[1] != "")
-                return res
-        } else {
-            if (SubStr(up, 1, 4) = "DIR:")
-                gestureStr := Trim(SubStr(gestureStr, 5))
-            res := Gesture_ResolveFor(gestureStr, exe, cls, mods, title, ownerCls, ctrlCls, ctrlTitle)
-            if (res[1] != "")
-                return [res[1], res[2]]
+            forced := "template"
+            name := Trim(SubStr(gestureStr, 5))
+        } else if (SubStr(up, 1, 4) = "DIR:") {
+            forced := "direction"
+            name := Trim(SubStr(gestureStr, 5))
         }
     }
-    return Gesture_ResolveTpl("", pts, exe, cls, title, mods, ownerCls, ctrlCls, ctrlTitle)
+
+    if (forced = "template")
+        return Gesture_ResolveTpl(name, pts, exe, cls, title, mods, ownerCls, ctrlCls, ctrlTitle)
+    if (forced = "direction")
+        return Gesture_ResolveFor(name, exe, cls, mods, title, ownerCls, ctrlCls, ctrlTitle)
+
+    dirRes := (name != "" ? Gesture_ResolveFor(name, exe, cls, mods, title, ownerCls, ctrlCls, ctrlTitle) : ["", ""])
+    tplRes := Gesture_ResolveTpl("", pts, exe, cls, title, mods, ownerCls, ctrlCls, ctrlTitle)
+    if (dirRes[1] = "")
+        return tplRes
+    if (tplRes[1] = "")
+        return dirRes
+
+    ; A configured template is a deliberate shape binding. Prefer it for a
+    ; chevron when both the quantized chain and the template are bound.
+    m := Tpl_Match(pts, 0)
+    isChevron := (name = "DR_UR" || name = "DL_UR" || name = "UR_DR" || name = "UL_DL")
+    if (isChevron && m[1] != "") {
+        tplBinding := Gesture_HasBinding("template", m[1], exe, cls, title, mods, ownerCls, ctrlCls, ctrlTitle)
+        if (tplBinding.found)
+            return tplRes
+    }
+    return dirRes
 }
 
-; ---- 模板解析子程 (供 ResolveStroke 调用): TPL 覆盖 -> 内置动作 ----
 Gesture_ResolveTpl(tplOnly, pts, exe, cls, title, mods := "", ownerCls := "", ctrlCls := "", ctrlTitle := "") {
     global g_Gesture, g_TplThreshold, g_GestureMap
     if (!IsObject(pts) || pts.Length < 3)
@@ -611,25 +682,15 @@ Gesture_ResolveTpl(tplOnly, pts, exe, cls, title, mods := "", ownerCls := "", ct
         return ["", ""]
     app := Gesture_MatchApp(exe, cls, title, ownerCls, ctrlCls, ctrlTitle)
     if (IsObject(app)) {
-        try {
-            tkey := Gesture_NormalizeFull("TPL:" . m[1])
-            modKey := (mods != "" ? Gesture_NormalizeFull(mods . "+" . tkey) : "")
-            if (modKey != "" && app.map.Has(modKey) && !Gesture_ChainOff(app.name, modKey))
-                return [app.map[modKey], app.name . "/模板"]
-            if (app.map.Has(tkey) && !Gesture_ChainOff(app.name, tkey))
-                return [app.map[tkey], app.name . "/模板"]
-        }
+        action := Gesture_LookupBinding(app.map, "template", m[1], mods, app.name)
+        if (action != "")
+            return [action, app.name . "/模板"]
         if (Gesture_AppField(app, "noglobal"))
             return ["", ""]
     }
-    try {
-        tkey := Gesture_NormalizeFull("TPL:" . m[1])
-        modKey := (mods != "" ? Gesture_NormalizeFull(mods . "+" . tkey) : "")
-        if (modKey != "" && g_GestureMap.Has(modKey) && !Gesture_ChainOff("全局", modKey))
-            return [g_GestureMap[modKey], "全局/模板"]
-        if (g_GestureMap.Has(tkey) && !Gesture_ChainOff("全局", tkey))
-            return [g_GestureMap[tkey], "全局/模板"]
-    }
+    action := Gesture_LookupBinding(g_GestureMap, "template", m[1], mods, "全局")
+    if (action != "")
+        return [action, "全局/模板"]
     t := Tpl_Get(m[1])
     if (IsObject(t))
         return [t.action, "模板"]
