@@ -54,6 +54,7 @@ RegisterPlugin_Misc() {
     RegisterCommand("USD2CNY", "function", "USD2CNY", T("cmd.Misc.USD2CNY"))
     RegisterCommand("CurrencyRate", "function", "CurrencyRate", T("cmd.Misc.CurrencyRate"))
     RegisterCommand("ShowIp", "function", "ShowIp", T("cmd.Misc.ShowIp"))
+    RegisterCommand("Wifi", "function", "WifiShow", T("cmd.Misc.Wifi"))
     RegisterCommand("Calendar", "function", "Calendar", T("cmd.Misc.Calendar"))
     RegisterCommand("UrlEncode", "function", "UrlEncodeCmd", T("cmd.Misc.UrlEncode"))
     RegisterCommand("UrlDecode", "function", "UrlDecodeCmd", T("cmd.Misc.UrlDecode"))
@@ -584,28 +585,326 @@ UriEncode(str) {
     return result
 }
 
-; === IP 显示 (原版: A_IPAddress1-4 经 DisplayResult; 另附 WMI 网卡明细) ===
+; === IP 显示 (升级: 逐网卡卡片 IPv4/掩码/IPv6/网关/DNS/MAC/DHCP, 默认出口标★) ===
 ShowIp() {
-    result := A_IPAddress1
-        . "`r`n" . A_IPAddress2
-        . "`r`n" . A_IPAddress3
-        . "`r`n" . A_IPAddress4
-
-    ; WMI 网卡明细 (多网卡时更全)
+    nics := []
     try {
-        for obj in ComObjGet("winmgmts:").ExecQuery("SELECT Description, IPAddress FROM Win32_NetworkAdapterConfiguration WHERE IPEnabled = TRUE") {
-            result .= "`n`n" obj.Description "`n"
-            if IsObject(obj.IPAddress) {
-                for ip in obj.IPAddress {
-                    result .= "  " ip "`n"
+        wmi := ComObjGet("winmgmts:")
+        q := wmi.ExecQuery("SELECT Description, MACAddress, IPAddress, IPSubnet, DefaultIPGateway, DNSServerSearchOrder, DHCPEnabled, DHCPServer FROM Win32_NetworkAdapterConfiguration WHERE IPEnabled = TRUE")
+        for obj in q {
+            info := Map("desc", Misc_ComStr(obj, (o) => o.Description)
+                , "mac", Misc_ComStr(obj, (o) => o.MACAddress)
+                , "ips", Misc_ComArr(obj, (o) => o.IPAddress)
+                , "masks", Misc_ComArr(obj, (o) => o.IPSubnet)
+                , "gws", Misc_ComArr(obj, (o) => o.DefaultIPGateway)
+                , "dns", Misc_ComArr(obj, (o) => o.DNSServerSearchOrder)
+                , "dhcp", Misc_ComBool(obj, (o) => o.DHCPEnabled)
+                , "dhcpServer", Misc_ComStr(obj, (o) => o.DHCPServer))
+            nics.Push(info)
+        }
+    } catch as e {
+        DisplayResult(A_IPAddress1 . "`r`n" . A_IPAddress2 . "`r`n" . A_IPAddress3 . "`r`n" . A_IPAddress4
+            . "`n`n" . T("misc.net_failed", e.Message))
+        return
+    }
+    if (nics.Length = 0) {
+        DisplayResult(A_IPAddress1 . "`r`n" . A_IPAddress2 . "`r`n" . A_IPAddress3 . "`r`n" . A_IPAddress4
+            . "`n`n" . T("misc.ip_none"))
+        return
+    }
+
+    items := [Map("type", "head", "text", T("misc.ip_title") . " (" . T("misc.ip_nics", nics.Length) . ")")
+        , Map("type", "head", "text", "")]
+    idx := 0
+    for nic in nics {
+        tag := Chr(Ord("a") + idx)
+        head := "[" tag "] " nic["desc"]
+        if (nic["gws"].Length > 0)
+            head .= " " . T("misc.ip_default")
+        items.Push(Map("type", "head", "text", head))
+        v4s := []
+        v6s := []
+        for i, ip in nic["ips"] {
+            mask := (i <= nic["masks"].Length) ? nic["masks"][i] : ""
+            if InStr(ip, ":")
+                v6s.Push(ip)
+            else
+                v4s.Push(Map("ip", ip, "mask", mask))
+        }
+        for v in v4s {
+            val := v["ip"] . (v["mask"] != "" ? " / " . v["mask"] : "")
+            items.Push(Map("type", "row", "mark", "*", "label", T("misc.ip_ipv4"), "value", val
+                , "copy", v["ip"], "tip", T("misc.copied_val", v["ip"])))
+        }
+        for v in v6s
+            items.Push(Map("type", "row", "mark", "*", "label", T("misc.ip_ipv6"), "value", v
+                , "copy", v, "tip", T("misc.copied_val", v)))
+        if (nic["gws"].Length > 0) {
+            gv := Misc_JoinStr(nic["gws"], ", ")
+            items.Push(Map("type", "row", "mark", "*", "label", T("misc.ip_gateway"), "value", gv
+                , "copy", gv, "tip", T("misc.copied_val", gv)))
+        }
+        if (nic["dns"].Length > 0) {
+            dv := Misc_JoinStr(nic["dns"], ", ")
+            items.Push(Map("type", "row", "mark", "*", "label", T("misc.ip_dns"), "value", dv
+                , "copy", dv, "tip", T("misc.copied_val", dv)))
+        }
+        if (nic["mac"] != "")
+            items.Push(Map("type", "row", "mark", "*", "label", T("misc.ip_mac"), "value", nic["mac"]
+                , "copy", nic["mac"], "tip", T("misc.copied_val", nic["mac"])))
+        dhcpTxt := nic["dhcp"] ? T("misc.ip_on") : T("misc.ip_off")
+        if (nic["dhcp"] && nic["dhcpServer"] != "")
+            dhcpTxt .= " (" . T("misc.ip_server") . " " . nic["dhcpServer"] . ")"
+        items.Push(Map("type", "row", "mark", "*", "label", T("misc.ip_dhcp"), "value", dhcpTxt
+            , "copy", dhcpTxt, "tip", T("misc.copied_val", dhcpTxt)))
+        idx++
+    }
+    RowNavShow(items)
+}
+
+; WMI 标量属性安全读 (null/异常一律回空串)
+Misc_ComStr(obj, getter) {
+    try {
+        v := getter(obj)
+        if (v = "")
+            return ""
+        return String(v)
+    } catch {
+        return ""
+    }
+}
+
+; WMI 数组属性安全读 (null/异常一律回空数组)
+Misc_ComArr(obj, getter) {
+    try {
+        v := getter(obj)
+    } catch {
+        return []
+    }
+    if !IsObject(v)
+        return []
+    out := []
+    try {
+        for item in v {
+            try out.Push(String(item))
+            catch {
+            }
+        }
+    } catch {
+    }
+    return out
+}
+
+; WMI 布尔属性安全读
+Misc_ComBool(obj, getter) {
+    try {
+        return getter(obj) ? true : false
+    } catch {
+        return false
+    }
+}
+
+Misc_JoinStr(arr, sep) {
+    out := ""
+    for i, v in arr {
+        if (i > 1)
+            out .= sep
+        out .= v
+    }
+    return out
+}
+
+; === WiFi: 已保存密码一览, 当前连接置顶 (netsh, 无线网卡缺失/服务关闭会提示) ===
+WifiShow() {
+    profiles := Misc_WlanProfiles()
+    if (profiles.Length = 0) {
+        probe := Misc_RunUtf8("netsh wlan show interfaces")
+        if (Misc_WlanNoSvc(probe))
+            DisplayResult(T("misc.wifi_nosvc"))
+        else
+            DisplayResult(T("misc.wifi_none"))
+        return
+    }
+    conn := Misc_WlanConnected()
+    myssid := conn.Has("ssid") ? conn["ssid"] : ""
+    ordered := []
+    if (myssid != "")
+        ordered.Push(myssid)
+    for p in profiles {
+        dup := false
+        for q in ordered {
+            if (q = p) {
+                dup := true
+                break
+            }
+        }
+        if (!dup)
+            ordered.Push(p)
+    }
+    admin := A_IsAdmin
+    title := T("misc.wifi_title", ordered.Length)
+    if (myssid != "")
+        title .= " - " . T("misc.wifi_cur", myssid)
+    items := [Map("type", "head", "text", title)]
+    if (!admin)
+        items.Push(Map("type", "head", "text", T("misc.wifi_noadmin")))
+    items.Push(Map("type", "head", "text", ""))
+    idx := 0
+    for ssid in ordered {
+        tail := ""
+        if (ssid = myssid) {
+            mark := "★"
+            if (conn.Has("signal") && conn["signal"] != "")
+                tail := " | " . T("misc.wifi_signal", conn["signal"])
+        } else {
+            mark := Chr(Ord("a") + idx)
+            idx++
+        }
+        key := Misc_WlanKey(ssid)
+        if (key["open"]) {
+            pwdTxt := T("misc.wifi_open")
+            cp := ssid
+            tip := T("misc.copied_val", ssid)
+        } else if (key["pwd"] != "") {
+            pwdTxt := T("misc.wifi_pwd", key["pwd"])
+            cp := key["pwd"]
+            tip := T("misc.copied_pwd", ssid)
+        } else {
+            pwdTxt := T("misc.wifi_hidden")
+            cp := ""
+            tip := T("misc.wifi_hidden")
+        }
+        items.Push(Map("type", "row", "mark", mark, "label", ssid, "value", pwdTxt . tail
+            , "copy", cp, "tip", tip))
+    }
+    RowNavShow(items)
+}
+
+; netsh 输出统一按 UTF-8 拿 (chcp 65001, 中文 SSID 不乱码)
+Misc_RunUtf8(cmd) {
+    tmp := A_Temp "\Rim.Misc.cmd.out.txt"
+    full := A_ComSpec ' /C "chcp 65001>nul & ' cmd ' > "' tmp '" 2>nul"'
+    try {
+        RunWait(full, , "Hide")
+        out := FileRead(tmp, "UTF-8")
+        if (SubStr(out, 1, 1) = Chr(0xFEFF))
+            out := SubStr(out, 2)
+    } catch {
+        out := ""
+    }
+    try FileDelete(tmp)
+    catch {
+    }
+    return out
+}
+
+; 已保存的 WiFi 配置名 (中/英 netsh 通吃)
+Misc_WlanProfiles() {
+    out := Misc_RunUtf8("netsh wlan show profiles")
+    arr := []
+    Loop Parse, out, "`n", "`r" {
+        line := Trim(A_LoopField)
+        if (line = "" || !InStr(line, ":"))
+            continue
+        if (InStr(line, "配置文件") || InStr(line, "Profile")) {
+            if RegExMatch(line, ":\s*(.+)$", &m) {
+                name := Trim(m[1])
+                if (name != "")
+                    arr.Push(name)
+            }
+        }
+    }
+    return arr
+}
+
+; 当前连接的 SSID + 信号 (未连接回空 ssid; BSSID 行不会误命中 SSID)
+Misc_WlanConnected() {
+    res := Map("ssid", "", "signal", "")
+    out := Misc_RunUtf8("netsh wlan show interfaces")
+    if (Trim(out) = "")
+        return res
+    block := Map("ssid", "", "state", "", "signal", "")
+    Loop Parse, out, "`n", "`r" {
+        line := Trim(A_LoopField)
+        if (line = "") {
+            Misc_WlanPickBlock(block, res)
+            block := Map("ssid", "", "state", "", "signal", "")
+            continue
+        }
+        if RegExMatch(line, "(?i)^SSID\s*:\s*(.+)$", &m)
+            block["ssid"] := Trim(m[1])
+        else if RegExMatch(line, "(?i)^(?:状态|State)\s*:\s*(.+)$", &m)
+            block["state"] := Trim(m[1])
+        else if RegExMatch(line, "(?i)^(?:信号|Signal)\s*:\s*(.+)$", &m)
+            block["signal"] := Trim(m[1])
+    }
+    Misc_WlanPickBlock(block, res)
+    if (res["ssid"] = "") {
+        ; Win11 位置权限门: netsh interfaces 常 Access denied, 用 NLM 兜底 (无信号值)
+        ; 注: v2 双引号内 "" 不是转义而是闭合+重开, 嵌套引号用 Chr(34) 显式拼接
+        q := Chr(34)
+        ps := "powershell -NoProfile -ExecutionPolicy Bypass -Command " . q . "Get-NetConnectionProfile | Where-Object { $_.IPv4Connectivity -ne 'NoTraffic' } | Select-Object -First 1 -ExpandProperty Name" . q
+        name := Trim(Misc_RunUtf8(ps))
+        if (name != "") {
+            ; PS 输出 CRLF: Trim 默认不去 \r, 逐行取首个非空行
+            for ln in StrSplit(StrReplace(name, "`r", ""), "`n") {
+                ln := Trim(ln)
+                if (ln != "") {
+                    res["ssid"] := ln
+                    break
                 }
             }
         }
-    } catch as e {
-        result .= "`n`n" . T("misc.net_failed", e.Message)
     }
+    return res
+}
 
-    DisplayResult(result)
+Misc_WlanPickBlock(block, res) {
+    if (block["ssid"] = "" || res["ssid"] != "")
+        return
+    st := block["state"]
+    connected := false
+    if (st = "")
+        connected := true
+    else if (InStr(st, "已连接") || RegExMatch(st, "(?i)^connected$"))
+        connected := true
+    if (connected) {
+        res["ssid"] := block["ssid"]
+        res["signal"] := block["signal"]
+    }
+}
+
+; 单个配置的密码 (open=true 为开放网络; 非管理员拿不到 key=clear, pwd 为空)
+Misc_WlanKey(ssid) {
+    res := Map("pwd", "", "open", false)
+    q := StrReplace(ssid, '"', '')
+    out := Misc_RunUtf8('netsh wlan show profile name="' q '" key=clear')
+    if (Trim(out) = "")
+        return res
+    Loop Parse, out, "`n", "`r" {
+        line := Trim(A_LoopField)
+        if RegExMatch(line, "(?i)^(?:安全密钥|Security key)\s*:\s*(.+)$", &m) {
+            v := Trim(m[1])
+            if (InStr(v, "不存在") || RegExMatch(v, "(?i)absent"))
+                res["open"] := true
+        } else if RegExMatch(line, "(?i)^(?:关键内容|Key Content)\s*:\s*(.+)$", &m) {
+            res["pwd"] := Trim(m[1])
+        }
+    }
+    return res
+}
+
+; 无无线网卡 / WLAN 服务不可用 / 非 netsh 环境
+Misc_WlanNoSvc(text) {
+    if (Trim(text) = "")
+        return true
+    markers := ["没有无线接口", "无线自动配置服务", "不是内部或外部命令"
+        , "no wireless interface", "AutoConfig", "not recognized"]
+    for mk in markers {
+        if InStr(text, mk, true)
+            return true
+    }
+    return false
 }
 
 ; === 汇率查询 (原版: CurrencyRate USD CNY amount 三段式 + CNY2USD/USD2CNY 单发) ===

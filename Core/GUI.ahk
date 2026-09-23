@@ -93,11 +93,116 @@ DisplayControlText(text) {
 
 ; 设置显示区文本 (不带对齐)
 DisplayResult(result := "") {
-    global g_DisplayEdit, g_UseDisplay
+    global g_DisplayEdit, g_UseDisplay, g_RowActive
+    ; 行导航是单次展示态: 任何新的 DisplayResult 都先清, 由 RowNavShow 重建
+    g_RowActive := false
     ; 先归一再转 CRLF, 否则 FileRead 类自带 CRLF 的内容会被转成空行
     textToDisplay := StrReplace(StrReplace(result, "`r`n", "`n"), "`n", "`r`n")
     g_DisplayEdit.Value := textToDisplay
     g_UseDisplay := true
+}
+
+; ---- 行导航 (DisplayResult 内容的行模式: ^J/^K 移动 >| 标记, 回车/^S 复制) ----
+; items: [{type:"head",text} | {type:"row",mark,label,value,copy,tip}]
+RowNavShow(items) {
+    global g_RowItems, g_RowIndex, g_RowActive
+    g_RowItems := items
+    g_RowIndex := 0
+    for it in items {
+        if (it.Get("type", "row") = "row") {
+            g_RowIndex++
+            break
+        }
+    }
+    if (g_RowIndex < 1) {
+        g_RowActive := false
+        return
+    }
+    RowNav_Render()
+    g_RowActive := true
+}
+
+RowNavActive() {
+    global g_RowActive
+    return g_RowActive ? true : false
+}
+
+RowNavMove(step) {
+    global g_RowItems, g_RowIndex, g_RowActive
+    if (!RowNavActive())
+        return
+    total := 0
+    for it in g_RowItems {
+        if (it.Get("type", "row") = "row")
+            total++
+    }
+    if (total < 1)
+        return
+    g_RowIndex := Mod(g_RowIndex - 1 + step + total, total) + 1
+    RowNav_Render()
+    g_RowActive := true
+}
+
+RowNavCopy() {
+    global g_RowItems, g_RowIndex
+    if (!RowNavActive())
+        return
+    ri := 0
+    for it in g_RowItems {
+        if (it.Get("type", "row") != "row")
+            continue
+        ri++
+        if (ri = g_RowIndex) {
+            if (it.Get("copy", "") != "") {
+                try A_Clipboard := it.Get("copy", "")
+                catch {
+                }
+            }
+            try ToolTip(it.Get("tip", ""))
+            catch {
+            }
+            try SetTimer(RemoveToolTip, -1500)
+            catch {
+            }
+            return
+        }
+    }
+}
+
+RowNav_Render() {
+    global g_RowItems, g_RowIndex
+    markW := 1
+    labelW := 1
+    for it in g_RowItems {
+        if (it.Get("type", "row") != "row")
+            continue
+        markW := Max(markW, RowNav_Width(it.Get("mark", "")))
+        labelW := Max(labelW, RowNav_Width(it.Get("label", "")))
+    }
+    out := ""
+    ri := 0
+    for it in g_RowItems {
+        if (it.Get("type", "row") != "row") {
+            out .= it.Get("text", "") . "`n"
+            continue
+        }
+        ri++
+        sep := (ri = g_RowIndex) ? ">| " : " | "
+        out .= RowNav_Pad(it.Get("mark", ""), markW) . sep . RowNav_Pad(it.Get("label", ""), labelW) . " | " . it.Get("value", "") . "`n"
+    }
+    DisplayResult(out)
+}
+
+; 显示宽度: ASCII 算 1, 其他 (CJK/★等) 算 2 (与 AlignText 同一假设: 等宽字体)
+RowNav_Width(s) {
+    return StrLen(RegExReplace(s, "[^\x00-\xff]", "  "))
+}
+
+RowNav_Pad(s, w) {
+    need := w - RowNav_Width(s)
+    Loop need
+        s .= " "
+    return s
 }
 
 ; 显示搜索结果

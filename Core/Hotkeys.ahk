@@ -163,6 +163,11 @@ HideOrExit(*) {
 
 NextCommand(*) {
     if (g_UseDisplay) {
+        ; 行导航态: ^J 移动 >| 标记 (焦点不出输入框); 非行态才挪文本光标
+        if (RowNavActive()) {
+            RowNavMove(1)
+            return
+        }
         g_DisplayEdit.Focus()
         Send("{Down}")
         return
@@ -172,6 +177,10 @@ NextCommand(*) {
 
 PrevCommand(*) {
     if (g_UseDisplay) {
+        if (RowNavActive()) {
+            RowNavMove(-1)
+            return
+        }
         g_DisplayEdit.Focus()
         Send("{Up}")
         return
@@ -217,9 +226,17 @@ EditAutoConfig(*) {
 
 ClearInputLabel(*) {
     ClearInput()
+    ; 清空后回到默认结果页 (编程设置 Edit.Value 不保证触发 Change 事件,
+    ; 显示区会停留在旧结果, 这里显式重建空串搜索的默认列表)
+    SearchCommand("")
 }
 
 RunCurrentCommand(*) {
+    ; 行导航态回车 = 复制当前行 (不执行、不关窗, 可连复制多行)
+    if (RowNavActive()) {
+        RowNavCopy()
+        return
+    }
     RunCommand(g_CurrentCommand)
 }
 
@@ -357,9 +374,32 @@ DeleteCurrentFile(*) {
 }
 
 ShowCurrentFile(*) {
+    ; 行导航态 ^S = 复制当前行 (与回车同义)
+    if (RowNavActive()) {
+        RowNavCopy()
+        return
+    }
     A_Clipboard := GetFilePathFromCmd(g_CurrentCommand)
     ToolTip(A_Clipboard)
     SetTimer(RemoveToolTip, -800)
+}
+
+; 复制显示区全部内容 (行导航/普通展示通用, 不改变焦点)
+DisplayCopyAll(*) {
+    global g_DisplayEdit
+    text := ""
+    try text := g_DisplayEdit.Value
+    catch {
+        return
+    }
+    if (text = "")
+        return
+    try A_Clipboard := text
+    catch {
+        return
+    }
+    ToolTip(T("ctx.copy_display"))
+    SetTimer(RemoveToolTip, -1500)
 }
 
 ChangePath(*) {

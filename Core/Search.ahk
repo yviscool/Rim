@@ -9,9 +9,10 @@ SearchCommand(command := "", firstRun := false) {
     global g_CurrentCommandList, g_FallbackCommands, g_FirstChar, g_DisplayRows
     global g_ExcludedCommands, g_Commands, g_EnableTCMatch, g_SkinConf
     global g_UseResultFilter, g_UseRealtimeExec, g_InputEdit, g_DisplayEdit
-    global g_WindowName, g_UseFallbackCommands, Arg, g_Conf
+    global g_WindowName, g_UseFallbackCommands, Arg, g_Conf, g_FuncAlias, g_RowActive
 
     g_UseDisplay := false
+    g_RowActive := false
     g_ExecInterval := -1
     result := ""
     fullResult := ""
@@ -82,6 +83,8 @@ SearchCommand(command := "", firstRun := false) {
 
     g_CurrentCommandList := []
     order := g_FirstChar
+    ; 已展示的执行目标 (别名/复刻行仍参与匹配保证可搜, 但同目标只展示首个命中)
+    seenTargets := Map()
 
     ; 搜索所有命令
     for index, element in g_Commands {
@@ -133,6 +136,10 @@ SearchCommand(command := "", firstRun := false) {
         }
 
         if (command = "" || MatchCommand(elementToSearch, command)) {
+            targetKey := SearchTargetKey(element)
+            if (seenTargets.Has(targetKey))
+                continue
+            seenTargets[targetKey] := true
             fullResult .= element "`n"
             g_CurrentCommandList.Push(element)
 
@@ -194,6 +201,32 @@ SearchCommand(command := "", firstRun := false) {
 
     DisplaySearchResult(result)
     return result
+}
+
+; 执行目标归一 (搜索展示去重用): 同目标只留首个命中行
+;   四段式 key|type|cmd|desc → type|cmd
+;   function 三段式 → g_FuncAlias 解析后的真实函数名 (别名与原名同键)
+;   其余 (file/cmd/run/url 三段式) → type|content
+; 注意: 折叠只发生在展示侧, 匹配侧不动 —— 搜别名关键词
+; (如 top/cancelTimer) 仍能命中别名行并展示它, 只是不再刷屏
+SearchTargetKey(element) {
+    global g_FuncAlias
+    parts := StrSplit(element, " | ")
+    if (parts.Length >= 4
+        && (parts[2] = "file" || parts[2] = "function" || parts[2] = "cmd" || parts[2] = "url" || parts[2] = "run"))
+        return parts[2] . "|" . parts[3]
+    if (parts.Length >= 2 && parts[1] = "function") {
+        real := parts[2]
+        try {
+            if (IsObject(g_FuncAlias) && g_FuncAlias.Has(parts[2]))
+                real := g_FuncAlias[parts[2]]
+        } catch {
+        }
+        return "function|" . real
+    }
+    if (parts.Length >= 2)
+        return parts[1] . "|" . parts[2]
+    return element
 }
 
 ; 命令匹配
