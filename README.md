@@ -1,95 +1,123 @@
-# Rim
+<p align="center">
+  <img src="Assets/RimLogo-256.png" alt="Rim logo" width="128" height="128">
+</p>
 
-键盘 + 鼠标手势驱动的模式化快速启动器。
+<h1 align="center">Rim</h1>
 
-Rim 把三种桌面操作能力熔进一个工具：
+<p align="center">A keyboard-driven Windows launcher, application-aware Vim-style controls, and mouse gestures in one AutoHotkey tool.</p>
 
-- **Run** — 一键快速启动（`Win+J` 呼出，模糊匹配文件 / 命令 / 网址）
-- **Vim** — 模式化键盘操作（normal / insert，多键序列，计数），为 TC、资源管理器、编辑器注入 Vim 灵魂
-- **Swipe / Stroke** — 鼠标手势触发（右键拖拽，方向链 + 字母模板双引擎）
+<p align="center">
+  <a href="docs/README.zh-CN.md">简体中文</a>
+  ·
+  <a href="LICENSE">MIT License</a>
+</p>
 
-名字取自 **Run + Vim**，也暗示"边缘 / 边界"——在键鼠之间自由游走。
+[![i18n and smoke tests](https://github.com/yviscool/Rim/actions/workflows/i18n.yml/badge.svg?branch=main)](https://github.com/yviscool/Rim/actions/workflows/i18n.yml)
 
-> English: Rim is a keyboard-and-mouse-gesture-driven modal launcher for Windows.
-> One tool fusing a fuzzy launcher, Vim-style modal keymaps per application,
-> and a stroke-gesture engine. Built with AutoHotkey v2.
+Rim combines three desktop workflows: a searchable command launcher, modal keyboard mappings that follow the active application, and configurable mouse-stroke gestures. It is written in AutoHotkey v2 and is distributed here as source code.
 
-## 快速开始
+## Features
 
+- **Launcher:** find and run indexed files, configured commands, and fallback actions. Search results can use saved history and ranking. The file index is built from configured search directories and file filters.
+- **Application-aware keyboard controls:** define modes, key sequences, counts, and actions per window or process. Included mappings cover Windows Explorer, Total Commander, editors, and supported desktop applications.
+- **Mouse gestures:** draw with the configured mouse button, map direction sequences or gesture templates to actions, and customize application-specific rules and exclusions.
+- **Desktop monitor:** an optional floating radar displays CPU, memory, and network activity, with configurable refresh and alert settings.
+- **Configuration UI:** manage launcher, hotkey, plugin, Total Commander, gesture, and related settings from the tray menu.
+- **Built-in integrations:** launcher and system commands, Explorer navigation, Total Commander commands, Vim-style editing, media controls, QR-code utilities, text conversion, and integrations for selected third-party applications. Some actions require the corresponding application to be installed.
+- **Localization:** English and Simplified Chinese are maintained as full UI languages. Japanese, German, French, and Spanish currently contain language labels and fall back to English for untranslated strings.
+
+## Default Hotkeys
+
+These global bindings come from the default `Conf/rim.ini`. They can be changed in the configuration UI or the `[GlobalHotkey]` section.
+
+| Shortcut | Action |
+| --- | --- |
+| `Win+J` | Toggle the launcher |
+| `Win+Backtick` | Toggle the launcher |
+| `Win+Esc` | Toggle the launcher |
+| `Alt+Space` | Toggle the launcher |
+| `Alt+E` | Toggle Total Commander |
+| `Win+W` | Toggle the VimEditor integration |
+
+Vim-style keys such as `h`, `j`, `k`, and `l` are application-specific mappings, not global defaults. For example, the default configuration maps them for Explorer and Notepad. Right-button drag is the default gesture trigger; a short click remains an ordinary right click.
+
+## Requirements
+
+- Windows
+- [AutoHotkey v2](https://www.autohotkey.com/)
+
+There is no installer or prebuilt release binary in this repository. The project is run from its checked-out source tree.
+
+## Get Started
+
+1. Install AutoHotkey v2 and clone this repository.
+
+   ```powershell
+   git clone https://github.com/yviscool/Rim.git
+   cd Rim
+   ```
+
+2. Review `Conf/rim.ini` before the first launch. In particular, set `SearchFileDir`, `SearchFileType`, and `TCPath` for your machine. The checked-in defaults include developer-specific paths.
+
+3. Review `CreateStartupLnk` and `CreateSendToLnk` in `[Config]`. Both are enabled in the sample configuration and control creation of Windows startup and Send To shortcuts. Set either to `0` to opt out.
+
+4. Start the script:
+
+   ```powershell
+   & "$env:ProgramFiles\AutoHotkey\v2\AutoHotkey64.exe" .\Rim.ahk
+   ```
+
+   You can also launch `Rim.ahk` directly if `.ahk` files are associated with AutoHotkey v2.
+
+5. Press `Win+J` to open the launcher. Right-click the Rim tray icon for the configuration center, gesture manager, monitor, and other commands.
+
+## Configuration
+
+- `Conf/rim.ini` stores launcher settings, global hotkeys, application mappings, gestures, plugins, and monitor options.
+- `Conf/Skins/` contains launcher skins.
+- The tray configuration center provides a UI for common settings. Changes that affect startup or low-level bindings may require a restart.
+- Gesture definitions can be global or scoped to an application. The default trigger, thresholds, application rules, templates, and exclusions are in `Conf/rim.ini`.
+- Language selection is under `[Config] Language`. Use `auto`, `en`, or `zh-CN` for the fully maintained languages.
+
+## Project Layout
+
+```text
+Rim.ahk       Application entry point
+Core/         Launcher, configuration, search, keyboard, gesture, and localization engines
+Gui/          Configuration center and gesture management UI
+Plugins/      Built-in commands and application integrations
+Lib/          Shared libraries
+Conf/         Main configuration and skins
+Lang/         UI language files
+Assets/       Application logo and Windows icon assets
+docs/         Translated project documentation
+tools/        Localization audit and smoke-test scripts
 ```
-# 依赖: AutoHotkey v2 (https://www.autohotkey.com)
-# 双击运行
-Rim.ahk
 
-# 或命令行
-AutoHotkey64.exe Rim.ahk
+## Development and Checks
+
+The CI workflow audits localization coverage and runs AutoHotkey parse and plugin-registration smoke tests on Windows. To run the same checks locally:
+
+```powershell
+python tools/i18n_audit.py audit --check
+& "$env:ProgramFiles\AutoHotkey\v2\AutoHotkey64.exe" /ErrorStdOut tools/smoke_parse.ahk
+& "$env:ProgramFiles\AutoHotkey\v2\AutoHotkey64.exe" /ErrorStdOut tools/smoke_register.ahk
 ```
 
-| 快捷键 | 功能 |
-|--------|------|
-| `Win+J` | 打开快速启动器 |
-| `Alt+E` | 打开 / 切换 Total Commander |
-| `i` / `Esc` | 进入插入模式 / 返回 normal 模式 |
-| `j/k/h/l` | 下 / 上 / 左 / 右 |
-| `fc` / `fx` | 复制 / 移动到对侧（TC） |
-| `q` | TC 快速预览（再按关闭） |
-| `g` 前缀 | 按键提示面板（中文） |
-| 右键拖拽 | 鼠标手势 |
+To add an integration, place it in `Plugins/`, register its actions or commands using the existing plugin patterns, and include it from `Rim.ahk`. Keep UI strings in `Lang/en.ini` and `Lang/zh-CN.ini`; run the localization audit after changing translated strings.
 
-## 配置
+## Documentation
 
-- 托盘右键 → **配置**：可视化配置中心（按键 / 全局热键 / 插件 / TC 设置 / 启动器 / 动作 / 帮助）
-- `Conf/rim.ini`：主配置（文本，注释完整，可手改；配置中心写入时保留注释与顺序）
-- `Conf/Skins/`：皮肤
+- [Documentation index](docs/README.md)
+- [简体中文文档](docs/README.zh-CN.md)
+- [License](LICENSE)
 
-TC 键位沿袭 VimDesktop 原版三源合一：`Conf/rim.ini [TTOTAL_CMD]`（用户定制优先）
-+ 插件硬编码 + 458 条 TC 命令编号对照（抽自原版实现）。
+## Credits
 
-## 目录结构
+- [RunZ](https://github.com/goreliu/runz) for launcher design and implementation foundations.
+- [VimDesktop](https://github.com/goreliu/vimdesktop) for modal keyboard controls and the Total Commander mapping heritage.
+- [StrokesPlus](https://roblarky.github.io/) for inspiration for mouse gestures.
 
-```
-Rim/
-├── Rim.ahk                 # 主入口
-├── Core/                  # 引擎 / 配置 / 搜索 / 执行 / 热键 / 手势 / 国际化
-├── Gui/                   # 配置中心 / 手势管理
-├── Plugins/               # General / TotalCommander / Explorer / Misc / ...
-├── Lib/                   # EasyIni / TCMatch / MonsterEval / JSON
-├── Lang/                  # 语言包 (zh-CN / en 全量, ja/de/fr/es 占位)
-├── tools/                 # i18n_audit.py 审计脚本
-└── Conf/                  # rim.ini / Skins/
-```
+## License
 
-## 国际化 (i18n)
-
-- UI 文案一律走 `T("key")` / `T("key", arg...)`（`Core/I18n.ahk`），占位符 `{1} {2}...`，
-  缺键自动回落英文，永不抛错。`g_WindowName` 是窗口匹配哨兵，禁止翻译。
-- 语言包 `Lang/<bcp47>.ini`（`[Strings]` 段，UTF-8，`\n` 换行），`zh-CN` / `en` 全量，
-  其余占位。切换：配置中心 → 启动器 → 界面语言（托盘即时生效，完整生效需重启）。
-- 审计（新增 / 改查 / 覆盖率 / 残留扫描）：
-  `python tools/i18n_audit.py audit --check`（CI 门禁），
-  `stats` 看覆盖率，`query <key>` 查值与引用，
-  `scaffold <lang>` 导出待译 key，`add <key> --zh … --en …` 新增。
-- P1 已迁移：托盘 / 启动提示 / 配置中心。P2 已迁移：手势管理 / 全部插件动作与命令描述 /
-  Core 手势 OSD / 各插件对话框与帮助（`zh-CN`/`en` 全量约 1640 key）。
-  有意保留中文：层存储标识（`全部/全局/应用层:/模板:/黑名单:/内置`）、`MonsterEval` 错误前缀
-  （与 `Search` 的 `InStr(val,"错误")` 协议耦合）、日志行、字体名、匹配器（密码排除词、
-  网页 class 钩子、API 参数）。`audit --include-plugins` 跟踪残留（应仅剩上述白名单）。
-
-## 开发
-
-- 加插件：在 `Plugins/` 建 `YourPlugin.ahk`，定义 `RegisterPlugin_YourPlugin()`，
-  用 `RegisterAction()` 注册动作、`MapKey()` 绑键，主入口加 `#Include`。
-- 加皮肤：在 `Conf/Skins/` 建 `YourSkin.ini`，配置里切 Skin 名。
-- 构建号：`Rim.ahk` 顶部 `g_BuildTag`，日志 BUILD 行与配置中心帮助页同源。
-
-## 致谢
-
-Rim 站在三位前辈的肩膀上：
-
-- [RunZ](https://github.com/goreliu/runz)（goreliu）—— 快速启动器的设计与实现源头
-- [VimDesktop](https://github.com/goreliu/vimdesktop)（goreliu）—— 模式化键盘操作与 TC 键位体系的源头
-- [StrokesPlus](https://github.com/roblarky/roblarky.github.io)（roblarky）—— 鼠标手势的设计灵感来源
-
-## 许可证
-
-MIT License — 见 [LICENSE](LICENSE)。
+Rim is licensed under the [MIT License](LICENSE).
