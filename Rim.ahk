@@ -10,6 +10,9 @@ SetWorkingDir(A_ScriptDir)
 try A_IconHidden := true
 catch {
 }
+try TraySetIcon(A_ScriptDir . "\Assets\Rim.ico")
+catch {
+}
 ; 启动计时原点 + 错误日志轮转 (函数来自 Core/Common.ahk, 编译期可用)
 global g_BootT0 := A_TickCount
 try RotateErrorLog()
