@@ -78,12 +78,15 @@ UpdateSendTo(create := true, overwrite := false) {
 
 ; 更新启动快捷方式
 UpdateStartupLnk(create := true, overwrite := false) {
-    lnkFilePath := A_Startup "\RunZ.lnk"
+    lnkFilePath := A_Startup "\Rim.lnk"
     if (!create) {
         try FileDelete(lnkFilePath)
         return
     }
-    if (!FileExist(lnkFilePath) || overwrite)
-        FileCreateShortcut(A_ScriptDir "\RunZ.exe", lnkFilePath
-            , A_ScriptDir, "RunZ.ahk --hide", "RunZ", A_ScriptDir "\RunZ.ico")
+    if (!FileExist(lnkFilePath) || overwrite) {
+        target := A_IsCompiled ? A_ScriptFullPath : A_AhkPath
+        args := A_IsCompiled ? "--hide" : '"' A_ScriptFullPath '" --hide'
+        FileCreateShortcut(target, lnkFilePath
+            , A_ScriptDir, args, "Rim", A_ScriptDir "\Assets\Rim.ico")
+    }
 }
