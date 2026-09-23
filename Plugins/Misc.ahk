@@ -55,6 +55,10 @@ RegisterPlugin_Misc() {
     RegisterCommand("CurrencyRate", "function", "CurrencyRate", T("cmd.Misc.CurrencyRate"))
     RegisterCommand("ShowIp", "function", "ShowIp", T("cmd.Misc.ShowIp"))
     RegisterCommand("Wifi", "function", "WifiShow", T("cmd.Misc.Wifi"))
+    RegisterCommand("Dns", "function", "DnsShow", T("cmd.Misc.Dns"))
+    RegisterCommand("Ping", "function", "PingShow", T("cmd.Misc.Ping"))
+    RegisterCommand("PubIp", "function", "PubIpShow", T("cmd.Misc.PubIp"))
+    RegisterCommand("Env", "function", "EnvShow", T("cmd.Misc.Env"))
     RegisterCommand("Calendar", "function", "Calendar", T("cmd.Misc.Calendar"))
     RegisterCommand("UrlEncode", "function", "UrlEncodeCmd", T("cmd.Misc.UrlEncode"))
     RegisterCommand("UrlDecode", "function", "UrlDecodeCmd", T("cmd.Misc.UrlDecode"))
@@ -905,6 +909,363 @@ Misc_WlanNoSvc(text) {
             return true
     }
     return false
+}
+
+; === DNS 查询 (nslookup, 类型默认 A, 中英输出通吃) ===
+DnsShow() {
+    input := MiscPipeInput(T("misc.prompt_dns"), T("misc.title_dns"))
+    if (input = "")
+        return
+    toks := StrSplit(RegExReplace(Trim(input), "\s+", " "), " ")
+    domain := toks[1]
+    qtype := "A"
+    if (toks.Length >= 2) {
+        typ := StrUpper(toks[2])
+        if (typ = "A" || typ = "AAAA" || typ = "MX" || typ = "TXT" || typ = "CNAME" || typ = "NS")
+            qtype := typ
+    }
+    out := Misc_RunUtf8("nslookup -type=" qtype " " domain)
+    if (Misc_DnsFailed(out)) {
+        if (InStr(out, "Non-existent domain") || InStr(out, "找不到"))
+            DisplayResult(T("misc.dns_notfound", domain))
+        else
+            DisplayResult(T("misc.dns_failed", domain))
+        return
+    }
+    recs := Misc_DnsParse(out, qtype)
+    if (recs.Length = 0) {
+        DisplayResult(T("misc.dns_failed", domain))
+        return
+    }
+    items := [Map("type", "head", "text", T("misc.dns_title", domain) . " · " . qtype)
+        , Map("type", "head", "text", "")]
+    for r in recs
+        items.Push(Map("type", "row", "mark", "*", "label", r["label"], "value", r["value"]
+            , "copy", r["value"], "tip", T("misc.copied_val", r["value"])))
+    RowNavShow(items)
+}
+
+Misc_DnsFailed(out) {
+    if (Trim(out) = "")
+        return true
+    markers := ["Non-existent domain", "can't find", "timed out", "No response"
+        , "找不到", "超时", "无响应"]
+    for mk in markers {
+        if InStr(out, mk)
+            return true
+    }
+    return false
+}
+
+Misc_DnsParse(out, qtype) {
+    ; 记录行自带特征可直认 (MX/CNAME/NS/TXT); 只有裸 Address: 需要 Server 配对门
+    ; (A 查询 Server 块在前, MX 应答经常无 Name: 行, 不能设统一门)
+    recs := []
+    skipNextAddress := false
+    lastLabel := qtype
+    Loop Parse, out, "`n", "`r" {
+        line := Trim(A_LoopField)
+        if (line = "")
+            continue
+        ; Server 自报家门: Server: 行之后紧跟的 Address: 是 DNS 服务器地址, 不是答案
+        if RegExMatch(line, "(?i)^Server\s*:") {
+            skipNextAddress := true
+            continue
+        }
+        if RegExMatch(line, "(?i)^(?:Addresses|Address)\s*:\s*(.+)$", &m) {
+            if (skipNextAddress) {
+                skipNextAddress := false
+                continue
+            }
+            v := Trim(m[1])
+            lastLabel := InStr(v, ":") ? "AAAA" : "A"
+            recs.Push(Map("label", lastLabel, "value", v))
+        } else if RegExMatch(line, "(?i)MX preference\s*=\s*(\d+)\s*,\s*mail exchanger\s*=\s*(\S+)", &m) {
+            lastLabel := "MX"
+            recs.Push(Map("label", "MX", "value", m[1] . " " . m[2]))
+        } else if RegExMatch(line, "(?i)mail exchanger\s*=\s*(\S+)", &m) {
+            lastLabel := "MX"
+            recs.Push(Map("label", "MX", "value", m[1]))
+        } else if RegExMatch(line, "(?i)aliases\s*=\s*(\S+)", &m) {
+            lastLabel := "CNAME"
+            recs.Push(Map("label", "CNAME", "value", m[1]))
+        } else if RegExMatch(line, "(?i)nameserver\s*=\s*(\S+)", &m) {
+            lastLabel := "NS"
+            recs.Push(Map("label", "NS", "value", m[1]))
+        } else if RegExMatch(line, "(?i)\btext\s*=\s*(.+)$", &m) {
+            lastLabel := "TXT"
+            recs.Push(Map("label", "TXT", "value", Trim(m[1])))
+        } else if RegExMatch(line, "(?i)^(?:primary name server|responsible mail addr|serial|refresh|retry|expire|default TTL)\s*=") {
+            continue
+        } else if (SubStr(line, 1, 1) = "(") {
+            continue
+        } else if (recs.Length > 0 && !RegExMatch(line, "^[^:]{1,40}:\s")) {
+            ; Addresses 续行: 缩进裸 IP (IPv6 含冒号但后无空格, 与键行区分)
+            v := line
+            recs.Push(Map("label", InStr(v, ":") ? "AAAA" : lastLabel, "value", v))
+        }
+    }
+    return recs
+}
+
+; === Ping (次数默认 4, 上限 20, 中英输出通吃) ===
+PingShow() {
+    input := MiscPipeInput(T("misc.prompt_ping"), T("misc.title_ping"))
+    if (input = "")
+        return
+    toks := StrSplit(RegExReplace(Trim(input), "\s+", " "), " ")
+    host := toks[1]
+    count := 4
+    if (toks.Length >= 2 && IsNumber(toks[2]))
+        count := Min(Max(Integer(toks[2]), 1), 20)
+    DisplayResult(T("misc.net_pinging", host))
+    out := Misc_RunUtf8("ping -n " count " " host)
+    if (Trim(out) = "" || InStr(out, "could not find host") || InStr(out, "找不到主机")) {
+        DisplayResult(T("misc.ping_nohost", host))
+        return
+    }
+    items := [Map("type", "head", "text", T("misc.ping_title", host))
+        , Map("type", "head", "text", "")]
+    n := 0
+    got := false
+    Loop Parse, out, "`n", "`r" {
+        line := Trim(A_LoopField)
+        if (line = "")
+            continue
+        if InStr(line, "TTL=") {
+            n++
+            tm := ""
+            if RegExMatch(line, "(?:时间|time)\s*[=<]\s*(<?\d+)\s*ms", &m)
+                tm := m[1] . "ms"
+            ttl := ""
+            if RegExMatch(line, "(?i)TTL\s*=\s*(\d+)", &m)
+                ttl := " TTL=" . m[1]
+            v := Trim(tm . ttl)
+            items.Push(Map("type", "row", "mark", "*", "label", "#" . n, "value", v
+                , "copy", v, "tip", T("misc.copied_val", v)))
+            got := true
+        } else if (InStr(line, "超时") || InStr(line, "timed out")
+            || InStr(line, "unreachable") || InStr(line, "无法访问")) {
+            n++
+            items.Push(Map("type", "row", "mark", "*", "label", "#" . n
+                , "value", T("misc.ping_timeout"), "copy", "", "tip", T("misc.ping_timeout")))
+            got := true
+        }
+    }
+    if (!got) {
+        DisplayResult(T("misc.ping_failed", host))
+        return
+    }
+    avg := ""
+    if RegExMatch(out, "(?:平均|Average)\s*[=＝]\s*(\d+)\s*ms", &m)
+        avg := m[1] . "ms"
+    loss := ""
+    if RegExMatch(out, "(\d+)\s*%\s*(?:loss|丢失)", &m)
+        loss := m[1] . "%"
+    else if RegExMatch(out, "(?:丢失|Lost)\s*[=＝]\s*(\d+)", &m)
+        loss := m[1]
+    if (avg != "")
+        items.Push(Map("type", "row", "mark", "*", "label", T("misc.ping_avg"), "value", avg
+            , "copy", avg, "tip", T("misc.copied_val", avg)))
+    if (loss != "")
+        items.Push(Map("type", "row", "mark", "*", "label", T("misc.ping_loss"), "value", loss
+            , "copy", loss, "tip", T("misc.copied_val", loss)))
+    RowNavShow(items)
+}
+
+; === 公网 IP (ip-api 主, ipify 备) ===
+PubIpShow() {
+    global Arg
+    target := Trim(Arg)
+    geo := Misc_PubIpGeo(target)
+    if (geo.Has("ip")) {
+        title := target = "" ? T("misc.pubip_title") : T("misc.pubip_titleq", target)
+        items := [Map("type", "head", "text", title), Map("type", "head", "text", "")]
+        order := ["ip", "country", "region", "city", "isp"]
+        labels := Map("ip", "IP", "country", T("misc.pubip_country"), "region", T("misc.pubip_region")
+            , "city", T("misc.pubip_city"), "isp", T("misc.pubip_isp"))
+        for k in order {
+            if (geo.Has(k) && geo[k] != "")
+                items.Push(Map("type", "row", "mark", "*", "label", labels[k], "value", geo[k]
+                    , "copy", geo[k], "tip", T("misc.copied_val", geo[k])))
+        }
+        RowNavShow(items)
+        return
+    }
+    ip := Trim(Misc_HttpGet("https://api.ipify.org"))
+    if (ip != "" && RegExMatch(ip, "^[\d\.:a-fA-F]+$")) {
+        items := [Map("type", "head", "text", T("misc.pubip_title")), Map("type", "head", "text", "")
+            , Map("type", "row", "mark", "*", "label", "IP", "value", ip
+                , "copy", ip, "tip", T("misc.copied_val", ip))]
+        RowNavShow(items)
+        return
+    }
+    DisplayResult(T("misc.pubip_failed"))
+}
+
+Misc_PubIpGeo(ip) {
+    url := "http://ip-api.com/json/" . (ip = "" ? "" : ip) . "?fields=status,message,query,country,regionName,city,isp"
+    out := Misc_HttpGet(url)
+    res := Map()
+    if (Trim(out) = "")
+        return res
+    try {
+        data := JSON.Load(out)
+    } catch {
+        return res
+    }
+    try {
+        if (data["status"] != "success")
+            return res
+    } catch {
+        return res
+    }
+    for k in ["query", "country", "regionName", "city", "isp"] {
+        try {
+            v := data[k]
+            if (v != "")
+                res[k = "query" ? "ip" : (k = "regionName" ? "region" : k)] := String(v)
+        } catch {
+        }
+    }
+    return res
+}
+
+Misc_HttpGet(url) {
+    out := Misc_HttpDirect(url)
+    if (Trim(out) != "")
+        return out
+    ; WinHTTP 不懂 socks 代理: curl.exe 兜底 (Win10 1803+ 自带, 认 env 代理)
+    q := Chr(34)
+    return Misc_RunUtf8("curl.exe -s -m 15 --proto =http,https " . q . url . q)
+}
+
+Misc_HttpDirect(url) {
+    try {
+        http := ComObject("WinHttp.WinHttpRequest.5.1")
+        http.SetTimeouts(8000, 8000, 8000, 8000)
+        http.Open("GET", url, false)
+        http.SetRequestHeader("User-Agent", "Mozilla/5.0")
+        ; WinHTTP 不读 env 代理 (curl 会): 手动接 HTTPS_PROXY/HTTP_PROXY/ALL_PROXY
+        proxy := Misc_HttpProxy()
+        if (proxy != "") {
+            try http.SetProxy(2, proxy, "")
+            catch {
+            }
+        }
+        http.Send()
+        return http.ResponseText
+    } catch {
+        return ""
+    }
+}
+
+; env 代理转 WinHTTP 格式 (socks5://h:p → socks=h:p; http://h:p → h:p)
+Misc_HttpProxy() {
+    raw := ""
+    for k in ["HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy", "ALL_PROXY", "all_proxy"] {
+        try {
+            v := Trim(EnvGet(k))
+            if (v != "") {
+                raw := v
+                break
+            }
+        } catch {
+        }
+    }
+    if (raw = "")
+        return ""
+    addr := RegExReplace(raw, "^\w+://", "")
+    addr := RegExReplace(addr, "/.*$", "")
+    if (addr = "")
+        return ""
+    if RegExMatch(raw, "^(socks5?|http)", &m)
+        scheme := StrLower(m[1])
+    else
+        scheme := ""
+    if (scheme = "socks" || scheme = "socks5")
+        return "socks=" . addr
+    return addr
+}
+
+; === 环境变量 (空参全表; 单名精确取; 含分号自动拆行; 只读) ===
+EnvShow() {
+    global Arg
+    name := Trim(Arg)
+    all := Map()
+    names := []
+    out := Misc_RunUtf8("set")
+    Loop Parse, out, "`n", "`r" {
+        line := A_LoopField
+        if (line = "")
+            continue
+        pos := InStr(line, "=")
+        if (pos < 2)
+            continue
+        k := SubStr(line, 1, pos - 1)
+        v := SubStr(line, pos + 1)
+        all[StrUpper(k)] := Map("name", k, "value", v)
+        names.Push(StrUpper(k))
+    }
+    if (name = "") {
+        if (names.Length = 0) {
+            DisplayResult(T("misc.env_failed"))
+            return
+        }
+        sorted := Misc_SortLines(names)
+        items := [Map("type", "head", "text", T("misc.env_title", sorted.Length))
+            , Map("type", "head", "text", "")]
+        for uk in sorted {
+            e := all[uk]
+            items.Push(Misc_EnvRow(e["name"], e["value"]))
+        }
+        RowNavShow(items)
+        return
+    }
+    uk := StrUpper(name)
+    if (!all.Has(uk)) {
+        DisplayResult(T("misc.env_notfound", name))
+        return
+    }
+    e := all[uk]
+    if InStr(e["value"], ";") {
+        parts := StrSplit(e["value"], ";")
+        items := [Map("type", "head", "text", T("misc.env_title2", e["name"], parts.Length))
+            , Map("type", "head", "text", "")]
+        i := 1
+        for p in parts {
+            p := Trim(p)
+            if (p = "")
+                continue
+            items.Push(Map("type", "row", "mark", String(i), "label", e["name"], "value", p
+                , "copy", p, "tip", T("misc.copied_val", p)))
+            i++
+        }
+        RowNavShow(items)
+        return
+    }
+    items := [Map("type", "head", "text", T("misc.env_title2", e["name"], 1))
+        , Map("type", "head", "text", "")]
+    items.Push(Misc_EnvRow(e["name"], e["value"]))
+    RowNavShow(items)
+}
+
+Misc_EnvRow(name, val) {
+    if (Trim(val) = "")
+        return Map("type", "row", "mark", "*", "label", name, "value", T("misc.env_empty")
+            , "copy", "", "tip", T("misc.env_empty"))
+    return Map("type", "row", "mark", "*", "label", name, "value", val
+        , "copy", val, "tip", T("misc.copied_val", val))
+}
+
+Misc_SortLines(arr) {
+    if (arr.Length < 2)
+        return arr
+    txt := ""
+    for v in arr
+        txt .= v . "`n"
+    txt := Sort(RTrim(txt, "`n"))
+    return StrSplit(txt, "`n")
 }
 
 ; === 汇率查询 (原版: CurrencyRate USD CNY amount 三段式 + CNY2USD/USD2CNY 单发) ===
