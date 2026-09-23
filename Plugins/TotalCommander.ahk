@@ -2358,6 +2358,7 @@ TC_NewFileDialog(srcPath := "", ext := "", blank := false) {
     cancelBtn := dlg.Add("Button", "x282 y80 w90 h30", T("tc.new_cancel"))
     okBtn.OnEvent("Click", (*) => TC_DoCreateFile(dlg, nameEdit.Text, srcPath, blank))
     cancelBtn.OnEvent("Click", (*) => dlg.Destroy())
+    dlg.OnEvent("Close", (*) => dlg.Destroy())
     dlg.OnEvent("Escape", (*) => dlg.Destroy())
     ; 贴到首菜单右侧 (菜单关弹前已记矩形; 无矩形才居中. 原版新建文件窗即跟在菜单旁,
     ; 之前无坐标 Show 默认居中/回列表左上, 与菜单脱节)

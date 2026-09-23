@@ -145,7 +145,14 @@ WM_MOUSEMOVE(wParam, lParam, msg, hwnd) {
 
 ; 窗口激活/失焦事件 (对齐原版: WinExist("RunZ.ahk") 判调试器, 否则 HideOrExit)
 WM_ACTIVATE(wParam, lParam, msg, hwnd) {
-    global g_DisableAutoExit, g_Conf, g_InputEdit, g_WindowName
+    global g_DisableAutoExit, g_Conf, g_InputEdit, g_WindowName, g_MainGui
+
+    ; 只处理主窗自己的消息: 子窗(QR/配置/手势等)的失活不得连带隐藏主窗
+    ; (OnMessage(0x06) 是进程级, QR 关 X 时 hwnd=QR句柄, 不拦即误杀主窗)
+    try {
+        if (IsSet(g_MainGui) && IsObject(g_MainGui) && hwnd != g_MainGui.Hwnd)
+            return
+    }
 
     if (g_DisableAutoExit)
         return
