@@ -450,7 +450,20 @@ wm_Win() {
 }
 
 wm_max() {
-    WinMaximize wm_Win()
+    spec := wm_Win()
+    try {
+        ; StrokesPlus acMaximizeOrRestoreWindow 对等:
+        ; 已最大化时恢复, 普通/最小化时最大化. 每次按起点窗口判断,
+        ; 不使用 static 状态, 避免多窗口之间互相串状态.
+        if (WinGetMinMax(spec) = 1)
+            WinRestore(spec)
+        else
+            WinMaximize(spec)
+    } catch {
+        try WinMaximize(spec)
+        catch {
+        }
+    }
 }
 
 wm_min() {
