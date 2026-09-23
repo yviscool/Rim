@@ -25,9 +25,12 @@ Check("sample-values", IsObject(s1) && s1.totalGB > 0 && s1.memPct >= 0 && s1.me
 Check("sample-reuse", ObjPtr(s1) = ObjPtr(s2))
 
 n1 := StatsBall_NetRate()
+Sleep(120)
 n2 := StatsBall_NetRate()
 Check("net-values", IsObject(n1) && n1.up >= 0 && n1.dn >= 0)
 Check("net-reuse", ObjPtr(n1) = ObjPtr(n2))
+Check("net-diagnostics", n2.rawUp >= 0 && n2.rawDn >= 0 && n2.peakUp >= 0
+    && n2.peakDn >= 0 && n2.dt > 0 && n2.valid >= 0)
 Check("memory-manager", MemoryManager.GetUsage() >= 0)
 rows := StatsBall_TopProcs(3)
 Check("top-n-limit", rows.Length <= 3)

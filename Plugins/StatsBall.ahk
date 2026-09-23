@@ -85,7 +85,8 @@ StatsBall_Boost(*) {
 ; 采样层
 ; ============================================================
 StatsBall_Sample() {
-    static cache := {cpu: 0, memPct: 0, availGB: 0, totalGB: 0, up: 0, dn: 0}
+    static cache := {cpu: 0, memPct: 0, availGB: 0, totalGB: 0, up: 0, dn: 0,
+        rawUp: 0, rawDn: 0, peakUp: 0, peakDn: 0, netDt: 0, netValid: 0}
     cpu := 0
     try cpu := CPULoad()
     catch {
@@ -119,6 +120,12 @@ StatsBall_Sample() {
     if IsObject(net) {
         cache.up := net.up
         cache.dn := net.dn
+        cache.rawUp := net.rawUp
+        cache.rawDn := net.rawDn
+        cache.peakUp := net.peakUp
+        cache.peakDn := net.peakDn
+        cache.netDt := net.dt
+        cache.netValid := net.valid
     }
     return cache
 }
@@ -165,16 +172,16 @@ StatsBall_Spark(hist) {
     return out
 }
 
-; GetIfTable2 聚合物理口速率 (调用方 try 包裹; 首 tick 返回 0)
+; GetIfTable2 聚合活动接口速率 (调用方 try 包裹; 首 tick 返回 0)
 ; 偏移经 Python+ctypes 按 MSVC 对齐实测标定 (2026-09, 31 口本机双向激励):
 ; tableOff=8(NumEntries 后 4 字节对齐填充), rowSize=1352, Type@1128,
 ; OperStatus@1112+44=1156(1=up), InOctets@1208, OutOctets@1280
 ; (旧值 @1312 实测恒零, 系 OutDiscards/Errors 区 —— 上行永远 0 的根因;
 ;  定量 ping+下载激励下 @1280/+14064 与包计数 @1288/+108 同步涨, 自洽;
 ;  @1256/@1320 为单播镜像, 求和时靠 (rx,tx) 去重消除)
-; 注意: 虚拟层叠口 (QoS/WFP/虚拟交换机) 会镜像同一物理计数器, 先按 (rx,tx)
-; 去重, 再按 Luid 逐口跟踪求差分, 否则网速 ×N; 回环口 (Type=24) 排除;
-; 速率>10Gbps 视为计数器异常回 0 (最后兜底, 集合突变毛刺已由逐口跟踪消除)
+; 注意: 虚拟层叠口 (QoS/WFP/虚拟交换机) 会镜像同一计数器, 先按 (rx,tx)
+; 去重, 再按 Luid 逐口跟踪求差分, 否则网速 ×N; 回环口 (Type=24) 排除.
+; 返回 rawUp/rawDn (瞬时差分), up/dn (EMA 平滑), peakUp/peakDn (衰减峰值).
 StatsBall_NetRate() {
     ; 逐口 Luid 跟踪: 只统计新老快照都存在的口子, 新口/消失口不贡献差分
     ; (WiFi 重连/休眠唤醒/VPN 插拔时接口集合突变, 聚合求和会把新口的累计值
@@ -182,7 +189,10 @@ StatsBall_NetRate() {
     static prevLuid := [], prevRx := [], prevTx := [], prevCount := 0, prevTick := 0
     static curLuid := [], curRx := [], curTx := [], curCount := 0
     static seenRx := [], seenTx := [], seenCount := 0
-    static result := {up: 0, dn: 0}
+    static result := {up: 0, dn: 0, rawUp: 0, rawDn: 0, peakUp: 0, peakDn: 0,
+        dt: 0, interfaces: 0, valid: 0}
+    static smoothUp := 0.0, smoothDn := 0.0, peakUp := 0.0, peakDn := 0.0
+    static hasRate := false
     rowSize := 1352
     tableOff := 8
     typeOff := 1128
@@ -192,8 +202,7 @@ StatsBall_NetRate() {
     pTable := 0
     hr := DllCall("iphlpapi\GetIfTable2", "Ptr*", &pTable, "UInt")
     if (hr != 0 || !pTable) {
-        result.up := 0
-        result.dn := 0
+        StatsBall_NetResetResult(&result, &smoothUp, &smoothDn, &peakUp, &peakDn, &hasRate)
         return result
     }
     curLuid.Length := 0
@@ -240,38 +249,52 @@ StatsBall_NetRate() {
     } finally {
         DllCall("iphlpapi\FreeMibTable", "Ptr", pTable)
     }
-    now := A_TickCount
+    now := A_TickCount64
     if (prevTick = 0 || prevCount = 0) {
         tmp := prevLuid, prevLuid := curLuid, curLuid := tmp
         tmp := prevRx, prevRx := curRx, curRx := tmp
         tmp := prevTx, prevTx := curTx, curTx := tmp
         prevCount := curCount
         prevTick := now
-        result.up := 0
-        result.dn := 0
+        StatsBall_NetResetResult(&result, &smoothUp, &smoothDn, &peakUp, &peakDn, &hasRate)
+        result.interfaces := curCount
         return result
     }
     dt := (now - prevTick) / 1000.0
-    if (dt <= 0) {
-        result.up := 0
-        result.dn := 0
+    if (dt < 0.05 || dt > 10.0) {
+        tmp := prevLuid, prevLuid := curLuid, curLuid := tmp
+        tmp := prevRx, prevRx := curRx, curRx := tmp
+        tmp := prevTx, prevTx := curTx, curTx := tmp
+        prevCount := curCount
+        prevTick := now
+        StatsBall_NetResetResult(&result, &smoothUp, &smoothDn, &peakUp, &peakDn, &hasRate)
+        result.interfaces := curCount
         return result
     }
     dRx := 0
     dTx := 0
+    validRx := 0
+    validTx := 0
+    common := 0
+    maxDelta := 12500000000 * dt ; 100 Gbps per interface, protects reset spikes
     i := 1
     while (i <= curCount) {
         j := 1
         while (j <= prevCount && prevLuid[j] != curLuid[i])
             j++
         if (j <= prevCount) {
-            ; 单口计数器回绕/清零: 该口本轮贡献 0, 基线照常更新
+            common++
+            ; 单口计数器回绕/清零: 该方向本轮贡献 0, 基线照常更新.
             dr := curRx[i] - prevRx[j]
             dt2 := curTx[i] - prevTx[j]
-            if (dr > 0)
+            if (dr >= 0 && dr <= maxDelta) {
                 dRx += dr
-            if (dt2 > 0)
+                validRx++
+            }
+            if (dt2 >= 0 && dt2 <= maxDelta) {
                 dTx += dt2
+                validTx++
+            }
         }
         i++
     }
@@ -280,13 +303,51 @@ StatsBall_NetRate() {
     tmp := prevTx, prevTx := curTx, curTx := tmp
     prevCount := curCount
     prevTick := now
-    result.up := dTx / dt
-    result.dn := dRx / dt
-    if (result.up > 1250000000 || result.dn > 1250000000) {
-        result.up := 0
-        result.dn := 0
+    rawUp := validTx > 0 ? dTx / dt : 0.0
+    rawDn := validRx > 0 ? dRx / dt : 0.0
+    if (common = 0) {
+        StatsBall_NetResetResult(&result, &smoothUp, &smoothDn, &peakUp, &peakDn, &hasRate)
+        result.interfaces := curCount
+    } else {
+        alpha := 1 - Exp(-dt / 1.25)
+        if (!hasRate) {
+            smoothUp := rawUp
+            smoothDn := rawDn
+            hasRate := true
+        } else {
+            smoothUp += alpha * (rawUp - smoothUp)
+            smoothDn += alpha * (rawDn - smoothDn)
+        }
+        peakUp := Max(rawUp, peakUp * Exp(-dt / 8.0))
+        peakDn := Max(rawDn, peakDn * Exp(-dt / 8.0))
+        result.rawUp := rawUp
+        result.rawDn := rawDn
+        result.up := smoothUp
+        result.dn := smoothDn
+        result.peakUp := peakUp
+        result.peakDn := peakDn
+        result.dt := dt
+        result.interfaces := curCount
+        result.valid := common
     }
     return result
+}
+
+StatsBall_NetResetResult(&result, &smoothUp, &smoothDn, &peakUp, &peakDn, &hasRate) {
+    smoothUp := 0.0
+    smoothDn := 0.0
+    peakUp := 0.0
+    peakDn := 0.0
+    hasRate := false
+    result.up := 0
+    result.dn := 0
+    result.rawUp := 0
+    result.rawDn := 0
+    result.peakUp := 0
+    result.peakDn := 0
+    result.dt := 0
+    result.interfaces := 0
+    result.valid := 0
 }
 
 ; Top-N 内存进程 (Toolhelp 快照, 无 WMI; 仅面板打开时调用)
