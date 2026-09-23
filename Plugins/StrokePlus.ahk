@@ -39,8 +39,9 @@ Register_GestureDefaults() {
     defaultsGesture := Map(
         "Enable", "1",
         "Trigger", "RButton",
-        "Threshold", "20",
-        "Segment", "30",
+        "Threshold", "6",
+        "Segment", "6",
+        "Poll", "10",
         "ShowOSD", "1",
         "NoMatch", "swallow",
         "IgnoreKey", "",
@@ -49,13 +50,21 @@ Register_GestureDefaults() {
         "TrailColor", "45ABFF",
         "TrailWidth", "5"
     )
-    ; 原版 StrokesPlus 默认动作对齐 (/ Up=最大化 / Down=最小化 U=复制 D=粘贴 U_D=F5 等)
-    ; 单字母 (e/G/U/R/D/P/L/N/S/M/Z/B/J/h/X/3) 走模板, 见 Core/GestureTemplate.ahk 内置
+    ; 原版 StrokesPlus 默认动作对齐:
+    ; 单笔斜线: / Up(右上)=最大化 / Down(左下)=最小化 \ Up(左上)=Alt+F4 \ Down(右下)=Ctrl+W
+    ;   Right-Down=打开 Chrome; U=复制 D=粘贴 U_D=刷新
+    ; 方向链 (DIR 空间, 全大写) 与字母模板 (TPL 空间, TPL:U) 命名隔离,
+    ; 单字母模板动作走 [GestureTemplates]/TPL: 覆盖, 见 Core/GestureTemplate.ahk;
+    ; 浏览器专属 Z/B/J/h/3 与 U 后斜向前后页在 Conf/rim.ini 的 Browsers 层定义.
     defaultsGestures := Map(
         "L", "key|{Browser_Back}",
         "R", "key|{Browser_Forward}",
         "U", "key|^c",
         "D", "key|^v",
+        "UR", "<wm_max>",
+        "DL", "<wm_min>",
+        "UL", "key|!{F4}",
+        "DR", "key|^w",
         "UR_U", "<wm_max>",
         "DR_D", "<wm_min>",
         "UL_U", "key|!{F4}",
@@ -66,16 +75,9 @@ Register_GestureDefaults() {
         "DL_D", "key|^w",
         "L_R", "key|#{Left}",
         "R_L", "key|#{Right}",
-        "U_R", "<SP_VolUp>",
-        "U_L", "<SP_VolDown>",
-        "R_D", "<SP_End>",
+        "R_D", "run|D:\software\Chrome\App\Chrome.exe",
         "L_D", "run|explorer.exe",
-        "R_U", "<SP_Home>",
         "L_U", "<SP_Home>",
-        "DR", "key|{Browser_Forward}",
-        "DL", "key|{Browser_Back}",
-        "UL", "key|{BackSpace}",
-        "UR", "key|{Tab}",
         "D_L_D", "function|Gesture_IgnoreNext",
         "WheelUp", "<Gen_NextTab>",
         "WheelDown", "<Gen_PrevTab>",

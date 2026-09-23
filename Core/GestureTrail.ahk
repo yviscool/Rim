@@ -48,13 +48,34 @@ GestureTrail_Hide() {
     }
 }
 
+; ---- TrailColor 解析 ("45ABFF"/"#45ABFF" RRGGBB -> COLORREF 0xBBGGRR, 失败回退白) ----
+GestureTrail_Color() {
+    global g_Gesture
+    c := "45ABFF"
+    try c := Trim(g_Gesture["trailColor"])
+    catch {
+    }
+    c := StrReplace(c, "#", "")
+    c := StrReplace(c, "0x", "")
+    if (StrLen(c) != 6)
+        return 0xFFFFFF
+    try {
+        r := Integer("0x" . SubStr(c, 1, 2))
+        g := Integer("0x" . SubStr(c, 3, 2))
+        b := Integer("0x" . SubStr(c, 5, 2))
+        return (b << 16) | (g << 8) | r
+    } catch {
+        return 0xFFFFFF
+    }
+}
+
 ; ---- 单线段 XOR 绘制(画两遍=擦除) ----
 GestureTrail_Draw(x1, y1, x2, y2, width) {
     hdc := DllCall("GetDC", "Ptr", 0, "Ptr")
     if (!hdc)
         return
     try {
-        pen := DllCall("CreatePen", "Int", 0, "Int", width, "UInt", 0xFFFFFF, "Ptr")
+        pen := DllCall("CreatePen", "Int", 0, "Int", width, "UInt", GestureTrail_Color(), "Ptr")
         oldPen := DllCall("SelectObject", "Ptr", hdc, "Ptr", pen, "Ptr")
         DllCall("SetROP2", "Ptr", hdc, "Int", 7)
         DllCall("MoveToEx", "Ptr", hdc, "Int", x1, "Int", y1, "Ptr", 0)

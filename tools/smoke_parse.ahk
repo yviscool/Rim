@@ -10,6 +10,7 @@
 #Include ..\Core\GestureIni.ahk
 #Include ..\Core\GesturePreview.ahk
 #Include ..\Core\GestureTemplate.ahk
+#Include ..\Core\GestureSPData.ahk
 #Include ..\Core\GestureTrail.ahk
 #Include ..\Plugins\BeyondCompare4.ahk
 #Include ..\Plugins\Explorer.ahk

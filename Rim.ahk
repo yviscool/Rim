@@ -193,6 +193,7 @@ global g_CommandArea := "Edit4"
 #Include Core\GestureIni.ahk
 #Include Core\GestureTrail.ahk
 #Include Core\GestureTemplate.ahk
+#Include Core\GestureSPData.ahk
 #Include Core\GesturePreview.ahk
 #Include Gui\GestureUI.ahk
 #Include Gui\VimConfigUI.ahk

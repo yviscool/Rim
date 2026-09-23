@@ -235,10 +235,15 @@ Tpl_BBox(pts) {
     return [minX, minY, maxX, maxY]
 }
 
-; ==================== 内置模板 (理想笔顺合成, 0-100 坐标 y 向下) ====================
+; ==================== 内置模板 ====================
+; 动作以 StrokesPlus.xml 全局动作为准:
+;   e 在 SP 中有模板无动作 -> NoOp (画了没反应, 与原版一致);
+;   S 在 SP 中是运行 Sublime, 不是媒体停止.
+; 样本以 Core/GestureSPData.ahk 真实记录轨迹为首样本 (SPTpl_RawDefs),
+; 理想笔顺合成仅作第二样本兜底 (笔顺差异容错, 如 Right-Down 在 SP 即有 2 样本).
 Tpl_BuiltinDefs() {
     return Map(
-        "e", ["key|#{e}", [[55,55],[35,45],[25,55],[30,70],[50,75],[70,65],[75,50],[60,45],[45,50]]],
+        "e", ["function|Gesture_NoOp", [[55,55],[35,45],[25,55],[30,70],[50,75],[70,65],[75,50],[60,45],[45,50]]],
         "G", ["run|https://www.google.com", [[75,30],[55,15],[30,20],[15,40],[15,65],[30,85],[55,90],[75,80],[70,60],[50,60]]],
         "U", ["key|^z", [[20,15],[20,70],[35,88],[60,88],[78,68],[80,15]]],
         "R", ["key|^y", [[25,10],[25,90],[25,10],[60,12],[72,30],[60,48],[25,50],[75,90]]],
@@ -246,14 +251,14 @@ Tpl_BuiltinDefs() {
         "P", ["<SP_PlayPause>", [[30,10],[30,90],[30,45],[65,40],[72,25],[60,12],[30,10]]],
         "L", ["key|{Media_Prev}", [[30,10],[30,80],[75,80]]],
         "N", ["<SP_Next>", [[25,85],[25,15],[75,85],[75,15]]],
-        "S", ["key|{Media_Stop}", [[70,20],[45,12],[25,25],[30,45],[55,50],[72,60],[60,80],[35,88]]],
+        "S", ["run|D:\software\SublimeText\sublime_text.exe", [[70,20],[45,12],[25,25],[30,45],[55,50],[72,60],[60,80],[35,88]]],
         "M", ["<SP_Mute>", [[20,85],[20,15],[50,60],[80,15],[80,85]]],
-        "Z", ["combo|zoom", [[20,20],[80,20],[20,80],[80,80]]],
-        "B", ["key|^d", [[30,10],[30,90],[30,55],[62,52],[70,68],[58,84],[30,86]]],
-        "J", ["key|^j", [[65,10],[60,70],[40,88],[22,78]]],
-        "h", ["key|{Browser_Home}", [[30,10],[30,90],[30,55],[55,50],[65,65],[65,90]]],
+        "Z", ["function|Gesture_NoOp", [[20,20],[80,20],[20,80],[80,80]]],
+        "B", ["function|Gesture_NoOp", [[30,10],[30,90],[30,55],[62,52],[70,68],[58,84],[30,86]]],
+        "J", ["function|Gesture_NoOp", [[65,10],[60,70],[40,88],[22,78]]],
+        "h", ["function|Gesture_NoOp", [[30,10],[30,90],[30,55],[55,50],[65,65],[65,90]]],
         "X", ["key|^x", [[20,15],[80,85],[80,15],[20,85]]],
-        "3", ["key|^t", [[25,20],[55,12],[70,30],[50,45],[65,55],[70,70],[50,88],[25,82]]]
+        "3", ["function|Gesture_NoOp", [[25,20],[55,12],[70,30],[50,45],[65,55],[70,70],[50,88],[25,82]]]
     )
 }
 
@@ -309,10 +314,25 @@ Tpl_LoadAll() {
                 g_TplThreshold := th + 0
         }
     }
-    ; 先装内置 (单样本)
+    ; 先装内置: SP 真实轨迹为首样本 + 理想合成兜底 (双样本)
     try {
-        for name, def in Tpl_BuiltinDefs()
-            g_Templates[name] := {action: def[1], samples: [Tpl_Synth(def[2])], builtin: 1}
+        rawDefs := SPTpl_RawDefs()
+    } catch {
+        rawDefs := Map()
+    }
+    try {
+        for name, def in Tpl_BuiltinDefs() {
+            samples := []
+            try {
+                if (rawDefs.Has(name)) {
+                    raw := Tpl_Decode(rawDefs[name])
+                    if (raw.Length >= 3)
+                        samples.Push(Tpl_Prepare(raw))
+                }
+            }
+            samples.Push(Tpl_Synth(def[2]))
+            g_Templates[name] := {action: def[1], samples: samples, builtin: 1}
+        }
     }
     ; ini 覆盖 (动作和样本都可自定义): name=action|||s1||||s2 ...
     try {
@@ -342,7 +362,7 @@ Tpl_LoadAll() {
 
 ; ==================== 匹配 ====================
 ; 返回 [name, score0_100], 无模板或太小返回 ["", 0]
-Tpl_Match(rawPts, minSize := 0) {
+Tpl_Match(rawPts, minSize := 0, onlyName := "") {
     global g_Templates, g_TplNPT, g_TplSize
     if (rawPts.Length < 3)
         return ["", 0]
@@ -357,6 +377,8 @@ Tpl_Match(rawPts, minSize := 0) {
     bestName := ""
     bestDist := 1e18
     for name, t in g_Templates {
+        if (onlyName != "" && StrUpper(name) != StrUpper(onlyName))
+            continue
         try {
             if (Gesture_TplOff(name))
                 continue

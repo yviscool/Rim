@@ -416,52 +416,68 @@ c_w() {
 
 ; === 窗口管理函数 ===
 wm_left() {
-    WinGetPos(&x, &y, &w, &h, "A")
-    WinMove(x - 50, , , , "A")
+    spec := wm_Win()
+    WinGetPos(&x, &y, &w, &h, spec)
+    WinMove(x - 50, , , , spec)
 }
 
 wm_right() {
-    WinGetPos(&x, &y, &w, &h, "A")
-    WinMove(x + 50, , , , "A")
+    spec := wm_Win()
+    WinGetPos(&x, &y, &w, &h, spec)
+    WinMove(x + 50, , , , spec)
 }
 
 wm_up() {
-    WinGetPos(&x, &y, &w, &h, "A")
-    WinMove(, y - 50, , , "A")
+    spec := wm_Win()
+    WinGetPos(&x, &y, &w, &h, spec)
+    WinMove(, y - 50, , , spec)
 }
 
 wm_down() {
-    WinGetPos(&x, &y, &w, &h, "A")
-    WinMove(, y + 50, , , "A")
+    spec := wm_Win()
+    WinGetPos(&x, &y, &w, &h, spec)
+    WinMove(, y + 50, , , spec)
+}
+
+; 手势目标窗口: 手势起点窗口有效即起点 (StrokesPlus gsx/gsy 对等),
+; 键盘等其他入口无起点时回退 "A". 经 Gesture_ActionWin 统一.
+wm_Win() {
+    try {
+        if IsFunc("Gesture_ActionWin")
+            return Gesture_ActionWin()
+    }
+    return "A"
 }
 
 wm_max() {
-    WinMaximize "A"
+    WinMaximize wm_Win()
 }
 
 wm_min() {
-    WinMinimize "A"
+    WinMinimize wm_Win()
 }
 
 wm_restore() {
-    WinRestore "A"
+    WinRestore wm_Win()
 }
 
 wm_center() {
-    WinGetPos(, , &w, &h, "A")
+    spec := wm_Win()
+    WinGetPos(, , &w, &h, spec)
     x := (A_ScreenWidth - w) // 2
     y := (A_ScreenHeight - h) // 2
-    WinMove(x, y, , , "A")
+    WinMove(x, y, , , spec)
 }
 
 wm_full() {
     static isFull := false
+    spec := wm_Win()
     if !isFull {
-        WinGetPos(&x, &y, &w, &h, "A")
-        WinMove(0, 0, A_ScreenWidth, A_ScreenHeight, "A")
+        WinGetPos(&x, &y, &w, &h, spec)
+        WinMove(0, 0, A_ScreenWidth, A_ScreenHeight, spec)
         isFull := true
     } else {
-        WinRestore "A"
+        WinRestore spec
         isFull := false
     }
 }

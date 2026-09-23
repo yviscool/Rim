@@ -17,9 +17,9 @@ global g_Gesture := Map(
     "enable", 0,
     "trigger", "RButton",
     "boundTrigger", "",
-    "threshold", 20,
-    "segment", 30,
-    "poll", 15,
+    "threshold", 6,
+    "segment", 6,
+    "poll", 10,
     "showOSD", 1,
     "noMatch", "swallow",
     "ignoreKey", "",
@@ -43,7 +43,13 @@ global g_Gesture := Map(
     "tplRecordCb", "",
     "tryMode", 0,
     "comboUntil", 0,
-    "trailX", -1, "trailY", -1
+    "comboKind", "",
+    "trailX", -1, "trailY", -1,
+    "downMods", "",
+    "startHwnd", 0,
+    "startContext", "",
+    "forwardDown", 0,
+    "leftCombo", 0
 )
 global g_GestureMap := Map()       ; 全局层: 手势串 -> 动作串
 global g_GestureApps := []         ; 应用层(ini 顺序): [{name, exe, cls, map}]
@@ -80,6 +86,8 @@ Gesture_LoadConfig() {
                 g_Gesture["threshold"] := sec["Threshold"] + 0
             if sec.Has("Segment") && (sec["Segment"] + 0 > 0)
                 g_Gesture["segment"] := sec["Segment"] + 0
+            if sec.Has("Poll") && (sec["Poll"] + 0 >= 5)
+                g_Gesture["poll"] := sec["Poll"] + 0
             if sec.Has("ShowOSD")
                 g_Gesture["showOSD"] := (sec["ShowOSD"] = "1") ? 1 : 0
             if sec.Has("Trigger") {
@@ -157,6 +165,9 @@ Gesture_ReloadLayers() {
             cls := g_Conf.Get(sectionName, "set_class", "")
             title := g_Conf.Get(sectionName, "set_title", "")
             titleRx := g_Conf.Get(sectionName, "set_title_regex", "")
+            ownerCls := g_Conf.Get(sectionName, "set_owner_class", "")
+            ctrlCls := g_Conf.Get(sectionName, "set_ctrl_class", "")
+            ctrlTitle := g_Conf.Get(sectionName, "set_ctrl_title", "")
             noglobal := (g_Conf.Get(sectionName, "noglobal", "0") = "1") ? 1 : 0
             mp := Map()
             for _k, _v in section {
@@ -170,7 +181,8 @@ Gesture_ReloadLayers() {
                     continue
                 mp[Gesture_NormalizeFull(_k)] := _v
             }
-            g_GestureApps.Push({name: appName, exe: exe, cls: cls, title: title, titleRx: titleRx, noglobal: noglobal, map: mp})
+            g_GestureApps.Push({name: appName, exe: exe, cls: cls, title: title, titleRx: titleRx,
+                ownerCls: ownerCls, ctrlCls: ctrlCls, ctrlTitle: ctrlTitle, noglobal: noglobal, map: mp})
         }
     }
 }
@@ -212,24 +224,39 @@ Gesture_BindTrigger() {
 }
 
 ; ---- 手势串归一化: 去空格, 大写, "_" 连接 ----
+; 命名空间 (StrokesPlus 对齐): 方向链是 DIR 空间 (U=向上直线),
+; 字母模板是 TPL 空间 (TPL:U=字母 U). "TPL:"/"DIR:" 前缀原样保留,
+; 链查不到时才走模板, 两者不再互遮 (见 Gesture_ResolveStroke).
 Gesture_Normalize(s) {
     s := Trim(s)
+    prefix := ""
+    up := StrUpper(s)
+    if (SubStr(up, 1, 4) = "TPL:" || SubStr(up, 1, 4) = "DIR:") {
+        prefix := SubStr(up, 1, 4)
+        s := Trim(SubStr(s, 5))
+    }
     s := StrReplace(s, " ", "")
     s := StrReplace(s, ",", "_")
     s := StrReplace(s, "-", "_")
     s := StrReplace(s, "__", "_")
-    return StrUpper(s)
+    return prefix . StrUpper(s)
 }
 
 ; ---- 全归一化 (含修饰键前缀): "ctrl + d_r" -> "CTRL+D_R", 顺序固定 CTRL+ALT+SHIFT ----
+; "TPL:U"/"DIR:U" 命名空间前缀优先剥离, 修饰键只认 CTRL/ALT/SHIFT
 Gesture_NormalizeFull(s) {
     s := StrUpper(Trim(s))
     s := StrReplace(s, " ", "")
+    ns := ""
+    if (SubStr(s, 1, 4) = "TPL:" || SubStr(s, 1, 4) = "DIR:") {
+        ns := SubStr(s, 1, 4)
+        s := SubStr(s, 5)
+    }
     if !InStr(s, "+")
-        return Gesture_Normalize(s)
+        return ns . Gesture_Normalize(s)
     parts := StrSplit(s, "+")
     if (parts.Length < 2)
-        return Gesture_Normalize(s)
+        return ns . Gesture_Normalize(s)
     hasC := false
     hasA := false
     hasS := false
@@ -245,7 +272,7 @@ Gesture_NormalizeFull(s) {
         i++
     }
     prefix := (hasC ? "CTRL+" : "") . (hasA ? "ALT+" : "") . (hasS ? "SHIFT+" : "")
-    return prefix . Gesture_Normalize(parts[parts.Length])
+    return prefix . ns . Gesture_Normalize(parts[parts.Length])
 }
 
 ; ---- 当前按住的修饰键 (与归一化同顺序) ----
@@ -262,11 +289,14 @@ Gesture_ActiveMods() {
     return mods
 }
 
-; ---- 取当前活动窗口三要素 (exe/class/title, 失败给空串) ----
-Gesture_GetActiveIds(&exe, &cls, &title) {
+; ---- 取当前活动窗口要素 (exe/class/title + owner/ctrl, 失败给空串) ----
+Gesture_GetActiveIds(&exe, &cls, &title, &ownerCls := "", &ctrlCls := "", &ctrlTitle := "") {
     exe := ""
     cls := ""
     title := ""
+    ownerCls := ""
+    ctrlCls := ""
+    ctrlTitle := ""
     try exe := WinGetProcessName("A")
     catch {
     }
@@ -276,6 +306,109 @@ Gesture_GetActiveIds(&exe, &cls, &title) {
     try title := WinGetTitle("A")
     catch {
     }
+    ; 控件级 (Desktop 层 FolderView 等): 焦点控件类名 + 文本, 失败留空不拦主流程
+    try {
+        focused := ControlGetFocus("A")
+        if (focused != "") {
+            try ctrlCls := ControlGetClass(focused, "A")
+            catch {
+            }
+            try ctrlTitle := ControlGetText(focused, "A")
+            catch {
+            }
+        }
+    }
+    try {
+        hwnd := WinExist("A")
+        owner := DllCall("GetWindow", "Ptr", hwnd, "UInt", 4, "Ptr")
+        if owner
+            ownerCls := WinGetClass("ahk_id " . owner)
+    }
+}
+
+Gesture_WindowClass(hwnd) {
+    if (!hwnd)
+        return ""
+    try {
+        return WinGetClass("ahk_id " . hwnd)
+    } catch {
+    }
+    return ""
+}
+
+Gesture_WindowText(hwnd) {
+    if (!hwnd)
+        return ""
+    try {
+        textBuf := Buffer(2048, 0)
+        DllCall("GetWindowTextW", "Ptr", hwnd, "Ptr", textBuf, "Int", 1024, "Int")
+        return StrGet(textBuf, "UTF-16")
+    }
+    return ""
+}
+
+Gesture_AddContextClass(&classes, &seen, hwnd) {
+    cls := Gesture_WindowClass(hwnd)
+    key := StrLower(cls)
+    if (cls != "" && !seen.Has(key)) {
+        seen[key] := 1
+        classes.Push(cls)
+    }
+}
+
+; Capture the hit control, its top-level window, and host/owner classes once at gesture start.
+Gesture_CaptureWindowContext(x, y) {
+    hit := Gesture_HwndFromPoint(x, y)
+    root := 0
+    if (hit) {
+        try root := DllCall("GetAncestor", "Ptr", hit, "UInt", 2, "Ptr")
+    }
+    if (!root)
+        root := hit
+    ctx := {hitHwnd: hit, rootHwnd: root, exe: "", cls: "", title: "",
+        ownerCls: "", ctrlCls: "", ctrlTitle: ""}
+    if (!hit)
+        return ctx
+
+    try ctx.exe := WinGetProcessName("ahk_id " . root)
+    ctx.cls := Gesture_WindowClass(root)
+    ctx.title := Gesture_WindowText(root)
+    ctx.ctrlCls := Gesture_WindowClass(hit)
+    ctx.ctrlTitle := Gesture_WindowText(hit)
+
+    classes := []
+    seen := Map()
+    parent := hit
+    Loop 16 {
+        try parent := DllCall("GetParent", "Ptr", parent, "Ptr")
+        catch {
+            break
+        }
+        if (!parent)
+            break
+        Gesture_AddContextClass(&classes, &seen, parent)
+    }
+    owner := root
+    Loop 8 {
+        try owner := DllCall("GetWindow", "Ptr", owner, "UInt", 4, "Ptr")
+        catch {
+            break
+        }
+        if (!owner)
+            break
+        Gesture_AddContextClass(&classes, &seen, owner)
+    }
+    for i, ownerClass in classes
+        ctx.ownerCls .= (i > 1 ? "|" : "") . ownerClass
+    return ctx
+}
+
+Gesture_MatchContextClasses(value, patterns) {
+    for i, candidate in StrSplit(value, "|") {
+        if (Gesture_MatchList(candidate, patterns))
+            return true
+    }
+    return false
 }
 
 ; ---- 黑名单命中? (exe/class 精确匹配不分大小写, 或 title 包含) ----
@@ -318,17 +451,22 @@ Gesture_MatchList(value, patterns) {
 }
 
 ; ---- 应用层匹配: 非空条件全满足才命中 (AND), 全空层永不命中 ----
-Gesture_MatchApp(exe, cls, title := "") {
+; StrokesPlus 对齐: 除 exe/class/title 外, 还支持 owner class / control class / control title
+; (ini: set_owner_class / set_ctrl_class / set_ctrl_title, 多值 " | " 精确匹配, title 类为包含匹配)
+Gesture_MatchApp(exe, cls, title := "", ownerCls := "", ctrlCls := "", ctrlTitle := "") {
     global g_GestureApps
     for i, app in g_GestureApps {
         ex := Gesture_AppField(app, "exe")
         cl := Gesture_AppField(app, "cls")
         ti := Gesture_AppField(app, "title")
         rx := Gesture_AppField(app, "titleRx")
+        ow := Gesture_AppField(app, "ownerCls")
+        cc := Gesture_AppField(app, "ctrlCls")
+        ct := Gesture_AppField(app, "ctrlTitle")
         nm := Gesture_AppField(app, "name")
         if (nm != "" && Gesture_LayerOff(nm))
             continue
-        if (ex = "" && cl = "" && ti = "" && rx = "")
+        if (ex = "" && cl = "" && ti = "" && rx = "" && ow = "" && cc = "" && ct = "")
             continue
         if (ex != "" && !Gesture_MatchList(exe, ex))
             continue
@@ -347,6 +485,12 @@ Gesture_MatchApp(exe, cls, title := "") {
             if (!found)
                 continue
         }
+        if (ow != "" && !Gesture_MatchContextClasses(ownerCls, ow))
+            continue
+        if (cc != "" && !Gesture_MatchList(ctrlCls, cc))
+            continue
+        if (ct != "" && (ctrlTitle = "" || !InStr(StrLower(ctrlTitle), StrLower(ct))))
+            continue
         return app
     }
     return ""
@@ -354,12 +498,12 @@ Gesture_MatchApp(exe, cls, title := "") {
 
 ; ---- 分层解析 (纯逻辑, 可单测): 返回 [动作, 层名], 未命中返回 ["", ""] ----
 ; 顺序: 应用层[修饰] -> 应用层[裸] -> 全局[修饰] -> 全局[裸]; noglobal 切断全局回退
-Gesture_ResolveFor(gesture, exe, cls, mods := "", title := "") {
+Gesture_ResolveFor(gesture, exe, cls, mods := "", title := "", ownerCls := "", ctrlCls := "", ctrlTitle := "") {
     global g_GestureMap
     g := Gesture_Normalize(gesture)
     if (g = "")
         return ["", ""]
-    app := Gesture_MatchApp(exe, cls, title)
+    app := Gesture_MatchApp(exe, cls, title, ownerCls, ctrlCls, ctrlTitle)
     if (IsObject(app)) {
         try {
             if (mods != "" && app.map.Has(mods . g) && !Gesture_ChainOff(app.name, mods . g))
@@ -380,7 +524,7 @@ Gesture_ResolveFor(gesture, exe, cls, mods := "", title := "") {
 }
 
 ; ---- 是否旁路: 自家窗口 / 黑名单 / IgnoreKey 按住 / 单次忽略 / 仅限定应用 ----
-Gesture_IsBypass(consumeNext := true) {
+Gesture_IsBypass(consumeNext := true, ctx := "") {
     global g_WindowName, g_Gesture
     try {
         if (g_WindowName != "" && WinActive(g_WindowName))
@@ -397,25 +541,53 @@ Gesture_IsBypass(consumeNext := true) {
         if (g_Gesture["ignoreKey"] != "" && GetKeyState(g_Gesture["ignoreKey"], "P"))
             return true
     }
-    Gesture_GetActiveIds(&exe, &cls, &title)
+    if IsObject(ctx) {
+        exe := ctx.exe
+        cls := ctx.cls
+        title := ctx.title
+        ownerCls := ctx.ownerCls
+        ctrlCls := ctx.ctrlCls
+        ctrlTitle := ctx.ctrlTitle
+    } else {
+        Gesture_GetActiveIds(&exe, &cls, &title, &ownerCls, &ctrlCls, &ctrlTitle)
+    }
     if (Gesture_IsBlacklisted(exe, cls, title))
         return true
     if (g_Gesture["onlyDefined"]) {
-        app := Gesture_MatchApp(exe, cls, title)
+        app := Gesture_MatchApp(exe, cls, title, ownerCls, ctrlCls, ctrlTitle)
         if (!IsObject(app))
             return true
     }
     return false
 }
 
-; ---- 笔画统一解析: 链优先, 模板次之. 返回 [动作, 说明] ----
-Gesture_ResolveStroke(gestureStr, pts, exe, cls, title, mods := "") {
-    global g_Gesture, g_TplThreshold
+; ---- 笔画统一解析: 链(DIR)优先, 模板(TPL)次之. 返回 [动作, 说明] ----
+; 方向链 "U"(向上直线) 与模板 "TPL:U"(字母 U) 分属两个命名空间:
+; 直线笔画命中链即返回; 链未命中再做模板匹配, 此时先查 TPL: 覆盖
+; (应用层 -> 全局层), 都没有才用模板自带动作. 因此直线 U 不会再遮蔽字母 U.
+Gesture_ResolveStroke(gestureStr, pts, exe, cls, title, mods := "", ownerCls := "", ctrlCls := "", ctrlTitle := "") {
+    global g_Gesture, g_TplThreshold, g_GestureMap
     if (gestureStr != "") {
-        res := Gesture_ResolveFor(gestureStr, exe, cls, mods, title)
-        if (res[1] != "")
-            return [res[1], res[2]]
+        ; "TPL:X"/"DIR:X" 显式命名空间直达, 跳过另一空间
+        up := StrUpper(gestureStr)
+        if (SubStr(up, 1, 4) = "TPL:") {
+            res := Gesture_ResolveTpl(SubStr(gestureStr, 5), pts, exe, cls, title, mods, ownerCls, ctrlCls, ctrlTitle)
+            if (res[1] != "")
+                return res
+        } else {
+            if (SubStr(up, 1, 4) = "DIR:")
+                gestureStr := Trim(SubStr(gestureStr, 5))
+            res := Gesture_ResolveFor(gestureStr, exe, cls, mods, title, ownerCls, ctrlCls, ctrlTitle)
+            if (res[1] != "")
+                return [res[1], res[2]]
+        }
     }
+    return Gesture_ResolveTpl("", pts, exe, cls, title, mods, ownerCls, ctrlCls, ctrlTitle)
+}
+
+; ---- 模板解析子程 (供 ResolveStroke 调用): TPL 覆盖 -> 内置动作 ----
+Gesture_ResolveTpl(tplOnly, pts, exe, cls, title, mods := "", ownerCls := "", ctrlCls := "", ctrlTitle := "") {
+    global g_Gesture, g_TplThreshold, g_GestureMap
     if (!IsObject(pts) || pts.Length < 3)
         return ["", ""]
     minSize := 20
@@ -428,16 +600,29 @@ Gesture_ResolveStroke(gestureStr, pts, exe, cls, title, mods := "") {
         if (g_TplThreshold + 0 > 0)
             th := g_TplThreshold + 0
     }
-    m := Tpl_Match(pts, minSize)
+    m := Tpl_Match(pts, minSize, tplOnly)
     if (m[1] = "" || m[2] < th)
         return ["", ""]
-    app := Gesture_MatchApp(exe, cls, title)
+    if (tplOnly != "" && StrUpper(tplOnly) != StrUpper(m[1]))
+        return ["", ""]
+    app := Gesture_MatchApp(exe, cls, title, ownerCls, ctrlCls, ctrlTitle)
     if (IsObject(app)) {
         try {
-            tkey := "TPL:" . m[1]
-            if (app.map.Has(tkey))
+            tkey := Gesture_NormalizeFull("TPL:" . m[1])
+            modKey := (mods != "" ? Gesture_NormalizeFull(mods . "+" . tkey) : "")
+            if (modKey != "" && app.map.Has(modKey) && !Gesture_ChainOff(app.name, modKey))
+                return [app.map[modKey], app.name . "/模板"]
+            if (app.map.Has(tkey) && !Gesture_ChainOff(app.name, tkey))
                 return [app.map[tkey], app.name . "/模板"]
         }
+    }
+    try {
+        tkey := Gesture_NormalizeFull("TPL:" . m[1])
+        modKey := (mods != "" ? Gesture_NormalizeFull(mods . "+" . tkey) : "")
+        if (modKey != "" && g_GestureMap.Has(modKey) && !Gesture_ChainOff("全局", modKey))
+            return [g_GestureMap[modKey], "全局/模板"]
+        if (g_GestureMap.Has(tkey) && !Gesture_ChainOff("全局", tkey))
+            return [g_GestureMap[tkey], "全局/模板"]
     }
     t := Tpl_Get(m[1])
     if (IsObject(t))
@@ -485,25 +670,83 @@ Gesture_NoOp() {
 }
 
 ; ---- 触发键按下: 记录起点, 启动采样 ----
+; 手势期间不向目标窗口注入鼠标按下; 旁路时才转发 Down/Up, 短点在释放时重放完整点击.
+; 修饰键与应用/控件上下文都在按下瞬间快照, 窗口动作目标取命中控件的顶层窗口.
 Gesture_Down(*) {
     global g_Gesture
-    if (!g_Gesture["enable"])
-        return
-    if (Gesture_IsBypass())
-        return
     if (g_Gesture["down"])
         return
+    trig := g_Gesture["trigger"]
     MouseGetPos(&sx, &sy)
+    ctx := Gesture_CaptureWindowContext(sx, sy)
+    if (!g_Gesture["enable"] || Gesture_IsBypass(true, ctx)) {
+        g_Gesture["forwardDown"] := 1
+        try Send("{" . trig . " Down}")
+        catch {
+        }
+        return
+    }
+    g_Gesture["startContext"] := ctx
+    g_Gesture["startHwnd"] := ctx.rootHwnd
     g_Gesture["down"] := 1
     g_Gesture["gesturing"] := 0
     g_Gesture["cancelled"] := 0
+    g_Gesture["leftCombo"] := 0
+    g_Gesture["forwardDown"] := 0
+    g_Gesture["comboUntil"] := 0
     g_Gesture["startX"] := sx
     g_Gesture["startY"] := sy
     g_Gesture["downTick"] := A_TickCount
     g_Gesture["points"] := [{x: sx, y: sy}]
     g_Gesture["dirs"] := []
     g_Gesture["gesture"] := ""
+    try g_Gesture["downMods"] := Gesture_ActiveMods()
+    catch {
+        g_Gesture["downMods"] := ""
+    }
     SetTimer(Gesture_Poll, g_Gesture["poll"])
+}
+
+; ---- 坐标取窗口句柄 (起点窗口用, 失败返回 0) ----
+Gesture_HwndFromPoint(x, y) {
+    try {
+        pt := Buffer(8, 0)
+        NumPut("Int", x, pt, 0)
+        NumPut("Int", y, pt, 4)
+        hwnd := DllCall("WindowFromPoint", "Int64", NumGet(pt, 0, "Int64"), "Ptr")
+        return hwnd + 0
+    } catch {
+        return 0
+    }
+}
+
+; ---- 起点窗口三要素 (窗口动作的目标; 句柄失效回退活动窗口) ----
+Gesture_StartIds(&exe, &cls, &title, &ownerCls := "", &ctrlCls := "", &ctrlTitle := "") {
+    global g_Gesture
+    try {
+        ctx := g_Gesture["startContext"]
+        if IsObject(ctx) {
+            exe := ctx.exe
+            cls := ctx.cls
+            title := ctx.title
+            ownerCls := ctx.ownerCls
+            ctrlCls := ctx.ctrlCls
+            ctrlTitle := ctx.ctrlTitle
+            return
+        }
+    }
+    Gesture_GetActiveIds(&exe, &cls, &title, &ownerCls, &ctrlCls, &ctrlTitle)
+}
+
+; ---- 动作目标窗口 spec (起点有效即起点, 否则 "A") ----
+Gesture_ActionWin() {
+    global g_Gesture
+    try {
+        if (g_Gesture["startHwnd"] + 0 && IsObject(g_Gesture["startContext"]))
+            return "ahk_id " . (g_Gesture["startHwnd"] + 0)
+    } catch {
+    }
+    return "A"
 }
 
 ; ---- 采样轮询: 判断进入手势 / 追加方向 / Esc 取消 ----
@@ -525,13 +768,21 @@ Gesture_Poll() {
             return
         }
     }
+    ; 左键组合 (StrokesPlus: 手势中按左键): 置位后 Up 处按 L/R 分发切换窗口
+    try {
+        if GetKeyState("LButton", "P")
+            g_Gesture["leftCombo"] := 1
+    }
     MouseGetPos(&mx, &my)
     pts := g_Gesture["points"]
     last := pts[pts.Length]
     dx0 := mx - last.x
     dy0 := my - last.y
-    if (dx0 * dx0 + dy0 * dy0 < 16)
+    if (dx0 * dx0 + dy0 * dy0 < 16) {
+        ; 无位移也刷新组合武装 (Z 画完停住即滚轮, 不必等新采样点)
+        Gesture_PollComboArm()
         return
+    }
     pts.Push({x: mx, y: my})
     sx := g_Gesture["startX"]
     sy := g_Gesture["startY"]
@@ -560,8 +811,29 @@ Gesture_Poll() {
     g_Gesture["trailX"] := mx
     g_Gesture["trailY"] := my
     Gesture_Recognize()
+    Gesture_PollComboArm()
     if (g_Gesture["showOSD"])
         Gesture_OSD()
+}
+
+; ---- 按住期组合武装 (StrokesPlus: Z 画完不松键直接滚轮): 当前链命中 combo 即武装 ----
+Gesture_PollComboArm() {
+    global g_Gesture
+    try {
+        g := g_Gesture["gesture"]
+        if (g = "")
+            return
+        Gesture_StartIds(&exe, &cls, &title, &ownerCls, &ctrlCls, &ctrlTitle)
+        res := Gesture_ResolveStroke(g, g_Gesture["points"], exe, cls, title,
+            g_Gesture["downMods"], ownerCls, ctrlCls, ctrlTitle)
+        if (res[1] != "" && SubStr(Trim(res[1]), 1, 6) = "combo|")
+            Gesture_ComboArm(res[1])
+        else if (g_Gesture["comboUntil"] > 0) {
+            g_Gesture["comboUntil"] := 0
+            g_Gesture["comboKind"] := ""
+        }
+    } catch {
+    }
 }
 
 ; ---- 全量识别: 锚点步进, 步长 segment, 方向去重 ----
@@ -640,9 +912,15 @@ Gesture_OSD() {
     if (g_Gesture["recording"])
         txt := T("gesture.osd_recording", (g = "" ? "..." : g))
     else if (g != "") {
-        Gesture_GetActiveIds(&exe, &cls, &title)
-        mods := Gesture_ActiveMods()
-        res := Gesture_ResolveFor(g, exe, cls, mods, title)
+        Gesture_StartIds(&exe, &cls, &title, &ownerCls, &ctrlCls, &ctrlTitle)
+        mods := ""
+        try mods := g_Gesture["downMods"]
+        catch {
+        }
+        if (mods = "")
+            mods := Gesture_ActiveMods()
+        res := Gesture_ResolveStroke(g, g_Gesture["points"], exe, cls, title,
+            mods, ownerCls, ctrlCls, ctrlTitle)
         if (res[1] != "")
             txt .= "`n" . T("gesture.osd_action", res[1], res[2])
     }
@@ -650,19 +928,38 @@ Gesture_OSD() {
 }
 
 ; ---- 触发键松开: 录制截获 / 分层执行 / 短点透传 ----
+; 手势候选期间暂存触发键; 短点或 passthrough 重放完整点击, 旁路状态配对转发 Down/Up.
 Gesture_Up(*) {
     global g_Gesture
     try SetTimer(Gesture_Poll, 0)
     catch {
     }
-    if (!g_Gesture["down"])
+    try Gesture_UpCore()
+    finally {
+        Gesture_ClearStartContext()
+    }
+}
+
+Gesture_UpCore() {
+    global g_Gesture
+    trig := g_Gesture["trigger"]
+    if (!g_Gesture["down"]) {
+        if (g_Gesture["forwardDown"]) {
+            try Send("{" . trig . " Up}")
+            catch {
+            }
+            g_Gesture["forwardDown"] := 0
+        }
         return
+    }
     g_Gesture["down"] := 0
     wasGesturing := g_Gesture["gesturing"]
     wasCancelled := g_Gesture["cancelled"]
     gesture := g_Gesture["gesture"]
+    leftCombo := g_Gesture["leftCombo"]
     g_Gesture["gesturing"] := 0
     g_Gesture["cancelled"] := 0
+    g_Gesture["leftCombo"] := 0
     try ToolTip()
     catch {
     }
@@ -670,7 +967,7 @@ Gesture_Up(*) {
     catch {
     }
     if (wasGesturing && !wasCancelled && gesture != "") {
-        ; 录制模式: 截获, 不执行
+        ; 录制模式: 截获, 不执行 (吞 Up, 不弹菜单)
         if (g_Gesture["recording"]) {
             g_Gesture["recorded"] := gesture
             cb := g_Gesture["recordCb"]
@@ -684,7 +981,7 @@ Gesture_Up(*) {
             }
             return
         }
-        ; 模板录制: 归一化为点串交回调, 不执行
+        ; 模板录制: 归一化为点串交回调, 不执行 (吞 Up)
         if (g_Gesture["tplRecording"]) {
             tcb := g_Gesture["tplRecordCb"]
             g_Gesture["tplRecording"] := 0
@@ -701,9 +998,34 @@ Gesture_Up(*) {
             }
             return
         }
-        Gesture_GetActiveIds(&exe, &cls, &title)
-        mods := Gesture_ActiveMods()
-        res := Gesture_ResolveStroke(gesture, g_Gesture["points"], exe, cls, title, mods)
+        ; 左键组合 (StrokesPlus: 画 L/R 过程中按左键 -> 切窗口), 优先于常规解析
+        if (leftCombo && (gesture = "L" || gesture = "R")) {
+            if (g_Gesture["tryMode"]) {
+                try ToolTip(T("gesture.try_hit", gesture . "+LButton"
+                    , gesture = "L" ? "<SP_SwitchLast>" : "<SP_SwitchNext>", "组合"))
+                catch {
+                }
+                SetTimer(Gesture_HideTip, -2000)
+            } else if (gesture = "L") {
+                try Send("!+{Esc}")
+                catch {
+                }
+            } else {
+                try Send("!{Esc}")
+                catch {
+                }
+            }
+            return
+        }
+        ; 修饰键用按下瞬间快照 (CaptureModifiersOnMouseDown 对等),
+        ; 匹配与窗口目标用起点窗口 (gsx/gsy 对等)
+        Gesture_StartIds(&exe, &cls, &title, &ownerCls, &ctrlCls, &ctrlTitle)
+        mods := ""
+        try mods := g_Gesture["downMods"]
+        catch {
+        }
+        res := Gesture_ResolveStroke(gesture, g_Gesture["points"], exe, cls, title, mods,
+            ownerCls, ctrlCls, ctrlTitle)
         if (res[1] != "") {
             ; 试笔模式: 只报不执行
             if (g_Gesture["tryMode"]) {
@@ -724,13 +1046,9 @@ Gesture_Up(*) {
             SetTimer(Gesture_HideTip, -2000)
             return
         }
-        ; 未命中策略: swallow=吞+提示 / sound=提示音 / passthrough=透传点击
+        ; 未命中策略: swallow=吞点击并提示 / sound=提示音 / passthrough=重放点击
         if (g_Gesture["noMatch"] = "passthrough") {
-            try {
-                Click(Gesture_ClickName(g_Gesture["trigger"]))
-            } catch {
-                try Send("{" . g_Gesture["trigger"] . "}")
-            }
+            Gesture_SendTriggerClick(trig)
             return
         }
         if (g_Gesture["noMatch"] = "sound") {
@@ -747,12 +1065,18 @@ Gesture_Up(*) {
     if (wasCancelled) {
         return
     }
-    ; 短点透传为普通点击
-    try {
-        Click(Gesture_ClickName(g_Gesture["trigger"]))
-    } catch {
-        try Send("{" . g_Gesture["trigger"] . "}")
-    }
+    ; 短点: 重放一次完整点击, 保留普通右键菜单行为.
+    Gesture_SendTriggerClick(trig)
+}
+
+Gesture_ClearStartContext() {
+    global g_Gesture
+    g_Gesture["startHwnd"] := 0
+    g_Gesture["startContext"] := ""
+    g_Gesture["downMods"] := ""
+    g_Gesture["leftCombo"] := 0
+    g_Gesture["comboUntil"] := 0
+    g_Gesture["comboKind"] := ""
 }
 
 Gesture_HideTip() {
@@ -793,8 +1117,38 @@ Gesture_Wheel(which) {
     try held := GetKeyState(g_Gesture["trigger"], "P")
     catch {
     }
-    ; 组合技窗口内滚轮优先 (不要求按住触发键, 更宽松)
+    leftHeld := false
+    try leftHeld := GetKeyState("LButton", "P")
+    catch {
+    }
+    gestureDown := g_Gesture["down"]
+    if (gestureDown)
+        Gesture_StartIds(&exe, &cls, &title, &ownerCls, &ctrlCls, &ctrlTitle)
+    else
+        Gesture_GetActiveIds(&exe, &cls, &title, &ownerCls, &ctrlCls, &ctrlTitle)
+    ; 左键组合 (StrokesPlus: 按住手势键 + 左键 + 滚轮 -> 音量)
+    if (held && leftHeld && (which = "WheelUp" || which = "WheelDown")) {
+        if (g_Gesture["tryMode"]) {
+            try ToolTip(T("gesture.try_wheel", which . "+LButton"
+                , which = "WheelUp" ? "<SP_VolUp>" : "<SP_VolDown>", "组合"))
+            catch {
+            }
+            SetTimer(Gesture_HideTip, -2000)
+        } else {
+            try Send(which = "WheelUp" ? "{Volume_Up}" : "{Volume_Down}")
+            catch {
+            }
+        }
+        return
+    }
+    ; 组合技 (StrokesPlus: Z 画完不松键直接滚轮 -> 缩放): 必须仍按住触发键
     if (Gesture_ComboActive()) {
+        if (!held) {
+            try Send("{" . which . "}")
+            catch {
+            }
+            return
+        }
         if (which = "WheelUp" || which = "WheelDown") {
             if (g_Gesture["tryMode"]) {
                 try ToolTip(T("gesture.try_zoom", which))
@@ -814,15 +1168,19 @@ Gesture_Wheel(which) {
         return
     }
     ; 触发键未按住 / 旁路窗口 -> 透传滚轮(不消费单次忽略)
-    if (!held || Gesture_IsBypass(false)) {
+    if (!held || Gesture_IsBypass(false, gestureDown ? g_Gesture["startContext"] : "")) {
         try Send("{" . which . "}")
         catch {
         }
         return
     }
-    Gesture_GetActiveIds(&exe, &cls, &title)
-    mods := Gesture_ActiveMods()
-    res := Gesture_ResolveFor(which, exe, cls, mods, title)
+    mods := ""
+    try mods := g_Gesture["downMods"]
+    catch {
+    }
+    if (mods = "" || !g_Gesture["down"])
+        mods := Gesture_ActiveMods()
+    res := Gesture_ResolveFor(which, exe, cls, mods, title, ownerCls, ctrlCls, ctrlTitle)
     if (res[1] != "") {
         if (g_Gesture["tryMode"]) {
             try ToolTip(T("gesture.try_wheel", (mods . which), res[1], res[2]))
@@ -854,6 +1212,16 @@ Gesture_ClickName(trigger) {
     if (trigger = "XButton2")
         return "X2"
     return "Right"
+}
+
+Gesture_SendTriggerClick(trigger) {
+    button := Gesture_ClickName(trigger)
+    try Click(button)
+    catch {
+        try Send("{" . trigger . "}")
+        catch {
+        }
+    }
 }
 
 ; ---- 动作执行: 复用 VIMD_CMD, 未知裸名走动态调用(缺失由 OnError 网接住) ----
@@ -906,17 +1274,21 @@ Gesture_ComboArm(action) {
     global g_Gesture
     kind := StrLower(Trim(SubStr(action, 7)))
     if (kind = "zoom") {
+        wasActive := (g_Gesture["comboKind"] = kind && Gesture_ComboActive())
         g_Gesture["comboUntil"] := A_TickCount + 1500
-        if (g_Gesture["tryMode"]) {
-            try ToolTip(T("gesture.arm_zoom"))
-            catch {
+        g_Gesture["comboKind"] := kind
+        if (!wasActive) {
+            if (g_Gesture["tryMode"]) {
+                try ToolTip(T("gesture.arm_zoom"))
+                catch {
+                }
+            } else {
+                try ToolTip(T("gesture.zoom_ready"))
+                catch {
+                }
             }
-        } else {
-            try ToolTip(T("gesture.zoom_ready"))
-            catch {
-            }
+            SetTimer(Gesture_HideTip, -1500)
         }
-        SetTimer(Gesture_HideTip, -1500)
     }
 }
 
