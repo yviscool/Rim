@@ -52,6 +52,7 @@ VimConfig_Show(*) {
     wb := g.Add("Edit", "x10 y522 w880 h40 ReadOnly -VScroll +BackgroundFFFFE0")
     g_VimCfg["warnbar"] := wb
     g.OnEvent("Close", VimCfg_OnClose)
+    g.OnEvent("Escape", VimCfg_OnClose)
     g.Show("w900 h610")
     VimCfg_KeyWinRefresh()
     VimCfg_RefreshWarnBar()

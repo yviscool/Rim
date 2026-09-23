@@ -33,11 +33,21 @@ VimDConfig_ShowPlugin(*) {
     lb.OnEvent("Change", (*) => VimDConfig_PluginPick(lb, st))
     ed.OnEvent("Change", (*) => VimDConfig_PluginFilter(st))
     lv.OnEvent("DoubleClick", (c, row) => VimDConfig_PluginGoto(c, row, st))
+    g.OnEvent("Close", VimDConfig_Close)
+    g.OnEvent("Escape", VimDConfig_Close)
     if (names.Length > 0) {
         lb.Choose(1)
         VimDConfig_PluginPick(lb, st)
     }
     g.Show("w850 h540")
+}
+
+; 浏览器窗统一关闭: 默认 Close 只是 Hide, 留僵尸窗, 显式 Destroy
+VimDConfig_Close(guiObj, *) {
+    try guiObj.Destroy()
+    catch {
+    }
+    return true
 }
 
 VimDConfig_PluginNames() {
@@ -134,6 +144,8 @@ VimDConfig_ShowKeymap(*) {
     lbm.OnEvent("Change", (*) => VimDConfig_KeymapPickMode(lbm, st))
     ed.OnEvent("Change", (*) => VimDConfig_KeymapFilter(st))
     lv.OnEvent("DoubleClick", (c, row) => VimDConfig_KeymapGoto(c, row, st))
+    g.OnEvent("Close", VimDConfig_Close)
+    g.OnEvent("Escape", VimDConfig_Close)
     if (wins.Length > 1) {
         lbw.Choose(2)
         VimDConfig_KeymapPickWin(lbw, st)

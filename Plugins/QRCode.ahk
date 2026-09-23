@@ -100,17 +100,46 @@ GenerateAndShowQR(text) {
         return
     }
 
-    ; 创建 GUI 显示二维码
-    myGui := Gui("+Resize", T("qr.gui_title", SubStr(text, 1, 30)))
+    ; 创建 GUI 显示二维码 (+Owner 挂主窗: 关 QR 焦点回主窗, 不走失活隐藏链;
+    ; 显式 Close/Escape: 默认 Close 只是 Hide, 留僵尸窗)
+    global g_MainGui, g_LastQRGui
+    try {
+        if (IsSet(g_LastQRGui) && IsObject(g_LastQRGui))
+            g_LastQRGui.Destroy()
+    } catch {
+    }
+    ownerOpt := ""
+    try {
+        if (IsSet(g_MainGui) && IsObject(g_MainGui))
+            ownerOpt := " +Owner" g_MainGui.Hwnd
+    } catch {
+    }
+    myGui := Gui("+Resize" ownerOpt, T("qr.gui_title", SubStr(text, 1, 30)))
+    try g_LastQRGui := myGui
+    catch {
+    }
+    myGui.OnEvent("Close", QRGui_Close)
+    myGui.OnEvent("Escape", QRGui_Close)
     myGui.AddText("w300 h20", T("qr.content_label", SubStr(text, 1, 50)))
     myGui.Add("Picture", "w300 h300", tmpPng)
 
     ; 添加按钮
     myGui.AddButton("w100 h30", T("qr.btn_copy")).OnEvent("Click", (*) => (A_Clipboard := qrUrl, MsgBox(T("qr.link_copied"))))
     myGui.AddButton("x+10 w100 h30", T("qr.btn_save")).OnEvent("Click", (*) => SaveQRImage(text))
-    myGui.AddButton("x+10 w100 h30", T("qr.btn_close")).OnEvent("Click", (*) => myGui.Destroy())
+    myGui.AddButton("x+10 w100 h30", T("qr.btn_close")).OnEvent("Click", (*) => QRGui_Close(myGui))
 
     myGui.Show("w320 h400")
+}
+
+QRGui_Close(guiObj, *) {
+    global g_LastQRGui
+    try guiObj.Destroy()
+    catch {
+    }
+    try g_LastQRGui := ""
+    catch {
+    }
+    return true
 }
 
 SaveQRImage(text) {

@@ -136,6 +136,7 @@ ShowGestureManager(*) {
     tabs.UseTab()
     status := mg.Add("Text", "xm y+8 w780", T("gesture.status_ready"))
     mg.OnEvent("Close", (*) => mg.Hide())
+    mg.OnEvent("Escape", (*) => mg.Hide())
 
     g_GestureMgr["gui"] := mg
     g_GestureMgr["tabs"] := tabs
@@ -364,6 +365,7 @@ TplEditDialog(name, action) {
         , "pts", "", "pic", tplDlgPic, "tx", tplDlgTx, "hint", hint, "isNew", name = "")
     g_GestureMgr["tplDlg"] := dlg
     de.OnEvent("Close", (*) => TplDlg_Close(false))
+    de.OnEvent("Escape", (*) => TplDlg_Close(false))
     de.Show()
     if (name != "")
         TplDlg_ShowCurrent(name)
@@ -1028,6 +1030,7 @@ GestureEditDialog(mode, layer, gesture, action, desc := "") {
         , "pic", dlgPic, "tx", dlgTx)
     g_GestureMgr["editGui"] := dlg
     de.OnEvent("Close", (*) => GestureDlg_Close(false))
+    de.OnEvent("Escape", (*) => GestureDlg_Close(false))
     de.Show()
     try gestureEdit.Focus()
     catch {
@@ -1091,6 +1094,7 @@ GestureDlg_OnNewApp(*) {
     g_GestureMgr["newapp"] := Map("gui", na, "name", naName, "exe", naExe, "cls", naCls
         , "title", naTitle, "rx", naRx, "nog", naNoG, "parent", dlg)
     na.OnEvent("Close", (*) => GestureDlg_OnNewAppCancel())
+    na.OnEvent("Escape", (*) => GestureDlg_OnNewAppCancel())
     na.Show("w375 h260")
 }
 
