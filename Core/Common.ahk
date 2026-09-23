@@ -191,11 +191,13 @@ CPULoad() {
 ; "has no property named __Item__"), Map 整数键才可 st[2]/枚举 (2026-09 校准)
 GlobalMemoryStatusEx() {
     static MEMORYSTATUSEX := Buffer(64, 0), init := NumPut("UInt", 64, MEMORYSTATUSEX, 0)
+    static status := Map(2, 0, 3, 0, 4, 0, 5, 0)
     if (DllCall("Kernel32.dll\GlobalMemoryStatusEx", "Ptr", MEMORYSTATUSEX)) {
-        return Map(2, NumGet(MEMORYSTATUSEX, 8, "UInt64")
-               , 3, NumGet(MEMORYSTATUSEX, 16, "UInt64")
-               , 4, NumGet(MEMORYSTATUSEX, 24, "UInt64")
-               , 5, NumGet(MEMORYSTATUSEX, 32, "UInt64"))
+        status[2] := NumGet(MEMORYSTATUSEX, 8, "UInt64")
+        status[3] := NumGet(MEMORYSTATUSEX, 16, "UInt64")
+        status[4] := NumGet(MEMORYSTATUSEX, 24, "UInt64")
+        status[5] := NumGet(MEMORYSTATUSEX, 32, "UInt64")
+        return status
     }
 }
 

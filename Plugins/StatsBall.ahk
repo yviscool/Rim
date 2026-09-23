@@ -107,11 +107,19 @@ StatsBall_Sample() {
         }
     } catch {
     }
-    net := {up: cache.up, dn: cache.dn}
+    net := ""
     try net := StatsBall_NetRate()
     catch {
+        net := ""
     }
-    cache := {cpu: cpu, memPct: memPct, availGB: availGB, totalGB: totalGB, up: net.up, dn: net.dn}
+    cache.cpu := cpu
+    cache.memPct := memPct
+    cache.availGB := availGB
+    cache.totalGB := totalGB
+    if IsObject(net) {
+        cache.up := net.up
+        cache.dn := net.dn
+    }
     return cache
 }
 
@@ -171,7 +179,10 @@ StatsBall_NetRate() {
     ; 逐口 Luid 跟踪: 只统计新老快照都存在的口子, 新口/消失口不贡献差分
     ; (WiFi 重连/休眠唤醒/VPN 插拔时接口集合突变, 聚合求和会把新口的累计值
     ;  一次算进 1s 差分 —— 949M 这类野值的根因)
-    static prev := Map(), prevTick := 0
+    static prevLuid := [], prevRx := [], prevTx := [], prevCount := 0, prevTick := 0
+    static curLuid := [], curRx := [], curTx := [], curCount := 0
+    static seenRx := [], seenTx := [], seenCount := 0
+    static result := {up: 0, dn: 0}
     rowSize := 1352
     tableOff := 8
     typeOff := 1128
@@ -180,12 +191,20 @@ StatsBall_NetRate() {
     outOff := 1280
     pTable := 0
     hr := DllCall("iphlpapi\GetIfTable2", "Ptr*", &pTable, "UInt")
-    if (hr != 0 || !pTable)
-        return {up: 0, dn: 0}
-    cur := Map()
+    if (hr != 0 || !pTable) {
+        result.up := 0
+        result.dn := 0
+        return result
+    }
+    curLuid.Length := 0
+    curRx.Length := 0
+    curTx.Length := 0
+    curCount := 0
+    seenRx.Length := 0
+    seenTx.Length := 0
+    seenCount := 0
     try {
         num := NumGet(pTable, 0, "UInt")
-        seen := Map()
         i := 0
         while (i < num) {
             base := pTable + tableOff + i * rowSize
@@ -197,12 +216,24 @@ StatsBall_NetRate() {
                     continue
                 r := NumGet(base, inOff, "UInt64")
                 t := NumGet(base, outOff, "UInt64")
-                k := String(r) . "|" . String(t)
-                if (seen.Has(k))
+                duplicate := false
+                j := 1
+                while (j <= seenCount) {
+                    if (seenRx[j] = r && seenTx[j] = t) {
+                        duplicate := true
+                        break
+                    }
+                    j++
+                }
+                if (duplicate)
                     continue
-                seen[k] := true
-                ; Luid@0 跨快照稳定, 同一网卡去重镜像后只留一条
-                cur[NumGet(base, 0, "UInt64")] := [r, t]
+                seenCount++
+                seenRx.Push(r)
+                seenTx.Push(t)
+                curCount++
+                curLuid.Push(NumGet(base, 0, "UInt64"))
+                curRx.Push(r)
+                curTx.Push(t)
             } catch {
             }
         }
@@ -210,32 +241,52 @@ StatsBall_NetRate() {
         DllCall("iphlpapi\FreeMibTable", "Ptr", pTable)
     }
     now := A_TickCount
-    if (prevTick = 0 || prev.Count = 0) {
-        prev := cur
+    if (prevTick = 0 || prevCount = 0) {
+        tmp := prevLuid, prevLuid := curLuid, curLuid := tmp
+        tmp := prevRx, prevRx := curRx, curRx := tmp
+        tmp := prevTx, prevTx := curTx, curTx := tmp
+        prevCount := curCount
         prevTick := now
-        return {up: 0, dn: 0}
+        result.up := 0
+        result.dn := 0
+        return result
     }
     dt := (now - prevTick) / 1000.0
-    if (dt <= 0)
-        return {up: 0, dn: 0}
+    if (dt <= 0) {
+        result.up := 0
+        result.dn := 0
+        return result
+    }
     dRx := 0
     dTx := 0
-    for luid, ct in cur {
-        if (prev.Has(luid)) {
+    i := 1
+    while (i <= curCount) {
+        j := 1
+        while (j <= prevCount && prevLuid[j] != curLuid[i])
+            j++
+        if (j <= prevCount) {
             ; 单口计数器回绕/清零: 该口本轮贡献 0, 基线照常更新
-            dr := ct[1] - prev[luid][1]
-            dt2 := ct[2] - prev[luid][2]
+            dr := curRx[i] - prevRx[j]
+            dt2 := curTx[i] - prevTx[j]
             if (dr > 0)
                 dRx += dr
             if (dt2 > 0)
                 dTx += dt2
         }
+        i++
     }
-    prev := cur
+    tmp := prevLuid, prevLuid := curLuid, curLuid := tmp
+    tmp := prevRx, prevRx := curRx, curRx := tmp
+    tmp := prevTx, prevTx := curTx, curTx := tmp
+    prevCount := curCount
     prevTick := now
-    if (dRx / dt > 1250000000 || dTx / dt > 1250000000)
-        return {up: 0, dn: 0}
-    return {up: dTx / dt, dn: dRx / dt}
+    result.up := dTx / dt
+    result.dn := dRx / dt
+    if (result.up > 1250000000 || result.dn > 1250000000) {
+        result.up := 0
+        result.dn := 0
+    }
+    return result
 }
 
 ; Top-N 内存进程 (Toolhelp 快照, 无 WMI; 仅面板打开时调用)
@@ -243,15 +294,19 @@ StatsBall_NetRate() {
 ; (pcPriClassBase 占 8 字节!), pid@8, exe@40+4=44; cb 不对即 A_LastError=24
 StatsBall_TopProcs(n := 3) {
     out := []
+    if (n < 1)
+        return out
     try {
         hSnap := DllCall("kernel32\CreateToolhelp32Snapshot", "UInt", 0x2, "UInt", 0, "Ptr")
         if (hSnap = -1)
             return out
         try {
-            pe := Buffer(568, 0)
+            static pe := Buffer(568, 0), pmc := Buffer(72, 0)
+            topExe := []
+            topWs := []
+            topPid := []
             NumPut("UInt", 568, pe, 0)
             ok := DllCall("kernel32\Process32FirstW", "Ptr", hSnap, "Ptr", pe)
-            rows := []
             while (ok) {
                 pid := NumGet(pe, 8, "UInt")
                 exe := StrGet(pe.Ptr + 44, 260)
@@ -260,7 +315,6 @@ StatsBall_TopProcs(n := 3) {
                     hProc := DllCall("kernel32\OpenProcess", "UInt", 0x1000, "Int", 0, "UInt", pid, "Ptr")
                     if (hProc) {
                         try {
-                            pmc := Buffer(72, 0)
                             NumPut("UInt", 72, pmc, 0)
                             if (DllCall("psapi\GetProcessMemoryInfo", "Ptr", hProc, "Ptr", pmc, "UInt", 72))
                                 ws := NumGet(pmc, 8, "Ptr")
@@ -270,30 +324,25 @@ StatsBall_TopProcs(n := 3) {
                     }
                 } catch {
                 }
-                if (exe != "" && ws > 0)
-                    rows.Push({exe: exe, ws: ws, pid: pid})
-                ok := DllCall("kernel32\Process32NextW", "Ptr", hSnap, "Ptr", pe)
-            }
-            rowslen := rows.Length
-            Loop rowslen {
-                bi := A_Index
-                Loop rowslen - A_Index {
-                    j := A_Index
-                    if (rows[j].ws < rows[j + 1].ws) {
-                        tmp := rows[j]
-                        rows[j] := rows[j + 1]
-                        rows[j + 1] := tmp
+                if (exe != "" && ws > 0) {
+                    pos := 1
+                    while (pos <= topWs.Length && topWs[pos] >= ws)
+                        pos++
+                    if (pos <= n) {
+                        topWs.InsertAt(pos, ws)
+                        topExe.InsertAt(pos, exe)
+                        topPid.InsertAt(pos, pid)
+                        if (topWs.Length > n) {
+                            topWs.Pop()
+                            topExe.Pop()
+                            topPid.Pop()
+                        }
                     }
                 }
-                _ := bi
+                ok := DllCall("kernel32\Process32NextW", "Ptr", hSnap, "Ptr", pe)
             }
-            k := 0
-            for _, r in rows {
-                k++
-                if (k > n)
-                    break
-                out.Push(r)
-            }
+            for i, ws in topWs
+                out.Push({exe: topExe[i], ws: ws, pid: topPid[i]})
         } finally {
             DllCall("kernel32\CloseHandle", "Ptr", hSnap)
         }
@@ -439,7 +488,6 @@ StatsBall_DoBoost() {
     catch {
         trimmed := 0
     }
-    Sleep(400)
     try {
         st2 := GlobalMemoryStatusEx()
         if (IsObject(st2))
@@ -903,6 +951,8 @@ class StatsBallObj {
         this.histNet := []
         this.lastKey := ""
         this.lastAlertTick := 0
+        this.lastTopTick := 0
+        this.topText := ""
         this.downX := 0
         this.downY := 0
         this.downWX := 0
@@ -1599,17 +1649,19 @@ class StatsBallObj {
         try this.panelCpu.Value := "CPU " . Integer(s.cpu) . "%`n" . StatsBall_Spark(this.histCpu)
         try this.panelMem.Value := "MEM " . Integer(s.memPct) . "%`n" . StatsBall_Spark(this.histMem)
         try this.panelNet.Value := "↓" . StatsBall_FormatRate(s.dn) . "  ↑" . StatsBall_FormatRate(s.up) . "`n" . StatsBall_Spark(this.histNet)
-        ; Top进程按需刷新: 面板每 tick 都刷太贵, 仅 key 变化大时刷
-        try {
-            rows := StatsBall_TopProcs(3)
-            t := ""
-            for _, r in rows
-                t .= r.exe . "  " . Round(r.ws / 1048576) . "MB`n"
-            if (t = "")
-                t := T("statsball.top_empty")
-            this.panelTop.Value := T("statsball.top_title") . "`n" . t
-        } catch {
+        ; Top 进程是高成本快照, 面板打开后每 5 秒刷新一次.
+        if (this.topText = "" || A_TickCount - this.lastTopTick >= 5000) {
+            try {
+                rows := StatsBall_TopProcs(3)
+                t := ""
+                for _, r in rows
+                    t .= r.exe . "  " . Round(r.ws / 1048576) . "MB`n"
+                this.topText := (t = "") ? T("statsball.top_empty") : t
+                this.lastTopTick := A_TickCount
+            } catch {
+            }
         }
+        try this.panelTop.Value := T("statsball.top_title") . "`n" . this.topText
     }
 
     ; 加速结果文案 (DoBoost 面板与 QuickBoost 土司共用)

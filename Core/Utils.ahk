@@ -314,16 +314,26 @@ class PerfTimer {
 class MemoryManager {
     static GetUsage() {
         try {
-            for obj in ComObjGet("winmgmts:").ExecQuery("SELECT WorkingSetSize FROM Win32_Process WHERE ProcessId = " DllCall("GetCurrentProcessId")) {
-                return obj.WorkingSetSize // 1024 // 1024  ; MB
+            pid := DllCall("kernel32\GetCurrentProcessId", "UInt")
+            hProc := DllCall("kernel32\OpenProcess", "UInt", 0x1000, "Int", 0, "UInt", pid, "Ptr")
+            if (!hProc)
+                return 0
+            try {
+                pmc := Buffer(72, 0)
+                NumPut("UInt", 72, pmc, 0)
+                if DllCall("psapi\GetProcessMemoryInfo", "Ptr", hProc, "Ptr", pmc, "UInt", 72)
+                    return NumGet(pmc, 8, "Ptr") // 1048576
+            } finally {
+                DllCall("kernel32\CloseHandle", "Ptr", hProc)
             }
+        } catch {
         }
         return 0
     }
 
     static ForceGC() {
-        ; 强制垃圾回收
-        ComObjGet("winmgmts:").ExecQuery("SELECT * FROM Win32_PerfFormattedData_PerfProc_GarbageCollector")
+        ; AutoHotkey v2 没有公开 GC 控制接口; 不再用 WMI 伪造一次昂贵查询.
+        return false
     }
 }
 
