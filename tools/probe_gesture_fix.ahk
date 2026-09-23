@@ -189,6 +189,19 @@ for tplName in ["Z", "B", "J", "h", "3"] {
 }
 Chk("tpl-lowercase-normalized", Gesture_NormalizeFull("TPL:h") = "TPL:H")
 
+; ---- unified gesture namespace: bare template names share app/global routing ----
+vPts := []
+for _, xy in Tpl_BuiltinDefs()["V"][2]
+    vPts.Push(Tpl_Pt(xy[1] + 0.0, xy[2] + 0.0))
+g_GestureMap := Map("V", "key|global-v", "DR_UR", "key|direction-v")
+g_GestureApps := [{name: "UnifiedApp", exe: "unified.exe", cls: "", title: "", titleRx: "",
+    ownerCls: "", ctrlCls: "", ctrlTitle: "", noglobal: 0, map: Map("V", "key|app-v")}]
+unifiedApp := Gesture_ResolveStroke("DR_UR", vPts, "unified.exe", "Unified", "")
+Chk("unified-template-app-wins-chevron", unifiedApp[1] = "key|app-v")
+unifiedGlobal := Gesture_ResolveStroke("DR_UR", vPts, "other.exe", "Other", "")
+Chk("unified-template-global-wins-chevron", unifiedGlobal[1] = "key|global-v")
+Chk("unified-template-direct-global", Gesture_ResolveTpl("", vPts, "other.exe", "Other", "")[1] = "key|global-v")
+
 if (g_Fails > 0) {
     FileAppend("RESULT|FAIL|" . g_Fails . "`n", A_ScriptDir . "\probe_gesture_fix.out.txt")
     ExitApp(1)
