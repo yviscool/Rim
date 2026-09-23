@@ -1073,61 +1073,53 @@ PingShow() {
     RowNavShow(items)
 }
 
-; === 公网 IP (ip-api 主, ipify 备) ===
+; === 公网 IP (ip.netart.cn, 国产源免代理; 不用 JSON 库, 正则直取) ===
 PubIpShow() {
     global Arg
     target := Trim(Arg)
-    geo := Misc_PubIpGeo(target)
-    if (geo.Has("ip")) {
-        title := target = "" ? T("misc.pubip_title") : T("misc.pubip_titleq", target)
-        items := [Map("type", "head", "text", title), Map("type", "head", "text", "")]
-        order := ["ip", "country", "region", "city", "isp"]
-        labels := Map("ip", "IP", "country", T("misc.pubip_country"), "region", T("misc.pubip_region")
-            , "city", T("misc.pubip_city"), "isp", T("misc.pubip_isp"))
-        for k in order {
-            if (geo.Has(k) && geo[k] != "")
-                items.Push(Map("type", "row", "mark", "*", "label", labels[k], "value", geo[k]
-                    , "copy", geo[k], "tip", T("misc.copied_val", geo[k])))
-        }
-        RowNavShow(items)
+    geo := Misc_NetartGeo(target)
+    if (!geo.Has("ip")) {
+        DisplayResult(T("misc.pubip_failed"))
         return
     }
-    ip := Trim(Misc_HttpGet("https://api.ipify.org"))
-    if (ip != "" && RegExMatch(ip, "^[\d\.:a-fA-F]+$")) {
-        items := [Map("type", "head", "text", T("misc.pubip_title")), Map("type", "head", "text", "")
-            , Map("type", "row", "mark", "*", "label", "IP", "value", ip
-                , "copy", ip, "tip", T("misc.copied_val", ip))]
-        RowNavShow(items)
-        return
+    title := target = "" ? T("misc.pubip_title") : T("misc.pubip_titleq", target)
+    items := [Map("type", "head", "text", title), Map("type", "head", "text", "")]
+    order := ["ip", "country", "region", "isp", "net"]
+    labels := Map("ip", "IP", "country", T("misc.pubip_country"), "region", T("misc.pubip_region")
+        , "isp", T("misc.pubip_isp"), "net", T("misc.pubip_net"))
+    for k in order {
+        if (geo.Has(k) && geo[k] != "")
+            items.Push(Map("type", "row", "mark", "*", "label", labels[k], "value", geo[k]
+                , "copy", geo[k], "tip", T("misc.copied_val", geo[k])))
     }
-    DisplayResult(T("misc.pubip_failed"))
+    RowNavShow(items)
 }
 
-Misc_PubIpGeo(ip) {
-    url := "http://ip-api.com/json/" . (ip = "" ? "" : ip) . "?fields=status,message,query,country,regionName,city,isp"
+Misc_NetartGeo(ip) {
+    url := "https://ip.netart.cn/" . (ip = "" ? "" : ip)
     out := Misc_HttpGet(url)
     res := Map()
     if (Trim(out) = "")
         return res
-    try {
-        data := JSON.Load(out)
-    } catch {
+    if RegExMatch(out, '"ip"\s*:\s*"([^"]+)"', &m)
+        res["ip"] := m[1]
+    if (!res.Has("ip"))
         return res
+    if RegExMatch(out, '"country"\s*:\s*\{[^}]*"name"\s*:\s*"([^"]+)"', &m)
+        res["country"] := m[1]
+    loc := ""
+    for f in ["subdivision", "city", "area"] {
+        if RegExMatch(out, '"' f '"\s*:\s*"([^"]*)"', &m) && Trim(m[1]) != ""
+            loc .= m[1]
     }
-    try {
-        if (data["status"] != "success")
-            return res
-    } catch {
-        return res
-    }
-    for k in ["query", "country", "regionName", "city", "isp"] {
-        try {
-            v := data[k]
-            if (v != "")
-                res[k = "query" ? "ip" : (k = "regionName" ? "region" : k)] := String(v)
-        } catch {
-        }
-    }
+    if (loc != "")
+        res["region"] := loc
+    if RegExMatch(out, '"as"\s*:\s*\{[^}]*"info"\s*:\s*"([^"]+)"', &m)
+        res["isp"] := m[1]
+    else if RegExMatch(out, '"isp"\s*:\s*"([^"]+)"', &m)
+        res["isp"] := m[1]
+    if RegExMatch(out, '"addr"\s*:\s*"([^"]+)"', &m)
+        res["net"] := m[1]
     return res
 }
 
@@ -1135,7 +1127,7 @@ Misc_HttpGet(url) {
     out := Misc_HttpDirect(url)
     if (Trim(out) != "")
         return out
-    ; WinHTTP 不懂 socks 代理: curl.exe 兜底 (Win10 1803+ 自带, 认 env 代理)
+    ; 传输兜底: curl.exe (Win10 1803+ 自带)
     q := Chr(34)
     return Misc_RunUtf8("curl.exe -s -m 15 --proto =http,https " . q . url . q)
 }
@@ -1146,46 +1138,11 @@ Misc_HttpDirect(url) {
         http.SetTimeouts(8000, 8000, 8000, 8000)
         http.Open("GET", url, false)
         http.SetRequestHeader("User-Agent", "Mozilla/5.0")
-        ; WinHTTP 不读 env 代理 (curl 会): 手动接 HTTPS_PROXY/HTTP_PROXY/ALL_PROXY
-        proxy := Misc_HttpProxy()
-        if (proxy != "") {
-            try http.SetProxy(2, proxy, "")
-            catch {
-            }
-        }
         http.Send()
         return http.ResponseText
     } catch {
         return ""
     }
-}
-
-; env 代理转 WinHTTP 格式 (socks5://h:p → socks=h:p; http://h:p → h:p)
-Misc_HttpProxy() {
-    raw := ""
-    for k in ["HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy", "ALL_PROXY", "all_proxy"] {
-        try {
-            v := Trim(EnvGet(k))
-            if (v != "") {
-                raw := v
-                break
-            }
-        } catch {
-        }
-    }
-    if (raw = "")
-        return ""
-    addr := RegExReplace(raw, "^\w+://", "")
-    addr := RegExReplace(addr, "/.*$", "")
-    if (addr = "")
-        return ""
-    if RegExMatch(raw, "^(socks5?|http)", &m)
-        scheme := StrLower(m[1])
-    else
-        scheme := ""
-    if (scheme = "socks" || scheme = "socks5")
-        return "socks=" . addr
-    return addr
 }
 
 ; === 环境变量 (空参全表; 单名精确取; 含分号自动拆行; 只读) ===
