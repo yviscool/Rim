@@ -25,7 +25,7 @@ A_MaxHotkeysPerInterval := 200
 ; i18n 抢跑: g_Conf 尚未加载, 先按 OS 语言起 (备份提示/配置失败提示要用)
 I18nBoot()
 ; 构建号 (配置中心帮助页显示, 日志 BUILD 行同源)
-global g_BuildTag := "20260921-IFDBG1"
+global g_BuildTag := "20260923-TIMER3"
 
 ; ==================== 兼容层: 供插件引用 Rim.xxx ====================
 class Rim {
