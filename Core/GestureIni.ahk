@@ -188,7 +188,7 @@ GestureIni_DeleteBare(path, section, line) {
 ; ==================== 手势包 (导出/导入, 跨机备份分享) ====================
 GesturePkg_Sections() {
     return Map("Gesture", 1, "Gestures", 1, "GestureBlacklist", 1
-        , "GestureTemplates", 1, "GestureDisabled", 1)
+        , "GestureTemplates", 1, "GestureDisabled", 1, "GestureDesc", 1)
 }
 
 GesturePkg_IsPkgSection(name) {
@@ -319,6 +319,54 @@ GestureStore_SetGesture(layer, gesture, action) {
     catch {
     }
     Gesture_ReloadLayers()
+    return true
+}
+
+; Save the binding and its description as one edit. Restore the original INI on failure.
+GestureStore_SaveGesture(layer, gesture, action, desc) {
+    global g_Conf, g_ConfFile
+    before := GestureIni_ReadText(g_ConfFile)
+    if (before = "" || !GestureStore_SetGesture(layer, gesture, action)
+        || !GestureStore_SetGestureDesc(layer, gesture, desc)) {
+        if (before != "")
+            GestureStore_Restore(before)
+        return false
+    }
+    return true
+}
+
+GestureStore_MoveGesture(oldLayer, oldGesture, layer, gesture, action, desc) {
+    global g_ConfFile
+    before := GestureIni_ReadText(g_ConfFile)
+    if (before = "")
+        return false
+    oldKey := Gesture_NormalizeFull(oldGesture)
+    newKey := Gesture_NormalizeFull(gesture)
+    if (oldLayer = layer && oldKey = newKey)
+        return GestureStore_SaveGesture(layer, gesture, action, desc)
+    oldOff := Gesture_ChainOff(oldLayer, oldKey)
+    ok := GestureStore_SetGesture(layer, gesture, action)
+        && GestureStore_SetGestureDesc(layer, gesture, desc)
+        && GestureStore_DelGesture(oldLayer, oldGesture)
+        && GestureStore_SetDisabled(oldLayer . ":" . oldKey, false)
+        && GestureStore_SetDisabled(layer . ":" . newKey, oldOff)
+    if (!ok)
+        GestureStore_Restore(before)
+    return ok
+}
+
+GestureStore_Restore(text) {
+    global g_Conf, g_ConfFile
+    if (!GestureIni_WriteText(g_ConfFile, text))
+        return false
+    try g_Conf := EasyIni(g_ConfFile)
+    catch {
+        return false
+    }
+    Gesture_ReloadLayers()
+    try Tpl_LoadAll()
+    catch {
+    }
     return true
 }
 

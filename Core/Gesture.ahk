@@ -20,6 +20,7 @@ global g_Gesture := Map(
     "threshold", 6,
     "segment", 6,
     "poll", 10,
+    "cancelDelay", 1500,
     "showOSD", 1,
     "noMatch", "swallow",
     "ignoreKey", "",
@@ -33,6 +34,7 @@ global g_Gesture := Map(
     "cancelled", 0,
     "startX", 0, "startY", 0,
     "downTick", 0,
+    "lastMoveTick", 0,
     "points", [],
     "dirs", [],
     "gesture", "",
@@ -88,6 +90,8 @@ Gesture_LoadConfig() {
                 g_Gesture["segment"] := sec["Segment"] + 0
             if sec.Has("Poll") && (sec["Poll"] + 0 >= 5)
                 g_Gesture["poll"] := sec["Poll"] + 0
+            if sec.Has("CancelDelay") && (sec["CancelDelay"] + 0 >= 0)
+                g_Gesture["cancelDelay"] := sec["CancelDelay"] + 0
             if sec.Has("ShowOSD")
                 g_Gesture["showOSD"] := (sec["ShowOSD"] = "1") ? 1 : 0
             if sec.Has("Trigger") {
@@ -615,6 +619,8 @@ Gesture_ResolveTpl(tplOnly, pts, exe, cls, title, mods := "", ownerCls := "", ct
             if (app.map.Has(tkey) && !Gesture_ChainOff(app.name, tkey))
                 return [app.map[tkey], app.name . "/模板"]
         }
+        if (Gesture_AppField(app, "noglobal"))
+            return ["", ""]
     }
     try {
         tkey := Gesture_NormalizeFull("TPL:" . m[1])
@@ -674,6 +680,7 @@ Gesture_NoOp() {
 ; 修饰键与应用/控件上下文都在按下瞬间快照, 窗口动作目标取命中控件的顶层窗口.
 Gesture_Down(*) {
     global g_Gesture
+    CoordMode("Mouse", "Screen")
     if (g_Gesture["down"])
         return
     trig := g_Gesture["trigger"]
@@ -697,6 +704,7 @@ Gesture_Down(*) {
     g_Gesture["startX"] := sx
     g_Gesture["startY"] := sy
     g_Gesture["downTick"] := A_TickCount
+    g_Gesture["lastMoveTick"] := A_TickCount
     g_Gesture["points"] := [{x: sx, y: sy}]
     g_Gesture["dirs"] := []
     g_Gesture["gesture"] := ""
@@ -754,6 +762,7 @@ Gesture_Poll() {
     global g_Gesture
     if (!g_Gesture["down"])
         return
+    CoordMode("Mouse", "Screen")
     try {
         if GetKeyState("Esc", "P") {
             g_Gesture["cancelled"] := 1
@@ -778,6 +787,15 @@ Gesture_Poll() {
     last := pts[pts.Length]
     dx0 := mx - last.x
     dy0 := my - last.y
+    if (dx0 * dx0 + dy0 * dy0 >= 16)
+        g_Gesture["lastMoveTick"] := A_TickCount
+    else if (g_Gesture["cancelDelay"] > 0 && !g_Gesture["recording"]
+        && !g_Gesture["tplRecording"] && !g_Gesture["tryMode"]
+        && A_TickCount - g_Gesture["lastMoveTick"] >= g_Gesture["cancelDelay"]
+        && !Gesture_ComboActive()) {
+        Gesture_BeginRelay()
+        return
+    }
     if (dx0 * dx0 + dy0 * dy0 < 16) {
         ; 无位移也刷新组合武装 (Z 画完停住即滚轮, 不必等新采样点)
         Gesture_PollComboArm()
@@ -1031,6 +1049,7 @@ Gesture_OSD() {
 ; 手势候选期间暂存触发键; 短点或 passthrough 重放完整点击, 旁路状态配对转发 Down/Up.
 Gesture_Up(*) {
     global g_Gesture
+    CoordMode("Mouse", "Screen")
     try SetTimer(Gesture_Poll, 0)
     catch {
     }
@@ -1052,6 +1071,18 @@ Gesture_UpCore() {
         }
         return
     }
+    MouseGetPos(&endX, &endY)
+    pts := g_Gesture["points"]
+    last := pts[pts.Length]
+    dx := endX - last.x, dy := endY - last.y
+    if (dx * dx + dy * dy >= 16) {
+        pts.Push({x: endX, y: endY})
+        sx := g_Gesture["startX"], sy := g_Gesture["startY"]
+        if ((endX - sx) ** 2 + (endY - sy) ** 2 >= g_Gesture["threshold"] ** 2)
+            g_Gesture["gesturing"] := 1
+        if (g_Gesture["gesturing"])
+            Gesture_Recognize()
+    }
     g_Gesture["down"] := 0
     wasGesturing := g_Gesture["gesturing"]
     wasCancelled := g_Gesture["cancelled"]
@@ -1066,9 +1097,11 @@ Gesture_UpCore() {
     try GestureTrail_Hide()
     catch {
     }
-    if (wasGesturing && !wasCancelled && gesture != "") {
+    if (wasGesturing && !wasCancelled) {
         ; 录制模式: 截获, 不执行 (吞 Up, 不弹菜单)
         if (g_Gesture["recording"]) {
+            if (gesture = "")
+                return
             g_Gesture["recorded"] := gesture
             cb := g_Gesture["recordCb"]
             Gesture_CancelRecord()
@@ -1146,9 +1179,9 @@ Gesture_UpCore() {
             SetTimer(Gesture_HideTip, -2000)
             return
         }
-        ; 未命中策略: swallow=吞点击并提示 / sound=提示音 / passthrough=重放点击
+        ; 未命中透传保留拖拽所需的按下/移动/松开事件.
         if (g_Gesture["noMatch"] = "passthrough") {
-            Gesture_SendTriggerClick(trig)
+            Gesture_RelayStroke(true)
             return
         }
         if (g_Gesture["noMatch"] = "sound") {
@@ -1321,6 +1354,78 @@ Gesture_SendTriggerClick(trigger) {
         try Send("{" . trigger . "}")
         catch {
         }
+    }
+}
+
+; Replay a held button and sampled movement. A timeout leaves the button down
+; until the physical trigger is released; no-match replay completes it here.
+Gesture_RelayStroke(release := true) {
+    global g_Gesture
+    CoordMode("Mouse", "Screen")
+    pts := g_Gesture["points"]
+    if (pts.Length = 0)
+        return false
+    MouseGetPos(&endX, &endY)
+    last := pts[pts.Length]
+    if (last.x != endX || last.y != endY)
+        pts.Push({x: endX, y: endY})
+    trig := g_Gesture["trigger"]
+    if (pts.Length < 2 || (pts.Length = 2 && pts[1].x = pts[2].x && pts[1].y = pts[2].y)) {
+        if (release) {
+            Gesture_SendTriggerClick(trig)
+        } else {
+            try {
+                SendEvent("{" . trig . " Down}")
+            } catch {
+                return false
+            }
+        }
+        return true
+    }
+    pressed := false
+    try {
+        Critical("On")
+        SetMouseDelay(-1)
+        MouseMove(pts[1].x, pts[1].y, 0)
+        SendEvent("{" . trig . " Down}")
+        pressed := true
+        step := Max(1, Ceil((pts.Length - 1) / 200))
+        i := 2
+        while (i < pts.Length) {
+            MouseMove(pts[i].x, pts[i].y, 0)
+            i += step
+        }
+        MouseMove(endX, endY, 0)
+        if (release) {
+            SendEvent("{" . trig . " Up}")
+            pressed := false
+        }
+        return true
+    } catch {
+        if (pressed)
+            try SendEvent("{" . trig . " Up}")
+        return false
+    } finally {
+        Critical("Off")
+    }
+}
+
+Gesture_BeginRelay() {
+    global g_Gesture
+    try SetTimer(Gesture_Poll, 0)
+    catch {
+    }
+    try GestureTrail_Hide()
+    catch {
+    }
+    try ToolTip()
+    catch {
+    }
+    if (Gesture_RelayStroke(false)) {
+        g_Gesture["down"] := 0
+        g_Gesture["gesturing"] := 0
+        g_Gesture["forwardDown"] := 1
+        Gesture_ClearStartContext()
     }
 }
 

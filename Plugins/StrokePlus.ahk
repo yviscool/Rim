@@ -42,6 +42,7 @@ Register_GestureDefaults() {
         "Threshold", "6",
         "Segment", "6",
         "Poll", "10",
+        "CancelDelay", "1500",
         "ShowOSD", "1",
         "NoMatch", "swallow",
         "IgnoreKey", "",

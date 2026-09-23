@@ -104,6 +104,9 @@ ShowGestureManager(*) {
     cfgSegment := mg.Add("Slider", "x+6 w180 Range2-60", 30)
     cfgSegmentTx := mg.Add("Text", "x+6 w40", "30")
     cfgSegment.OnEvent("Change", (*) => GestureCfg_ShowVal("Segment"))
+    mg.Add("Text", "xm y+10", T("gesture.set_cancel_delay"))
+    cfgCancelDelay := mg.Add("Edit", "x+6 w90 Number", "1500")
+    mg.Add("Text", "x+8 w290", T("gesture.set_cancel_delay_hint"))
     mg.Add("Text", "xm y+10", T("gesture.set_tplth"))
     cfgTplTh := mg.Add("Slider", "x+6 w180 Range50-95", 75)
     cfgTplThTx := mg.Add("Text", "x+6 w40", "75")
@@ -151,6 +154,7 @@ ShowGestureManager(*) {
     g_GestureMgr["cfg"] := Map("enable", cfgEnable, "trigger", cfgTrigger, "noMatch", cfgNoMatch
         , "threshold", cfgThreshold, "thresholdTx", cfgThresholdTx
         , "segment", cfgSegment, "segmentTx", cfgSegmentTx
+        , "cancelDelay", cfgCancelDelay
         , "tplTh", cfgTplTh, "tplThTx", cfgTplThTx
         , "trailW", cfgTrailW, "trailWTx", cfgTrailWTx
         , "ignoreKey", cfgIgnoreKey, "osd", cfgOSD, "trail", cfgTrail, "onlyDef", cfgOnlyDef
@@ -876,6 +880,7 @@ GestureCfg_Load() {
         c["thresholdTx"].Text := "" . (GestureCfg_Val("threshold") + 0)
         c["segment"].Value := GestureCfg_Val("segment") + 0
         c["segmentTx"].Text := "" . (GestureCfg_Val("segment") + 0)
+        c["cancelDelay"].Value := "" . (GestureCfg_Val("cancelDelay") + 0)
         th := 75
         try {
             if (g_TplThreshold + 0 > 0)
@@ -919,6 +924,7 @@ GestureCfg_OnSave(*) {
             , "NoMatch", c["noMatch"].Text
             , "Threshold", "" . c["threshold"].Value
             , "Segment", "" . c["segment"].Value
+            , "CancelDelay", "" . Min(10000, Max(0, c["cancelDelay"].Value + 0))
             , "TemplateThreshold", "" . c["tplTh"].Value
             , "TrailWidth", "" . c["trailW"].Value
             , "IgnoreKey", Trim(c["ignoreKey"].Text)
@@ -1147,7 +1153,7 @@ GestureDlg_OnNewAppOK(*) {
 
 ; ---- 编辑框实时预览 ----
 GestureDlg_OnPreview() {
-    dlg := GestureDlg_Current()
+    dlg := GestureDlg_CurrentDlg()
     if (dlg = "")
         return
     try {
@@ -1213,19 +1219,15 @@ GestureDlg_OnSave(mode) {
         return
     }
     gkey := Gesture_NormalizeFull(gesture)
-    if (mode = "new" && Gesture_LayerHas(layer, gkey)) {
+    moved := mode = "edit" && (dlg["origLayer"] != layer
+        || Gesture_NormalizeFull(dlg["origGesture"]) != gkey)
+    if ((mode = "new" || moved) && Gesture_LayerHas(layer, gkey)) {
         if (MsgBox(T("gesture.confirm_overwrite", layer, gkey), T("gesture.overwrite_title"), 36) != "Yes")
             return
     }
-    if (GestureStore_SetGesture(layer, gesture, action)) {
-        ; 存作用说明; 编辑时若改了层/手势, 老键的说明同步清掉防孤儿
-        try {
-            if (mode = "edit" && dlg.Has("origLayer")
-                && (dlg["origLayer"] != layer || Gesture_Normalize(dlg["origGesture"]) != Gesture_Normalize(gesture)))
-                GestureStore_DelGestureDesc(dlg["origLayer"], dlg["origGesture"])
-        } catch {
-        }
-        GestureStore_SetGestureDesc(layer, gesture, desc)
+    saved := moved ? GestureStore_MoveGesture(dlg["origLayer"], dlg["origGesture"], layer, gesture, action, desc)
+        : GestureStore_SaveGesture(layer, gesture, action, desc)
+    if (saved) {
         GestureMgr_SetStatus(T("gesture.st_gesture_saved", layer, Gesture_Normalize(gesture), Trim(action)))
         GestureDlg_Close(true)
     } else {
