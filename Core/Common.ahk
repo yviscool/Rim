@@ -169,34 +169,65 @@ GetInputState(winTitle := "A") {
         , "Int", 0)
 }
 
-; CPU 使用率 (v2 DllCall 用 "Int64*" 传址)
+; CPU 使用率: GetSystemTimes 增量算法.
+; 返回系统总 CPU 使用率, 首次采样返回 0; 计数器回退/零间隔沿用上次值.
 CPULoad() {
-    static PIT := 0, PKT := 0, PUT := 0, started := false
-    if (!started) {
-        DllCall("GetSystemTimes", "Int64*", &PIT, "Int64*", &PKT, "Int64*", &PUT)
-        started := true
+    static prevIdle := 0, prevKernel := 0, prevUser := 0, last := 0, initialized := false
+    idle := 0, kernel := 0, user := 0
+    if (!DllCall("kernel32\GetSystemTimes", "UInt64*", &idle, "UInt64*", &kernel, "UInt64*", &user))
+        return 0
+    if (!initialized) {
+        prevIdle := idle, prevKernel := kernel, prevUser := user
+        initialized := true
         return 0
     }
-    CIT := 0, CKT := 0, CUT := 0
-    DllCall("GetSystemTimes", "Int64*", &CIT, "Int64*", &CKT, "Int64*", &CUT)
-    IdleTime := PIT - CIT, KernelTime := PKT - CKT, UserTime := PUT - CUT
-    SystemTime := KernelTime + UserTime
-    result := ((SystemTime - IdleTime) * 100) // SystemTime
-    PIT := CIT, PKT := CKT, PUT := CUT
+    dIdle := idle - prevIdle
+    dKernel := kernel - prevKernel
+    dUser := user - prevUser
+    prevIdle := idle, prevKernel := kernel, prevUser := user
+    total := dKernel + dUser
+    if (dIdle < 0 || dKernel < 0 || dUser < 0 || total <= 0)
+        return last
+    active := total - dIdle
+    if (active < 0)
+        active := 0
+    result := Round(active * 100 / total)
+    if (result < 0)
+        result := 0
+    if (result > 100)
+        result := 100
+    last := result
     return result
+}
+
+; 无对象分配的内存快速路径: 输出 total/available/load.
+GlobalMemoryStatusFast(&total, &available, &load, &totalPageFile := 0, &availablePageFile := 0) {
+    static memoryStatus := Buffer(64, 0), init := NumPut("UInt", 64, memoryStatus, 0)
+    total := 0
+    available := 0
+    load := 0
+    totalPageFile := 0
+    availablePageFile := 0
+    if (!DllCall("kernel32\GlobalMemoryStatusEx", "Ptr", memoryStatus))
+        return false
+    load := NumGet(memoryStatus, 4, "UChar")
+    total := NumGet(memoryStatus, 8, "UInt64")
+    available := NumGet(memoryStatus, 16, "UInt64")
+    totalPageFile := NumGet(memoryStatus, 24, "UInt64")
+    availablePageFile := NumGet(memoryStatus, 32, "UInt64")
+    return total > 0
 }
 
 ; 获取内存状态 (v2: VarSetCapacity→Buffer/NumPut新签名)
 ; 注意: 必须返回 Map —— v2 plain Object 不支持 obj[2] 数字索引 (实测抛
 ; "has no property named __Item__"), Map 整数键才可 st[2]/枚举 (2026-09 校准)
 GlobalMemoryStatusEx() {
-    static MEMORYSTATUSEX := Buffer(64, 0), init := NumPut("UInt", 64, MEMORYSTATUSEX, 0)
     static status := Map(2, 0, 3, 0, 4, 0, 5, 0)
-    if (DllCall("Kernel32.dll\GlobalMemoryStatusEx", "Ptr", MEMORYSTATUSEX)) {
-        status[2] := NumGet(MEMORYSTATUSEX, 8, "UInt64")
-        status[3] := NumGet(MEMORYSTATUSEX, 16, "UInt64")
-        status[4] := NumGet(MEMORYSTATUSEX, 24, "UInt64")
-        status[5] := NumGet(MEMORYSTATUSEX, 32, "UInt64")
+    if (GlobalMemoryStatusFast(&total, &available, &load, &totalPageFile, &availablePageFile)) {
+        status[2] := total
+        status[3] := available
+        status[4] := totalPageFile
+        status[5] := availablePageFile
         return status
     }
 }

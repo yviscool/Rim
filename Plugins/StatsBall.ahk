@@ -87,6 +87,11 @@ StatsBall_Boost(*) {
 StatsBall_Sample() {
     static cache := {cpu: 0, memPct: 0, availGB: 0, totalGB: 0, up: 0, dn: 0,
         rawUp: 0, rawDn: 0, peakUp: 0, peakDn: 0, netDt: 0, netValid: 0}
+    static sampleTick := 0
+    now := DllCall("kernel32\GetTickCount64", "UInt64")
+    if (sampleTick && now - sampleTick < 100)
+        return cache
+    sampleTick := now
     cpu := 0
     try cpu := CPULoad()
     catch {
@@ -96,15 +101,10 @@ StatsBall_Sample() {
     availGB := cache.availGB
     totalGB := cache.totalGB
     try {
-        st := GlobalMemoryStatusEx()
-        if (IsObject(st)) {
-            total := st[2]
-            avail := st[3]
-            if (total > 0) {
-                memPct := Round(100 * (total - avail) / total)
-                availGB := Round(avail / 1073741824, 1)
-                totalGB := Round(total / 1073741824, 1)
-            }
+        if (GlobalMemoryStatusFast(&total, &avail, &load)) {
+            memPct := load
+            availGB := Round(avail / 1073741824, 1)
+            totalGB := Round(total / 1073741824, 1)
         }
     } catch {
     }
@@ -249,7 +249,9 @@ StatsBall_NetRate() {
     } finally {
         DllCall("iphlpapi\FreeMibTable", "Ptr", pTable)
     }
-    now := A_TickCount64
+    ; Use the Win32 64-bit clock directly. Older AutoHotkey v2 builds do not
+    ; expose A_TickCount64; an unset variable would make every delta invalid.
+    now := DllCall("kernel32\GetTickCount64", "UInt64")
     if (prevTick = 0 || prevCount = 0) {
         tmp := prevLuid, prevLuid := curLuid, curLuid := tmp
         tmp := prevRx, prevRx := curRx, curRx := tmp
