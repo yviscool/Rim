@@ -1,0 +1,10 @@
+﻿====================================================
+RIM GESTURE RECOGNITION BENCHMARK REPORT
+====================================================
+Total Samples:   99
+Correct:         99 (100.0%)
+Rejected:        0 (0.0%)
+Misclassified:   0 (0.0%)
+
+--- MISCLASSIFICATIONS & REJECTIONS ---
+====================================================

@@ -18,28 +18,28 @@ ShowGestureManager(*) {
     }
     mg := Gui(, T("gesture.title"))
     mg.SetFont("s10", "Microsoft YaHei")
-    tabs := mg.Add("Tab3", "w800 h470", [T("gesture.tab_gestures"), T("gesture.tab_tpl"), T("gesture.tab_blacklist"), T("gesture.tab_settings")])
+    tabs := mg.Add("Tab3", "x12 y10 w816 h484", [T("gesture.tab_gestures"), T("gesture.tab_tpl"), T("gesture.tab_blacklist"), T("gesture.tab_settings")])
 
     ; ---- 手势页 ----
     ; 注意: "全部"/"全局" 是层存储标识 (ini 键 + Core 过滤比较), 禁止翻译, 保持原文
     tabs.UseTab(1)
-    mg.Add("Text", "xm ym+30", T("gesture.layer"))
-    filterDdl := mg.Add("DropDownList", "x+6 w180", ["全部"])
+    mg.Add("Text", "x26 y52 Section", T("gesture.layer"))
+    filterDdl := mg.Add("DropDownList", "x+6 w150", ["全部"])
     filterDdl.OnEvent("Change", GestureMgr_OnFilter)
-    mg.Add("Button", "x+10 w80", T("gesture.btn_record_new")).OnEvent("Click", GestureMgr_OnRecordNew)
-    mg.Add("Button", "x+6 w60", T("gesture.btn_add")).OnEvent("Click", GestureMgr_OnAdd)
-    mg.Add("Button", "x+6 w60", T("gesture.btn_edit")).OnEvent("Click", GestureMgr_OnEdit)
-    mg.Add("Button", "x+6 w60", T("gesture.btn_delete")).OnEvent("Click", GestureMgr_OnDel)
-    mg.Add("Button", "x+6 w80", T("gesture.btn_toggle")).OnEvent("Click", GestureMgr_OnToggle)
-    mg.Add("Button", "x+6 w80", T("gesture.btn_layer_off")).OnEvent("Click", GestureMgr_OnLayerOff)
-    mg.Add("Text", "xm y+6 w60", T("gesture.filter_label"))
+    mg.Add("Button", "x+8 w76", T("gesture.btn_record_new")).OnEvent("Click", GestureMgr_OnRecordNew)
+    mg.Add("Button", "x+6 w56", T("gesture.btn_add")).OnEvent("Click", GestureMgr_OnAdd)
+    mg.Add("Button", "x+6 w56", T("gesture.btn_edit")).OnEvent("Click", GestureMgr_OnEdit)
+    mg.Add("Button", "x+6 w56", T("gesture.btn_delete")).OnEvent("Click", GestureMgr_OnDel)
+    mg.Add("Button", "x+6 w76", T("gesture.btn_toggle")).OnEvent("Click", GestureMgr_OnToggle)
+    mg.Add("Button", "x+6 w76", T("gesture.btn_layer_off")).OnEvent("Click", GestureMgr_OnLayerOff)
+    mg.Add("Text", "xs y+8 w60", T("gesture.filter_label"))
     geFilter := mg.Add("Edit", "x+6 w200 h25")
     geFilter.OnEvent("Change", GestureMgr_OnGeFilter)
-    lv := mg.Add("ListView", "xm y+8 w640 h300", [T("gesture.col_layer"), T("gesture.col_gesture"), T("gesture.col_action"), T("gesture.col_desc"), T("gesture.col_status")])
-    lv.ModifyCol(1, 90)
-    lv.ModifyCol(2, 90)
-    lv.ModifyCol(3, 230)
-    lv.ModifyCol(4, 140)
+    lv := mg.Add("ListView", "xs y+8 w620 h360", [T("gesture.col_layer"), T("gesture.col_gesture"), T("gesture.col_action"), T("gesture.col_desc"), T("gesture.col_status")])
+    lv.ModifyCol(1, 70)
+    lv.ModifyCol(2, 120)
+    lv.ModifyCol(3, 210)
+    lv.ModifyCol(4, 150)
     lv.ModifyCol(5, 50)
     try lv.OnEvent("DoubleClick", GestureMgr_OnEdit)
     catch {
@@ -47,94 +47,112 @@ ShowGestureManager(*) {
     try lv.OnEvent("ItemFocus", GestureMgr_OnPreview)
     catch {
     }
-    prevPic := mg.Add("Picture", "x+10 yp w120 h120 +Border +0xE")
-    prevTx := mg.Add("Text", "xp y+4 w120 Center", T("gesture.no_selection"))
+    prevBox := mg.Add("GroupBox", "x658 y113 w156 h230", T("gesture.preview_title"))
+    prevPic := mg.Add("Picture", "x676 y143 w120 h120 +Border +0xE")
+    prevTx := mg.Add("Text", "x664 y+8 w144 Center", T("gesture.no_selection"))
 
     ; ---- 字母模板页 ----
     tabs.UseTab(2)
-    mg.Add("Text", "xm ym+30 w640", T("gesture.tpl_note"))
-    mg.Add("Text", "xm y+6 w60", T("gesture.filter_label"))
+    mg.Add("Text", "x26 y52 Section w620", T("gesture.tpl_note"))
+    mg.Add("Text", "xs y+6 w60", T("gesture.filter_label"))
     tplFilter := mg.Add("Edit", "x+6 w200 h25")
     tplFilter.OnEvent("Change", GestureMgr_OnTplFilter)
-    tplLv := mg.Add("ListView", "xm y+8 w640 h300", [T("gesture.col_tpl"), T("gesture.col_source"), T("gesture.col_status")])
-    tplLv.ModifyCol(1, 60)
-    tplLv.ModifyCol(2, 480)
+    tplLv := mg.Add("ListView", "xs y+8 w620 h320", [T("gesture.col_tpl"), T("gesture.col_source"), T("gesture.col_status")])
+    tplLv.ModifyCol(1, 80)
+    tplLv.ModifyCol(2, 460)
     tplLv.ModifyCol(3, 60)
     try tplLv.OnEvent("ItemFocus", GestureMgr_OnTplPreview)
     catch {
     }
-    ; 按钮行紧跟列表 (原先跟在右侧预览小图后面, 会落进列表中间; 预改前布局即如此, 非 i18n 引入)
-    mg.Add("Button", "xm y+8 w110", T("gesture.btn_record_tpl")).OnEvent("Click", GestureMgr_OnTplAdd)
-    mg.Add("Button", "x+6 w110", T("gesture.btn_edit")).OnEvent("Click", GestureMgr_OnTplEdit)
-    mg.Add("Button", "x+6 w90", T("gesture.btn_delete")).OnEvent("Click", GestureMgr_OnTplDel)
-    mg.Add("Button", "x+6 w80", T("gesture.btn_toggle")).OnEvent("Click", GestureMgr_OnTplToggle)
-    mg.Add("Button", "x+6 w80", T("gesture.btn_append_sample")).OnEvent("Click", GestureMgr_OnTplAppend)
-    mg.Add("Button", "x+6 w90", T("gesture.btn_delete_sample")).OnEvent("Click", GestureMgr_OnTplRemoveSample)
-    ; 预览图保持右上: 相对列表定位 (显式拼接, 禁止隐式串联)
-    tplLv.GetPos(&tplX, &tplY)
-    tplPic := mg.Add("Picture", "x" . (tplX + 650) . " y" . tplY . " w120 h120 +Border +0xE")
-    tplTx := mg.Add("Text", "x" . (tplX + 650) . " y" . (tplY + 124) . " w120 Center", T("gesture.no_selection"))
+    ; 按钮行紧跟列表
+    mg.Add("Button", "xs y+8 w100", T("gesture.btn_record_tpl")).OnEvent("Click", GestureMgr_OnTplAdd)
+    mg.Add("Button", "x+6 w70", T("gesture.btn_edit")).OnEvent("Click", GestureMgr_OnTplEdit)
+    mg.Add("Button", "x+6 w70", T("gesture.btn_delete")).OnEvent("Click", GestureMgr_OnTplDel)
+    mg.Add("Button", "x+6 w70", T("gesture.btn_toggle")).OnEvent("Click", GestureMgr_OnTplToggle)
+    mg.Add("Button", "x+6 w100", T("gesture.btn_append_sample")).OnEvent("Click", GestureMgr_OnTplAppend)
+    mg.Add("Button", "x+6 w100", T("gesture.btn_delete_sample")).OnEvent("Click", GestureMgr_OnTplRemoveSample)
+    ; 预览图保持右侧 GroupBox 卡片
+    tplBox := mg.Add("GroupBox", "x658 y113 w156 h230", T("gesture.preview_title"))
+    tplPic := mg.Add("Picture", "x676 y143 w120 h120 +Border +0xE")
+    tplTx := mg.Add("Text", "x664 y+8 w144 Center", T("gesture.no_selection"))
 
     ; ---- 黑名单页 ----
     tabs.UseTab(3)
-    mg.Add("Text", "xm ym+30 w780", T("gesture.bl_note"))
-    mg.Add("Text", "xm y+6 w60", T("gesture.filter_label"))
+    mg.Add("Text", "x26 y52 Section w780", T("gesture.bl_note"))
+    mg.Add("Text", "xs y+6 w60", T("gesture.filter_label"))
     blFilter := mg.Add("Edit", "x+6 w200 h25")
     blFilter.OnEvent("Change", GestureMgr_OnBlFilter)
-    blLv := mg.Add("ListView", "xm y+8 w780 h300", [T("gesture.col_pattern"), T("gesture.col_status")])
-    blLv.ModifyCol(1, 680)
-    blLv.ModifyCol(2, 60)
-    mg.Add("Button", "xm y+8 w90", T("gesture.btn_add")).OnEvent("Click", GestureMgr_OnBlAdd)
+    blLv := mg.Add("ListView", "xs y+8 w788 h320", [T("gesture.col_pattern"), T("gesture.col_status")])
+    blLv.ModifyCol(1, 700)
+    blLv.ModifyCol(2, 70)
+    mg.Add("Button", "xs y+8 w90", T("gesture.btn_add")).OnEvent("Click", GestureMgr_OnBlAdd)
     mg.Add("Button", "x+6 w90", T("gesture.btn_delete")).OnEvent("Click", GestureMgr_OnBlDel)
     mg.Add("Button", "x+6 w80", T("gesture.btn_toggle")).OnEvent("Click", GestureMgr_OnBlToggle)
 
     ; ---- 设置页 ----
     tabs.UseTab(4)
-    cfgEnable := mg.Add("CheckBox", "xm ym+30", T("gesture.set_enable"))
-    mg.Add("Text", "xm y+10", T("gesture.set_trigger"))
-    cfgTrigger := mg.Add("DropDownList", "x+6 w120", ["RButton", "MButton", "XButton1", "XButton2"])
-    mg.Add("Text", "x+20", T("gesture.set_nomatch"))
-    cfgNoMatch := mg.Add("DropDownList", "x+6 w120", ["swallow", "passthrough", "sound"])
-    mg.Add("Text", "x+8 w300", T("gesture.set_nomatch_hint"))
-    mg.Add("Text", "xm y+12", T("gesture.set_threshold"))
-    cfgThreshold := mg.Add("Slider", "x+6 w180 Range2-60", 20)
-    cfgThresholdTx := mg.Add("Text", "x+6 w40", "20")
+    cfgEnable := mg.Add("CheckBox", "x26 y52 Section", T("gesture.set_enable"))
+    mg.Add("Text", "xs y+8 w80", T("gesture.set_trigger"))
+    cfgTrigger := mg.Add("DropDownList", "x+6 w160", [T("gesture.trig_rbutton"), T("gesture.trig_mbutton"), T("gesture.trig_xbutton1"), T("gesture.trig_xbutton2")])
+    mg.Add("Text", "x+16 w90", T("gesture.set_nomatch"))
+    cfgNoMatch := mg.Add("DropDownList", "x+6 w170", [T("gesture.nomatch_swallow"), T("gesture.nomatch_passthrough"), T("gesture.nomatch_sound")])
+    mg.Add("Text", "x+8 yp+4 w250", T("gesture.set_nomatch_hint"))
+
+    ; 参数滑块与输入框 (统一定宽 w110 对齐)
+    mg.Add("Text", "xs y+8 w110", T("gesture.set_threshold"))
+    cfgThreshold := mg.Add("Slider", "x+6 w150 Range2-60", 20)
+    cfgThresholdTx := mg.Add("Text", "x+6 w30", "20")
     cfgThreshold.OnEvent("Change", (*) => GestureCfg_ShowVal("Threshold"))
-    mg.Add("Text", "xm y+10", T("gesture.set_segment"))
-    cfgSegment := mg.Add("Slider", "x+6 w180 Range2-60", 30)
-    cfgSegmentTx := mg.Add("Text", "x+6 w40", "30")
+    mg.Add("Text", "x+6 w470", T("gesture.set_threshold_hint"))
+
+    mg.Add("Text", "xs y+6 w110", T("gesture.set_segment"))
+    cfgSegment := mg.Add("Slider", "x+6 w150 Range2-60", 30)
+    cfgSegmentTx := mg.Add("Text", "x+6 w30", "30")
     cfgSegment.OnEvent("Change", (*) => GestureCfg_ShowVal("Segment"))
-    mg.Add("Text", "xm y+10", T("gesture.set_cancel_delay"))
-    cfgCancelDelay := mg.Add("Edit", "x+6 w90 Number", "1500")
-    mg.Add("Text", "x+8 w290", T("gesture.set_cancel_delay_hint"))
-    mg.Add("Text", "xm y+10", T("gesture.set_tplth"))
-    cfgTplTh := mg.Add("Slider", "x+6 w180 Range50-95", 75)
-    cfgTplThTx := mg.Add("Text", "x+6 w40", "75")
+    mg.Add("Text", "x+6 w470", T("gesture.set_segment_hint"))
+
+    mg.Add("Text", "xs y+6 w110", T("gesture.set_cancel_delay"))
+    cfgCancelDelay := mg.Add("Edit", "x+6 w70 Number", "1500")
+    mg.Add("Text", "x+8 w580", T("gesture.set_cancel_delay_hint"))
+
+    mg.Add("Text", "xs y+6 w110", T("gesture.set_tplth"))
+    cfgTplTh := mg.Add("Slider", "x+6 w150 Range50-95", 75)
+    cfgTplThTx := mg.Add("Text", "x+6 w30", "75")
     cfgTplTh.OnEvent("Change", (*) => GestureCfg_ShowVal("TplTh"))
-    mg.Add("Text", "x+8 w300", T("gesture.set_tplth_hint"))
-    mg.Add("Text", "xm y+10", T("gesture.set_trailw"))
-    cfgTrailW := mg.Add("Slider", "x+6 w180 Range1-10", 5)
-    cfgTrailWTx := mg.Add("Text", "x+6 w40", "5")
+    mg.Add("Text", "x+6 w470", T("gesture.set_tplth_hint"))
+
+    mg.Add("Text", "xs y+6 w110", T("gesture.set_trailw"))
+    cfgTrailW := mg.Add("Slider", "x+6 w150 Range1-10", 5)
+    cfgTrailWTx := mg.Add("Text", "x+6 w30", "5")
     cfgTrailW.OnEvent("Change", (*) => GestureCfg_ShowVal("TrailW"))
-    mg.Add("Text", "xm y+10", T("gesture.set_ignorekey"))
-    cfgIgnoreKey := mg.Add("Edit", "x+6 w100", "")
-    mg.Add("Text", "x+8 w300", T("gesture.set_ignore_hint"))
-    cfgOSD := mg.Add("CheckBox", "xm y+12", T("gesture.set_osd"))
+    mg.Add("Text", "x+6 w470", T("gesture.set_trailw_hint"))
+
+    mg.Add("Text", "xs y+6 w110", T("gesture.set_ignorekey"))
+    cfgIgnoreKey := mg.Add("Edit", "x+6 w90", "")
+    mg.Add("Text", "x+8 w560", T("gesture.set_ignore_hint"))
+
+    ; 选项复选框
+    cfgOSD := mg.Add("CheckBox", "xs y+8", T("gesture.set_osd"))
     cfgTrail := mg.Add("CheckBox", "x+20", T("gesture.set_trail"))
-    cfgOnlyDef := mg.Add("CheckBox", "x+20", T("gesture.set_onlydef"))
-    mg.Add("Text", "xm y+4 w400", T("gesture.set_onlydef_hint"))
-    cfgTry := mg.Add("CheckBox", "xm y+10", T("gesture.set_try"))
+
+    cfgOnlyDef := mg.Add("CheckBox", "xs y+6", T("gesture.set_onlydef"))
+    mg.Add("Text", "x+8 yp+2 w550", T("gesture.set_onlydef_hint"))
+
+    cfgTry := mg.Add("CheckBox", "xs y+6", T("gesture.set_try"))
     cfgTry.OnEvent("Click", (*) => Gesture_SetTryMode(cfgTry.Value ? true : false))
-    mg.Add("Button", "xm y+12 w110", T("gesture.btn_save_settings")).OnEvent("Click", GestureCfg_OnSave)
-    mg.Add("Text", "x+8 w200", T("gesture.save_hint"))
-    mg.Add("Button", "xm y+10 w110", T("gesture.btn_export")).OnEvent("Click", GesturePkg_OnExport)
-    mg.Add("Button", "x+8 w110", T("gesture.btn_import")).OnEvent("Click", GesturePkg_OnImport)
+
+    ; 操作按钮行
+    mg.Add("Button", "xs y+8 w100", T("gesture.btn_save_settings")).OnEvent("Click", GestureCfg_OnSave)
+    mg.Add("Button", "x+8 w100", T("gesture.btn_export")).OnEvent("Click", GesturePkg_OnExport)
+    mg.Add("Button", "x+8 w100", T("gesture.btn_import")).OnEvent("Click", GesturePkg_OnImport)
+    mg.Add("Text", "x+10 yp+4 w400", T("gesture.save_hint"))
     try blLv.OnEvent("DoubleClick", GestureMgr_OnBlDel)
     catch {
     }
 
     tabs.UseTab()
-    status := mg.Add("Text", "xm y+8 w780", T("gesture.status_ready"))
+    status := mg.Add("Text", "x16 y502 w808 h20", T("gesture.status_ready"))
+    tabs.OnEvent("Change", GestureMgr_OnTabChange)
     mg.OnEvent("Close", (*) => mg.Hide())
     mg.OnEvent("Escape", (*) => mg.Hide())
 
@@ -165,7 +183,7 @@ ShowGestureManager(*) {
     g_GestureMgr["editGui"] := ""
 
     GestureMgr_RefreshAll()
-    mg.Show()
+    mg.Show("w840 h530")
 }
 
 GestureMgr_SetStatus(txt) {
@@ -175,11 +193,24 @@ GestureMgr_SetStatus(txt) {
     }
 }
 
+GestureMgr_OnTabChange(tabCtrl, *) {
+    switch tabCtrl.Value {
+        case 1:
+            GestureMgr_RefreshGestures()
+        case 2:
+            GestureMgr_RefreshTemplates()
+        case 3:
+            GestureMgr_RefreshBlacklist()
+        case 4:
+            GestureMgr_SetStatus(T("gesture.status_ready"))
+    }
+}
+
 GestureMgr_RefreshAll() {
     GestureMgr_RefreshFilter()
-    GestureMgr_RefreshGestures()
     GestureMgr_RefreshTemplates()
     GestureMgr_RefreshBlacklist()
+    GestureMgr_RefreshGestures()
 }
 
 GestureMgr_RefreshFilter() {
@@ -924,9 +955,13 @@ GestureCfg_OnSave(*) {
     global g_GestureMgr, g_Conf, g_ConfFile
     try {
         c := g_GestureMgr["cfg"]
+        trigKeys := ["RButton", "MButton", "XButton1", "XButton2"]
+        trigVal := (c["trigger"].Value >= 1 && c["trigger"].Value <= 4) ? trigKeys[c["trigger"].Value] : "RButton"
+        nmKeys := ["swallow", "passthrough", "sound"]
+        nmVal := (c["noMatch"].Value >= 1 && c["noMatch"].Value <= 3) ? nmKeys[c["noMatch"].Value] : "swallow"
         vals := Map("Enable", c["enable"].Value ? "1" : "0"
-            , "Trigger", c["trigger"].Text
-            , "NoMatch", c["noMatch"].Text
+            , "Trigger", trigVal
+            , "NoMatch", nmVal
             , "Threshold", "" . c["threshold"].Value
             , "Segment", "" . c["segment"].Value
             , "CancelDelay", "" . Min(10000, Max(0, c["cancelDelay"].Value + 0))

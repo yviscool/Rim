@@ -121,7 +121,8 @@ Gesture_LoadConfig() {
     }
 }
 
-; ---- (重)载所有层: 全局 [Gestures] + [GestureApp:*] + [GestureBlacklist] + [GestureDisabled] ----Gesture_ReloadLayers() {
+; ---- (重)载所有层: 全局 [Gestures] + [GestureApp:*] + [GestureBlacklist] + [GestureDisabled] ----
+Gesture_ReloadLayers() {
     global g_GestureMap, g_GestureApps, g_GestureBlacklist, g_GestureAppPrefix, g_Conf, g_GestureDisabled
     global g_GestureDefs
     g_GestureMap := Map()
@@ -224,6 +225,8 @@ Gesture_IsReservedDirectionName(name) {
 
 Gesture_DefinitionEnsure(name, method := "") {
     global g_GestureDefs
+    if !IsSet(g_GestureDefs)
+        g_GestureDefs := Map()
     name := Gesture_Normalize(name)
     if (name = "")
         return
@@ -507,8 +510,29 @@ Gesture_MatchList(value, patterns) {
 ; ---- 应用层匹配: 非空条件全满足才命中 (AND), 全空层永不命中 ----
 ; StrokesPlus 对齐: 除 exe/class/title 外, 还支持 owner class / control class / control title
 ; (ini: set_owner_class / set_ctrl_class / set_ctrl_title, 多值 " | " 精确匹配, title 类为包含匹配)
+Gesture_AppSpecificity(app) {
+    spec := 0
+    if (Gesture_AppField(app, "ctrlTitle") != "")
+        spec += 16
+    if (Gesture_AppField(app, "ctrlCls") != "")
+        spec += 8
+    if (Gesture_AppField(app, "titleRx") != "")
+        spec += 8
+    if (Gesture_AppField(app, "title") != "")
+        spec += 4
+    if (Gesture_AppField(app, "ownerCls") != "")
+        spec += 2
+    if (Gesture_AppField(app, "cls") != "")
+        spec += 2
+    if (Gesture_AppField(app, "exe") != "")
+        spec += 1
+    return spec
+}
+
 Gesture_MatchApp(exe, cls, title := "", ownerCls := "", ctrlCls := "", ctrlTitle := "") {
     global g_GestureApps
+    bestApp := ""
+    bestSpec := -1
     for i, app in g_GestureApps {
         ex := Gesture_AppField(app, "exe")
         cl := Gesture_AppField(app, "cls")
@@ -545,9 +569,13 @@ Gesture_MatchApp(exe, cls, title := "", ownerCls := "", ctrlCls := "", ctrlTitle
             continue
         if (ct != "" && (ctrlTitle = "" || !InStr(StrLower(ctrlTitle), StrLower(ct))))
             continue
-        return app
+        spec := Gesture_AppSpecificity(app)
+        if (spec > bestSpec) {
+            bestSpec := spec
+            bestApp := app
+        }
     }
-    return ""
+    return bestApp
 }
 
 ; ---- 分层解析 (纯逻辑, 可单测): 返回 [动作, 层名], 未命中返回 ["", ""] ----
@@ -626,15 +654,74 @@ Gesture_IsBypass(consumeNext := true, ctx := "") {
 
 ; ---- 笔画统一解析: 方向和形状识别器并列产生候选，再按统一名称查找动作 ----
 ; (应用层 -> 全局层), 都没有才用模板自带动作. 因此直线 U 不会再遮蔽字母 U.
+Gesture_DirectionConfidence(pts, direction) {
+    if (!IsObject(pts) || pts.Length < 2)
+        return InStr(direction, "_") ? 82.0 : 96.0
+    totalLen := Tpl_PathLength(pts)
+    if (totalLen <= 0)
+        return InStr(direction, "_") ? 82.0 : 96.0
+
+    bb := Tpl_BBox(pts)
+    w := bb[3] - bb[1], h := bb[4] - bb[2]
+    size := Max(w, h)
+
+    ; 单段方向手势
+    if (!InStr(direction, "_")) {
+        startP := pts[1]
+        endP := pts[pts.Length]
+        dx := endP.x - startP.x
+        dy := endP.y - startP.y
+        chord := Sqrt(dx * dx + dy * dy)
+        straightness := chord / totalLen
+
+        dirAngle := Gesture_DirOf(dx, dy)
+        alignBonus := (dirAngle = direction) ? 8.0 : 0.0
+
+        score := 74.0 + 16.0 * Min(1.0, straightness) + alignBonus
+        return Min(98.0, Max(60.0, score))
+    }
+
+    ; 多段方向手势 (折线)
+    simplifyTol := Max(4, size * 0.05)
+    corners := Gesture_Simplify(pts, simplifyTol)
+    segCount := corners.Length - 1
+    targetSegments := StrSplit(direction, "_").Length
+    segMatchScore := (segCount = targetSegments) ? 6.0 : 2.0
+
+    minLeg := 1e9, maxLeg := 0.0
+    cornerChain := ""
+    i := 1
+    while (i < corners.Length) {
+        c1 := corners[i], c2 := corners[i + 1]
+        legLen := Sqrt((c2.x - c1.x) ** 2 + (c2.y - c1.y) ** 2)
+        if (legLen < minLeg)
+            minLeg := legLen
+        if (legLen > maxLeg)
+            maxLeg := legLen
+        d := Gesture_DirOf(c2.x - c1.x, c2.y - c1.y)
+        cornerChain .= (cornerChain = "" ? "" : "_") . d
+        i++
+    }
+    balance := (maxLeg > 0) ? (minLeg / maxLeg) : 0.0
+    balanceScore := 6.0 * Min(1.0, balance * 2.0)
+    alignBonus := (cornerChain = direction) ? 6.0 : 0.0
+
+    score := 70.0 + segMatchScore + balanceScore + alignBonus
+    return Min(88.0, Max(60.0, score))
+}
+
 Gesture_CollectCandidates(direction, pts) {
     global g_GestureDefs, g_TplThreshold, g_Gesture
+    if !IsSet(g_GestureDefs)
+        g_GestureDefs := Map()
     out := []
     direction := Gesture_Normalize(direction)
     if (direction != "" && g_GestureDefs.Has(direction)) {
         def := g_GestureDefs[direction]
-        if (def.method = "direction" || def.method = "auto")
-            out.Push({name: direction, method: "direction"
-                , score: InStr(direction, "_") ? 82 : 96, sample: 0})
+        if (def.method = "direction" || def.method = "auto") {
+            dirScore := Gesture_DirectionConfidence(pts, direction)
+            out.Push({name: direction, method: "direction", score: dirScore, sample: 0})
+        }
     }
     if (!IsObject(pts) || pts.Length < 3)
         return out
@@ -656,6 +743,7 @@ Gesture_CollectCandidates(direction, pts) {
 }
 
 Gesture_SelectCandidate(candidates, exe, cls, title, mods := "", ownerCls := "", ctrlCls := "", ctrlTitle := "") {
+    global g_TplThreshold, g_Gesture
     ranked := []
     for _, candidate in candidates {
         binding := Gesture_ResolveFor(candidate.name, exe, cls, mods, title, ownerCls, ctrlCls, ctrlTitle)
@@ -667,11 +755,18 @@ Gesture_SelectCandidate(candidates, exe, cls, title, mods := "", ownerCls := "",
     }
     if (ranked.Length = 0)
         return {selected: "", candidates: candidates, reason: "unbound"}
-    ; A shape needs enough lead over another shape; a direction chain is a
-    ; separate geometric candidate with a fixed score.
-    best := ranked[1]
-    second := ""
+
+    ; 应用层优先: 若存在命中的应用级专属手势, 全局层仅作为退避
+    appRanked := []
     for _, candidate in ranked {
+        if (candidate.layer = "app")
+            appRanked.Push(candidate)
+    }
+    evalPool := (appRanked.Length > 0) ? appRanked : ranked
+
+    best := evalPool[1]
+    second := ""
+    for _, candidate in evalPool {
         if (candidate.score > best.score) {
             second := best
             best := candidate
@@ -681,9 +776,23 @@ Gesture_SelectCandidate(candidates, exe, cls, title, mods := "", ownerCls := "",
     ordered := [best]
     if (IsObject(second))
         ordered.Push(second)
-    if (IsObject(second) && best.method = "template"
-        && second.method = "template" && best.score - second.score < 4)
+
+    minThresh := g_TplThreshold
+    try {
+        if (g_Gesture.Has("threshold") && g_Gesture["threshold"] > 0)
+            minThresh := g_Gesture["threshold"]
+    }
+    if (best.score < minThresh)
+        return {selected: "", candidates: ordered, reason: "below_threshold"}
+
+    minMargin := 6.0
+    try {
+        if (g_Gesture.Has("margin") && g_Gesture["margin"] > 0)
+            minMargin := g_Gesture["margin"] + 0.0
+    }
+    if (IsObject(second) && (best.action != second.action) && (best.score - second.score < minMargin))
         return {selected: "", candidates: ordered, reason: "ambiguous"}
+
     return {selected: best, candidates: ordered, reason: "matched"}
 }
 

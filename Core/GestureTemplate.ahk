@@ -7,11 +7,21 @@
 ; 存储: [GestureTemplates] name=v2:x1,y1 ...||||v2:x1,y1 ...
 ; 内置字母模板由理想笔顺合成, 用户录制可覆盖同名项.
 
-global g_TplNPT := 32
-global g_TplSize := 64
-global g_TplThreshold := 75
-global g_TplMaxSamples := 3
-global g_Templates := Map()   ; canonical name -> {samples:[pts...], builtin}
+global g_TplNPT, g_TplSize, g_TplThreshold, g_TplMaxSamples, g_TplWeightVec, g_TplWeightPos, g_Templates
+if !IsSet(g_TplNPT)
+    g_TplNPT := 64
+if !IsSet(g_TplSize)
+    g_TplSize := 64
+if !IsSet(g_TplThreshold)
+    g_TplThreshold := 75
+if !IsSet(g_TplMaxSamples)
+    g_TplMaxSamples := 6
+if !IsSet(g_TplWeightVec)
+    g_TplWeightVec := 0.65
+if !IsSet(g_TplWeightPos)
+    g_TplWeightPos := 0.35
+if !IsSet(g_Templates)
+    g_Templates := Map()   ; canonical name -> {samples:[pts...], features:[feat...], builtin}
 
 ; ---- 点结构: {x, y} 数组 ----
 Tpl_Pt(x, y) {
@@ -153,8 +163,10 @@ Tpl_TranslateToOrigin(pts) {
 ; ---- 方向敏感的 $1 预处理: 等弧长采样、等比缩放、平移 ----
 Tpl_Normalize(pts) {
     global g_TplNPT, g_TplSize
-    r := Tpl_Resample(pts, g_TplNPT)
-    r := Tpl_ScaleTo(r, g_TplSize)
+    npt := (IsSet(g_TplNPT) && g_TplNPT) ? g_TplNPT : 64
+    sz := (IsSet(g_TplSize) && g_TplSize) ? g_TplSize : 64
+    r := Tpl_Resample(pts, npt)
+    r := Tpl_ScaleTo(r, sz)
     r := Tpl_TranslateToOrigin(r)
     return r
 }
@@ -162,7 +174,9 @@ Tpl_Normalize(pts) {
 ; Unmarked user samples were saved by the earlier rotation-invariant matcher.
 Tpl_PrepareLegacy(rawPts) {
     global g_TplNPT, g_TplSize
-    r := Tpl_Resample(rawPts, g_TplNPT)
+    npt := (IsSet(g_TplNPT) && g_TplNPT) ? g_TplNPT : 64
+    sz := (IsSet(g_TplSize) && g_TplSize) ? g_TplSize : 64
+    r := Tpl_Resample(rawPts, npt)
     c := Tpl_Centroid(r)
     theta := Tpl_Atan2(c[2] - r[1].y, c[1] - r[1].x)
     r := Tpl_RotateBy(r, -theta)
@@ -170,8 +184,8 @@ Tpl_PrepareLegacy(rawPts) {
     w := bb[3] - bb[1], h := bb[4] - bb[2]
     old := []
     for i, p in r
-        old.Push(Tpl_Pt(w > 0 ? (p.x - bb[1]) * g_TplSize / w : 0,
-            h > 0 ? (p.y - bb[2]) * g_TplSize / h : 0))
+        old.Push(Tpl_Pt(w > 0 ? (p.x - bb[1]) * sz / w : 0,
+            h > 0 ? (p.y - bb[2]) * sz / h : 0))
     return Tpl_Decode(Tpl_Encode(Tpl_ScaleShiftBack(Tpl_TranslateToOrigin(old))))
 }
 
@@ -189,6 +203,85 @@ Tpl_PathDistance(a, b) {
         i++
     }
     return d / n
+}
+
+; ---- 提取平滑单位方向向量序列 (移动平均降噪) ----
+Tpl_ExtractVectors(pts) {
+    if (pts.Length < 2)
+        return []
+    vecs := []
+    rx := 0.0, ry := 0.0
+    coef := 0.75
+    i := 1
+    while (i < pts.Length) {
+        dx := pts[i + 1].x - pts[i].x
+        dy := pts[i + 1].y - pts[i].y
+        rx := coef * rx + (1.0 - coef) * dx
+        ry := coef * ry + (1.0 - coef) * dy
+        mag := Sqrt(rx * rx + ry * ry)
+        if (mag > 0.0001)
+            vecs.Push({x: rx / mag, y: ry / mag})
+        else
+            vecs.Push({x: 0.0, y: 0.0})
+        i++
+    }
+    return vecs
+}
+
+; ---- 单位向量序列的余弦相似度 (带首尾截断滑动容错) ----
+Tpl_VectorSimilarity(vA, vB) {
+    lenA := vA.Length, lenB := vB.Length
+    if (lenA = 0 || lenB = 0)
+        return 0.0
+    n := Min(lenA, lenB)
+    sumCos := 0.0
+    Loop n {
+        sumCos += vA[A_Index].x * vB[A_Index].x + vA[A_Index].y * vB[A_Index].y
+    }
+    bestSim := sumCos / n
+
+    ; 初筛短路: 若走势完全相悖(余弦过低), 无需做昂贵的滑动微调
+    if (bestSim < 0.5)
+        return Max(0.0, bestSim * 100.0)
+
+    ; 滑动偏移微调 (吸收起手迟滞和释放甩尾微动)
+    maxOffset := Min(4, Floor(n / 10))
+    offset := 2
+    while (offset <= maxOffset) {
+        cnt1 := n - offset
+        if (cnt1 > 0) {
+            sum1 := 0.0
+            sum2 := 0.0
+            Loop cnt1 {
+                sum1 += vA[A_Index + offset].x * vB[A_Index].x + vA[A_Index + offset].y * vB[A_Index].y
+                sum2 += vA[A_Index].x * vB[A_Index + offset].x + vA[A_Index].y * vB[A_Index + offset].y
+            }
+            sim1 := sum1 / cnt1
+            sim2 := sum2 / cnt1
+            if (sim1 > bestSim)
+                bestSim := sim1
+            if (sim2 > bestSim)
+                bestSim := sim2
+        }
+        offset += 2
+    }
+    return Max(0.0, bestSim * 100.0)
+}
+
+; ---- 构建点集与向量联合特征 ----
+Tpl_BuildFeature(rawPts) {
+    norm := Tpl_Prepare(rawPts)
+    vecs := Tpl_ExtractVectors(norm)
+    return {points: norm, vectors: vecs}
+}
+
+; ---- 多特征融合打分 (方向走势 + 轮廓位置) ----
+Tpl_ScoreSample(candNormPts, candVecs, sampNormPts, sampVecs, half) {
+    global g_TplWeightVec, g_TplWeightPos
+    simVec := Tpl_VectorSimilarity(candVecs, sampVecs)
+    dist := Tpl_PathDistance(candNormPts, sampNormPts)
+    simPos := Max(0.0, (1.0 - dist / half) * 100.0)
+    return g_TplWeightVec * simVec + g_TplWeightPos * simPos
 }
 
 ; ---- 序列化/反序列化 (0-64 整数网格) ----
@@ -262,14 +355,14 @@ Tpl_BuiltinDefs() {
         "G", ["run|https://www.google.com", [[75,30],[55,15],[30,20],[15,40],[15,65],[30,85],[55,90],[75,80],[70,60],[50,60]]],
         "U", ["key|^z", [[20,15],[20,70],[35,88],[60,88],[78,68],[80,15]]],
         "R", ["key|^y", [[25,10],[25,90],[25,10],[60,12],[72,30],[60,48],[25,50],[75,90]]],
-        "D", ["function|Gesture_IgnoreNext", [[30,10],[30,90],[30,50],[60,50],[75,65],[60,82],[30,85]]],
+        "D", ["function|Gesture_IgnoreNext", [[30,10],[30,90],[30,10],[60,10],[80,30],[85,50],[80,70],[60,90],[30,90]]],
         "P", ["<SP_PlayPause>", [[30,10],[30,90],[30,45],[65,40],[72,25],[60,12],[30,10]]],
         "L", ["key|{Media_Prev}", [[30,10],[30,80],[75,80]]],
         "N", ["<SP_Next>", [[25,85],[25,15],[75,85],[75,15]]],
         "S", ["run|D:\software\SublimeText\sublime_text.exe", [[70,20],[45,12],[25,25],[30,45],[55,50],[72,60],[60,80],[35,88]]],
         "M", ["<SP_Mute>", [[20,85],[20,15],[50,60],[80,15],[80,85]]],
         "Z", ["function|Gesture_NoOp", [[20,20],[80,20],[20,80],[80,80]]],
-        "B", ["function|Gesture_NoOp", [[30,10],[30,90],[30,55],[62,52],[70,68],[58,84],[30,86]]],
+        "B", ["function|Gesture_NoOp", [[30,10],[30,90],[30,10],[60,12],[72,28],[60,48],[30,50],[65,52],[75,70],[62,88],[30,90]]],
         "J", ["function|Gesture_NoOp", [[65,10],[60,70],[40,88],[22,78]]],
         "h", ["function|Gesture_NoOp", [[30,10],[30,90],[30,55],[55,50],[65,65],[65,90]]],
         "X", ["key|^x", [[20,15],[80,85],[80,15],[20,85]]],
@@ -326,6 +419,14 @@ Tpl_ScaleShiftBack(pts) {
 }
 
 ; ==================== 载入 ====================
+Tpl_BuildTemplateFeatures(samples) {
+    feats := []
+    for _, s in samples {
+        feats.Push(Tpl_BuildFeature(s))
+    }
+    return feats
+}
+
 Tpl_LoadAll() {
     global g_Templates, g_TplThreshold, g_Conf
     g_Templates := Map()
@@ -353,7 +454,7 @@ Tpl_LoadAll() {
                 }
             }
             samples.Push(Tpl_Synth(def[2]))
-            g_Templates[Tpl_BuiltinName(name)] := {samples: samples, builtin: 1}
+            g_Templates[Tpl_BuiltinName(name)] := {samples: samples, features: Tpl_BuildTemplateFeatures(samples), builtin: 1}
         }
     }
     ; ini 覆盖（仅保存样本，动作统一在 Gestures / GestureApp 中绑定）: name=s1||||s2 ...
@@ -376,7 +477,7 @@ Tpl_LoadAll() {
                 }
                 if (samples.Length = 0)
                     continue
-                g_Templates[Tpl_BuiltinName(_k)] := {samples: samples, versions: versions, builtin: 0}
+                g_Templates[Tpl_BuiltinName(_k)] := {samples: samples, features: Tpl_BuildTemplateFeatures(samples), versions: versions, builtin: 0}
             }
         }
     }
@@ -385,52 +486,26 @@ Tpl_LoadAll() {
 ; ==================== 匹配 ====================
 ; 返回 [name, score0_100], 无模板或太小返回 ["", 0]
 Tpl_Match(rawPts, minSize := 0, onlyName := "") {
-    global g_Templates, g_TplNPT, g_TplSize
-    if (rawPts.Length < 3)
+    candidates := Tpl_Candidates(rawPts, minSize)
+    if (candidates.Length = 0)
         return ["", 0]
-    if (minSize > 0) {
-        bb := Tpl_BBox(rawPts)
-        w := bb[3] - bb[1]
-        h := bb[4] - bb[2]
-        if (w < minSize && h < minSize)
-            return ["", 0]
-    }
-    cand := Tpl_Prepare(rawPts)
-    oldCand := ""
-    bestName := ""
-    bestDist := 1e18
-    secondDist := 1e18
-    for name, t in g_Templates {
-        if (onlyName != "" && StrUpper(name) != StrUpper(onlyName))
+    bestCand := ""
+    secondCand := ""
+    for _, c in candidates {
+        if (onlyName != "" && StrUpper(c.name) != StrUpper(onlyName))
             continue
-        try {
-            if (Gesture_TplOff(name))
-                continue
-        } catch {
-        }
-        for i, samp in t.samples {
-            version := 2
-            try version := t.versions[i]
-            if (version = 1 && !IsObject(oldCand))
-                oldCand := Tpl_PrepareLegacy(rawPts)
-            d := Tpl_PathDistance(version = 1 ? oldCand : cand, samp)
-            if (d < bestDist) {
-                if (name != bestName)
-                    secondDist := bestDist
-                bestDist := d
-                bestName := name
-            } else if (name != bestName && d < secondDist) {
-                secondDist := d
-            }
+        if (!IsObject(bestCand) || c.score > bestCand.score) {
+            secondCand := bestCand
+            bestCand := c
+        } else if (!IsObject(secondCand) || c.score > secondCand.score) {
+            secondCand := c
         }
     }
-    if (bestName = "")
+    if (!IsObject(bestCand))
         return ["", 0]
-    half := 0.5 * Sqrt(g_TplSize * g_TplSize * 2)
-    score := (1 - bestDist / half) * 100
-    if (onlyName = "" && secondDist < 1e17 && (secondDist - bestDist) / half * 100 < 4)
+    if (onlyName = "" && IsObject(secondCand) && bestCand.score - secondCand.score < 4)
         return ["", 0]
-    return [bestName, score]
+    return [bestCand.name, bestCand.score]
 }
 
 Tpl_Candidates(rawPts, minSize := 0) {
@@ -443,27 +518,27 @@ Tpl_Candidates(rawPts, minSize := 0) {
         if (bb[3] - bb[1] < minSize && bb[4] - bb[2] < minSize)
             return out
     }
-    cand := Tpl_Prepare(rawPts)
-    legacyCand := ""
+    candFeat := Tpl_BuildFeature(rawPts)
     half := 0.5 * Sqrt(g_TplSize * g_TplSize * 2)
     for name, tmpl in g_Templates {
         if (Gesture_TplOff(name))
             continue
-        bestDist := 1e18
+        bestScore := 0.0
         bestSample := 0
-        for index, sample in tmpl.samples {
-            version := 2
-            try version := tmpl.versions[index]
-            if (version = 1 && !IsObject(legacyCand))
-                legacyCand := Tpl_PrepareLegacy(rawPts)
-            dist := Tpl_PathDistance(version = 1 ? legacyCand : cand, sample)
-            if (dist < bestDist) {
-                bestDist := dist
+        feats := tmpl.HasOwnProp("features") ? tmpl.features : []
+        if (feats.Length = 0) {
+            feats := Tpl_BuildTemplateFeatures(tmpl.samples)
+            tmpl.features := feats
+        }
+        for index, sFeat in feats {
+            score := Tpl_ScoreSample(candFeat.points, candFeat.vectors, sFeat.points, sFeat.vectors, half)
+            if (score > bestScore) {
+                bestScore := score
                 bestSample := index
             }
         }
-        if (bestSample > 0)
-            out.Push({name: name, score: (1 - bestDist / half) * 100, sample: bestSample})
+        if (bestSample > 0 && bestScore > 0)
+            out.Push({name: name, score: bestScore, sample: bestSample})
     }
     return out
 }
