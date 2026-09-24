@@ -161,6 +161,25 @@ HideOrExit(*) {
         ExitRunZ()
 }
 
+; 一键居中活动窗口 (全局热键 !h 入口; 算法对齐 General.ahk wm_center, 最小修复不改数学)
+CenterActiveWindow(*) {
+    try {
+        hwnd := WinExist("A")
+        if (!hwnd)
+            return
+        spec := "ahk_id " hwnd
+        ; 最小化/最大化时先还原, 否则 WinMove 无效或无意义
+        try {
+            if (WinGetMinMax(spec) != 0)
+                WinRestore(spec)
+        }
+        WinGetPos(, , &w, &h, spec)
+        x := (A_ScreenWidth - w) // 2
+        y := (A_ScreenHeight - h) // 2
+        WinMove(x, y, , , spec)
+    }
+}
+
 NextCommand(*) {
     if (g_UseDisplay) {
         ; 行导航态: ^J 移动 >| 标记 (焦点不出输入框); 非行态才挪文本光标
