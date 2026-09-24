@@ -1,0 +1,254 @@
+name: release
+
+# 每次 push main 自动发 dev 滚动测试版 (prerelease, 不占 latest);
+# commit 信息含 [release] 才发正式版 ([release:minor]/[release:major] 可选) 并更新 latest。
+# 手动挡: workflow_dispatch -> mode(dev/stable) + bump(patch/minor/major)。
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dev=滚动测试版 stable=正式版"
+        required: true
+        default: "dev"
+        type: choice
+        options: [dev, stable]
+      bump:
+        description: "正式版才用: patch/minor/major"
+        required: false
+        default: "patch"
+        type: choice
+        options: [patch, minor, major]
+
+permissions:
+  contents: write
+
+# dev 构建互相取消; 正式版排队 (cancel 表达式只对 dev 为真)
+concurrency:
+  group: rim-release
+  cancel-in-progress: ${{ github.event_name == 'push' && !contains(github.event.head_commit.message, '[release]') }}
+
+jobs:
+  # ---------- 门禁: 与 i18n.yml 同款检查, 红灯不打包 ----------
+  gate:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: i18n audit
+        run: python tools/i18n_audit.py audit --check
+      - name: Download AutoHotkey v2 portable (pinned)
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/AutoHotkey/AutoHotkey/releases/download/v2.0.26/AutoHotkey_2.0.26.zip" -OutFile "$env:RUNNER_TEMP\ahk.zip"
+          Expand-Archive "$env:RUNNER_TEMP\ahk.zip" "$env:RUNNER_TEMP\ahk"
+      - name: Parse + register + SmartInput probes
+        run: |
+          & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut tools/smoke_parse.ahk
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut tools/smoke_register.ahk
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut tools/smoke_si.ahk
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+  # ---------- 构建: 定版 -> 烫印 -> 编译 -> 打包 ----------
+  build:
+    needs: gate
+    runs-on: windows-latest
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+      channel: ${{ steps.ver.outputs.channel }}
+      tag: ${{ steps.ver.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version + tag
+        id: ver
+        shell: pwsh
+        env:
+          PUSH_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          git fetch origin --tags --force
+          $msg = $env:PUSH_MSG
+          if ([string]::IsNullOrEmpty($msg)) { $msg = "" }
+          $dispatchMode = "${{ inputs.mode }}"
+          $isStable = $false
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $isStable = ($dispatchMode -eq "stable")
+          } else {
+            $isStable = $msg.Contains("[release]")
+          }
+          $last = (git tag --list 'v*' --sort=-v:refname | Select-Object -First 1)
+          if ([string]::IsNullOrWhiteSpace($last)) { $last = "v0.0.0" }
+          $base = $last.TrimStart('v')
+          if ($isStable) {
+            $bump = "${{ inputs.bump }}"
+            if ("${{ github.event_name }}" -eq "push") {
+              if ($msg.Contains("[release:major]")) { $bump = "major" }
+              elseif ($msg.Contains("[release:minor]")) { $bump = "minor" }
+              else { $bump = "patch" }
+            }
+            if ($base -eq "0.0.0") {
+              $ver = "0.9.0"
+            } else {
+              $p = $base.Split('.'); while ($p.Count -lt 3) { $p += "0" }
+              $maj=[int]$p[0]; $min=[int]$p[1]; $pat=[int]$p[2]
+              if ($bump -eq "major") { $maj++; $min=0; $pat=0 }
+              elseif ($bump -eq "minor") { $min++; $pat=0 }
+              else { $pat++ }
+              $ver = "$maj.$min.$pat"
+            }
+            $tag = "v$ver"
+            git tag $tag
+            git push origin $tag
+            "channel=stable" >> $env:GITHUB_OUTPUT
+            "tag=$tag" >> $env:GITHUB_OUTPUT
+          } else {
+            if ($base -eq "0.0.0") { $base = "0.9.0" }
+            $sha = (git rev-parse --short HEAD)
+            $date = (Get-Date -Format "yyyyMMdd")
+            $ver = "$base-dev.$date.$sha"
+            $tag = "dev"
+            git tag -f $tag
+            git push -f origin $tag
+            "channel=dev" >> $env:GITHUB_OUTPUT
+            "tag=$tag" >> $env:GITHUB_OUTPUT
+          }
+          "version=$ver" >> $env:GITHUB_OUTPUT
+          Write-Host "channel/stable=$isStable version=$ver tag=$tag (last=$last)"
+
+      - name: Download AutoHotkey v2 portable (pinned)
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/AutoHotkey/AutoHotkey/releases/download/v2.0.26/AutoHotkey_2.0.26.zip" -OutFile "$env:RUNNER_TEMP\ahk.zip"
+          Expand-Archive "$env:RUNNER_TEMP\ahk.zip" "$env:RUNNER_TEMP\ahk"
+
+      - name: Stamp version
+        run: |
+          $sha = (git rev-parse --short HEAD)
+          $date = (Get-Date -Format "yyyyMMdd")
+          .\tools\stamp_version.ps1 -Version "${{ steps.ver.outputs.version }}" -Sha $sha -Date $date
+
+      - name: Compile Rim.exe (Ahk2Exe)
+        run: |
+          $ahk = "$env:RUNNER_TEMP\ahk"
+          & "$ahk\Compiler\Ahk2Exe.exe" /in "$PWD\Rim.ahk" /out "$PWD\Rim.exe" /icon "$PWD\Assets\Rim.ico" /base "$ahk\Compiler\Unicode 64-bit.bin"
+          if (!(Test-Path "$PWD\Rim.exe")) { throw "compile failed: Rim.exe not produced" }
+
+      - name: Stage portable dir (allowlist)
+        shell: pwsh
+        run: |
+          $stage = "$PWD\stage\RimPortable"
+          New-Item -ItemType Directory -Force $stage | Out-Null
+          Copy-Item "$PWD\Rim.exe" $stage
+          Copy-Item "$PWD\Rim.ahk" $stage
+          foreach ($d in @("Core", "Lib", "Plugins", "Gui", "Lang", "Assets", "docs")) {
+            Copy-Item "$PWD\$d" "$stage\$d" -Recurse
+          }
+          New-Item -ItemType Directory -Force "$stage\Conf\Skins" | Out-Null
+          Copy-Item "$PWD\Conf\Skins\*" "$stage\Conf\Skins\" -Recurse
+          Copy-Item "$PWD\Conf\rim.template.ini" "$stage\Conf\rim.ini"
+          Copy-Item "$PWD\Conf\VERSION" "$stage\Conf\VERSION"
+          Copy-Item "$PWD\README.md" $stage
+          Copy-Item "$PWD\LICENSE" $stage
+          # 黑名单兜底 (白名单本不应含, 防手滑)
+          Get-ChildItem $stage -Recurse -Include *.out.txt, *.error.log, *.bak -ErrorAction SilentlyContinue | Remove-Item -Force
+          if (Test-Path "$stage\Backup") { Remove-Item "$stage\Backup" -Recurse -Force }
+          if (Test-Path "$stage\tools") { Remove-Item "$stage\tools" -Recurse -Force }
+          if (Test-Path "$stage\.github") { Remove-Item "$stage\.github" -Recurse -Force }
+          if (!(Test-Path "$stage\Conf\rim.ini")) { throw "stage failed: Conf/rim.ini missing" }
+          if (!(Test-Path "$stage\Rim.exe")) { throw "stage failed: Rim.exe missing" }
+
+      - name: Pack 7z + zip + source + checksums
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.ver.outputs.version }}"
+          New-Item -ItemType Directory -Force "$PWD\artifacts" | Out-Null
+          & 7z a -mx=9 "$PWD\artifacts\Rim-$ver-portable.7z" "$PWD\stage\RimPortable\*" | Out-Null
+          Compress-Archive -Path "$PWD\stage\RimPortable\*" -DestinationPath "$PWD\artifacts\Rim-$ver-portable.zip" -Force
+          git archive --format=zip --prefix="Rim-$ver/" -o "$PWD\artifacts\Rim-$ver-source.zip" HEAD
+          Set-Location "$PWD\artifacts"
+          Get-ChildItem *.7z, *.zip | ForEach-Object {
+            $h = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$h  $($_.Name)" >> SHA256SUMS.txt
+          }
+          Get-Content SHA256SUMS.txt
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rim-${{ steps.ver.outputs.version }}
+          path: artifacts/*
+
+  # ---------- 发布: 正式版 (latest) ----------
+  publish-stable:
+    needs: build
+    if: needs.build.outputs.channel == 'stable'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Rim-${{ needs.build.outputs.version }}
+          path: artifacts
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Release notes (bilingual)
+        shell: pwsh
+        run: |
+          $ver = "${{ needs.build.outputs.version }}"
+          $cur = "${{ needs.build.outputs.tag }}"
+          $prev = (git tag --list 'v*' --sort=-v:refname | Where-Object { $_ -ne $cur } | Select-Object -First 1)
+          @"
+          ## Rim v$ver / Rim v$ver 发布版
+          ### Highlights 亮点 (maintainer 手填, 可事后编辑)
+          - TODO
+          ### Changes 变更 (auto)
+          "@ | Out-File notes.md -Encoding utf8NoBOM
+          if ([string]::IsNullOrWhiteSpace($prev)) {
+            git log --pretty=format:'- %s (%h)' --max-count=100 >> notes.md
+          } else {
+            git log "$prev..HEAD" --pretty=format:'- %s (%h)' --max-count=100 >> notes.md
+          }
+          @"`n### Verify 校验 (auto)`n见 SHA256SUMS.txt / See SHA256SUMS.txt" >> notes.md
+          Get-Content notes.md
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ needs.build.outputs.tag }}" artifacts/* --title "Rim v${{ needs.build.outputs.version }}" --notes-file notes.md
+
+  # ---------- 发布: dev 滚动版 (prerelease, 不占 latest) ----------
+  publish-dev:
+    needs: build
+    if: needs.build.outputs.channel == 'dev'
+    runs-on: windows-latest
+    concurrency:
+      group: rim-dev-publish
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Rim-${{ needs.build.outputs.version }}
+          path: artifacts
+      - name: Recreate rolling dev release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ver = "${{ needs.build.outputs.version }}"
+          $sha = "${{ github.sha }}"
+          gh release delete dev -y --cleanup-tag 2>$null; $true | Out-Null
+          @"
+          ## Rim dev $ver (自动构建, 随 main 更新)
+          Auto dev build from main. Pre-release, 不占 latest, 尝鲜用, 出问题回退正式版。
+          - commit: $sha
+          - built: $(Get-Date -Format "yyyy-MM-dd HH:mm") UTC
+          "@ | Out-File notes.md -Encoding utf8NoBOM
+          gh release create dev --prerelease --title "Rim dev $ver" --notes-file notes.md artifacts/*

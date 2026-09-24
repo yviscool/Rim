@@ -41,3 +41,7 @@ jobs:
           & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut tools/smoke_register.ahk
           if ($LASTEXITCODE -ne 0) { exit 1 }
           python -c "import sys,re; rows=open('smoke_register.out.txt',encoding='utf-8-sig').read().splitlines(); A=[l for l in rows if l.startswith('A|')]; C=[l for l in rows if l.startswith('C|')]; F=[l for l in rows if l.startswith('F|')]; CJK=re.compile(r'[\u4e00-\u9fff]'); bad=[l for l in A+C if not l.split('|')[-1] or CJK.search(l.split('|')[-1]) or re.match(r'^(act|cmd)\.', l.split('|')[-1])]; print(f'actions={len(A)} commands={len(C)} failures={len(F)} bad={len(bad)}'); sys.exit(1 if (F or bad or not A) else 0)"
+      - name: SmartInput probe (pure functions, no GUI)
+        run: |
+          & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut tools/smoke_si.ahk
+          if ($LASTEXITCODE -ne 0) { exit 1 }

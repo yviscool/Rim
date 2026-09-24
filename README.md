@@ -48,6 +48,10 @@ Vim-style keys such as `h`, `j`, `k`, and `l` are application-specific mappings,
 
 There is no installer or prebuilt release binary in this repository. The project is run from its checked-out source tree.
 
+## Download
+
+Prebuilt portable packages are published on the [Releases page](https://github.com/yviscool/Rim/releases): `*-portable.7z` / `*-portable.zip` (unzip and run `Rim.exe`), plus `*-source.zip` and `SHA256SUMS.txt`. `latest` points to the newest stable release; rolling `dev` prereleases track `main` automatically. 绿色便携包见 Releases 页，解压运行 `Rim.exe` 即可，首次运行请按自己机器填写 `Conf/rim.ini` 中的搜索目录与 TC 路径。
+
 ## Get Started
 
 1. Install AutoHotkey v2 and clone this repository.
