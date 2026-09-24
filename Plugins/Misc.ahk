@@ -408,7 +408,7 @@ BaiduFanyi_ParseResponse(response, word) {
 
     try {
         ; 尝试使用 JSON 解析
-        json := JSON.Load(response)
+        json := JSON.parse(response)
         if (Type(json) = "Map") {
             ; 检查错误
             if json.Has("error_code") {
@@ -1273,7 +1273,7 @@ QueryCurrencyRate(fromCurrency, toCurrency, amount := 1) {
         return T("misc.fx_nodata")
     rate := ""
     try {
-        data := JSON.Load(jsonText)
+        data := JSON.parse(jsonText)
         if (Type(data) = "Map") {
             if data.Has("data") {
                 d := data["data"]
