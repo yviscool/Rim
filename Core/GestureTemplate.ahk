@@ -3,16 +3,15 @@
 
 ; === GestureTemplate - 字母/异形手势模板匹配 ($1 风格) ===
 ; 方向链擅长折线 (R/D_R...), 字母 (e/G/3/B...) 靠模板模糊匹配.
-; 流程: Up 时链未命中 -> 归一化笔画 -> 与模板比对 -> 分数达标则触发.
-; 模板名区分大小写, 与链命名空间隔离 (链全大写归一, 模板保持原样).
-; 存储: [GestureTemplates] 行格式 name=action|||x1,y1 x2,y2 ... (32 点, 0-64 网格).
+; 模板是形状样本，动作统一由手势名称在作用域中解析。
+; 存储: [GestureTemplates] name=v2:x1,y1 ...||||v2:x1,y1 ...
 ; 内置字母模板由理想笔顺合成, 用户录制可覆盖同名项.
 
 global g_TplNPT := 32
 global g_TplSize := 64
 global g_TplThreshold := 75
 global g_TplMaxSamples := 3
-global g_Templates := Map()   ; name -> {action, samples:[pts...], builtin}
+global g_Templates := Map()   ; canonical name -> {samples:[pts...], builtin}
 
 ; ---- 点结构: {x, y} 数组 ----
 Tpl_Pt(x, y) {
@@ -281,6 +280,11 @@ Tpl_BuiltinDefs() {
 }
 
 ; ---- 匹配用制备管线 (模板与候选必须同空间): 归一化->搬回网格->量化 ----
+Tpl_BuiltinName(name) {
+    up := StrUpper(name)
+    return (up = "U" || up = "R" || up = "D" || up = "L") ? "LETTER_" . up : up
+}
+
 Tpl_Prepare(rawPts) {
     return Tpl_Decode(Tpl_Encode(Tpl_ScaleShiftBack(Tpl_Normalize(rawPts))))
 }
@@ -349,21 +353,17 @@ Tpl_LoadAll() {
                 }
             }
             samples.Push(Tpl_Synth(def[2]))
-            g_Templates[name] := {action: def[1], samples: samples, builtin: 1}
+            g_Templates[Tpl_BuiltinName(name)] := {samples: samples, builtin: 1}
         }
     }
-    ; ini 覆盖 (动作和样本都可自定义): name=action|||s1||||s2 ...
+    ; ini 覆盖（仅保存样本，动作统一在 Gestures / GestureApp 中绑定）: name=s1||||s2 ...
     try {
         if IsObject(g_Conf) && g_Conf.HasSection("GestureTemplates") {
             for _k, _v in g_Conf["GestureTemplates"] {
                 _k := Trim(_k)
                 if (_k = "" || SubStr(_k, 1, 1) = ";")
                     continue
-                pos := InStr(_v, "|||")
-                if (pos = 0)
-                    continue
-                act := Trim(SubStr(_v, 1, pos - 1))
-                rest := Trim(SubStr(_v, pos + 3))
+                rest := Trim(_v)
                 samples := []
                 versions := []
                 for i, sp in StrSplit(rest, "||||") {
@@ -374,9 +374,9 @@ Tpl_LoadAll() {
                         versions.Push(SubStr(sp, 1, 3) = "v2:" ? 2 : 1)
                     }
                 }
-                if (act = "" || samples.Length = 0)
+                if (samples.Length = 0)
                     continue
-                g_Templates[_k] := {action: act, samples: samples, versions: versions, builtin: 0}
+                g_Templates[Tpl_BuiltinName(_k)] := {samples: samples, versions: versions, builtin: 0}
             }
         }
     }
@@ -433,11 +433,62 @@ Tpl_Match(rawPts, minSize := 0, onlyName := "") {
     return [bestName, score]
 }
 
+Tpl_Candidates(rawPts, minSize := 0) {
+    global g_Templates, g_TplSize
+    out := []
+    if (!IsObject(rawPts) || rawPts.Length < 3)
+        return out
+    if (minSize > 0) {
+        bb := Tpl_BBox(rawPts)
+        if (bb[3] - bb[1] < minSize && bb[4] - bb[2] < minSize)
+            return out
+    }
+    cand := Tpl_Prepare(rawPts)
+    legacyCand := ""
+    half := 0.5 * Sqrt(g_TplSize * g_TplSize * 2)
+    for name, tmpl in g_Templates {
+        if (Gesture_TplOff(name))
+            continue
+        bestDist := 1e18
+        bestSample := 0
+        for index, sample in tmpl.samples {
+            version := 2
+            try version := tmpl.versions[index]
+            if (version = 1 && !IsObject(legacyCand))
+                legacyCand := Tpl_PrepareLegacy(rawPts)
+            dist := Tpl_PathDistance(version = 1 ? legacyCand : cand, sample)
+            if (dist < bestDist) {
+                bestDist := dist
+                bestSample := index
+            }
+        }
+        if (bestSample > 0)
+            out.Push({name: name, score: (1 - bestDist / half) * 100, sample: bestSample})
+    }
+    return out
+}
+
+Tpl_RemoveSample(name, index) {
+    tmpl := Tpl_Get(name)
+    if (!IsObject(tmpl) || index < 1 || index > tmpl.samples.Length || tmpl.samples.Length < 2)
+        return false
+    samples := []
+    for i, sample in tmpl.samples {
+        if (i = index)
+            continue
+        version := 2
+        try version := tmpl.versions[i]
+        samples.Push((version = 1 ? "v1:" : "v2:") . Tpl_Encode(sample))
+    }
+    return GestureStore_SetTemplateSamples(name, samples)
+}
+
 Tpl_Get(name) {
     global g_Templates
     try {
-        if (g_Templates.Has(name))
-            return g_Templates[name]
+        key := StrUpper(name)
+        if (g_Templates.Has(key))
+            return g_Templates[key]
     }
     return ""
 }
@@ -462,7 +513,7 @@ Tpl_List() {
     out := []
     try {
         for name, t in g_Templates
-            out.Push([name, t.action, (t.builtin ? "内置" : "自定义") . "x" . t.samples.Length])
+            out.Push([name, "", (t.builtin ? "内置" : "自定义") . " x" . t.samples.Length])
     }
     return out
 }

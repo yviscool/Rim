@@ -54,9 +54,7 @@ Register_GestureDefaults() {
     ; 原版 StrokesPlus 默认动作对齐:
     ; 单笔斜线: / Up(右上)=最大化 / Down(左下)=最小化 \ Up(左上)=Alt+F4 \ Down(右下)=Ctrl+W
     ;   Right-Down=打开 Chrome; U=复制 D=粘贴 U_D=刷新
-    ; 方向链 (DIR 空间, 全大写) 与字母模板 (TPL 空间, TPL:U) 命名隔离,
-    ; 单字母模板动作走 [GestureTemplates]/TPL: 覆盖, 见 Core/GestureTemplate.ahk;
-    ; 浏览器专属 Z/B/J/h/3 与 U 后斜向前后页在 Conf/rim.ini 的 Browsers 层定义.
+    ; 方向链与形状样本共用手势名称，动作统一在 [Gestures] 或应用层绑定。
     defaultsGestures := Map(
         "L", "key|{Browser_Back}",
         "R", "key|{Browser_Forward}",

@@ -51,12 +51,15 @@ global g_Gesture := Map(
     "startHwnd", 0,
     "startContext", "",
     "forwardDown", 0,
-    "leftCombo", 0
+    "leftCombo", 0,
+    "candidate", "",
+    "candidateList", []
 )
 global g_GestureMap := Map()       ; 全局层: 手势串 -> 动作串
 global g_GestureApps := []         ; 应用层(ini 顺序): [{name, exe, cls, map}]
 global g_GestureBlacklist := []    ; 黑名单模式串
 global g_GestureAppPrefix := "GestureApp:"
+global g_GestureDefs := Map()
 global g_GestureDisabled := Map()  ; 禁用集: id -> 1
 ; id 格式: 链 "层:键" / 模板 "模板:名" / 黑名单 "黑名单:模式" / 应用层 "应用层:名"
 global g_GestureHookBefore := ""
@@ -66,10 +69,10 @@ global g_GestureHookAfter := ""
 GestureInit() {
     global g_Gesture
     Gesture_LoadConfig()
-    Gesture_ReloadLayers()
     try Tpl_LoadAll()
     catch {
     }
+    Gesture_ReloadLayers()
     if (!g_Gesture["enable"])
         return false
     Gesture_BindTrigger()
@@ -118,43 +121,51 @@ Gesture_LoadConfig() {
     }
 }
 
-; ---- (重)载所有层: 全局 [Gestures] + [GestureApp:*] + [GestureBlacklist] + [GestureDisabled] ----
-Gesture_ReloadLayers() {
+; ---- (重)载所有层: 全局 [Gestures] + [GestureApp:*] + [GestureBlacklist] + [GestureDisabled] ----Gesture_ReloadLayers() {
     global g_GestureMap, g_GestureApps, g_GestureBlacklist, g_GestureAppPrefix, g_Conf, g_GestureDisabled
+    global g_GestureDefs
     g_GestureMap := Map()
     g_GestureApps := []
     g_GestureBlacklist := []
     g_GestureDisabled := Map()
+    g_GestureDefs := Map()
     if !IsObject(g_Conf)
         return
     try {
+        if (g_Conf.HasSection("GestureDefinitions")) {
+            for rawName, rawMethod in g_Conf["GestureDefinitions"] {
+                name := Gesture_Normalize(rawName)
+                method := StrLower(Trim(rawMethod))
+                if (name != "" && (method = "direction" || method = "template" || method = "auto"))
+                    g_GestureDefs[name] := {method: method, enabled: 1}
+            }
+        }
+    }
+    try {
         if (g_Conf.HasSection("Gestures")) {
-            for _k, _v in g_Conf["Gestures"] {
-                _k := Trim(_k)
-                _v := Trim(_v)
-                if (_k = "" || _v = "" || SubStr(_k, 1, 1) = ";")
-                    continue
-                g_GestureMap[Gesture_NormalizeFull(_k)] := _v
+            for rawKey, rawAction in g_Conf["Gestures"] {
+                key := Gesture_NormalizeFull(rawKey)
+                action := Trim(rawAction)
+                if (key != "" && action != "")
+                    g_GestureMap[key] := action
             }
         }
     }
     try {
         if (g_Conf.HasSection("GestureBlacklist")) {
-            for _k, _v in g_Conf["GestureBlacklist"] {
-                pat := Trim(_k)
-                if (pat = "" || SubStr(pat, 1, 1) = ";")
-                    continue
-                g_GestureBlacklist.Push(pat)
+            for rawKey, rawValue in g_Conf["GestureBlacklist"] {
+                pat := Trim(rawKey)
+                if (pat != "" && SubStr(pat, 1, 1) != ";")
+                    g_GestureBlacklist.Push(pat)
             }
         }
     }
     try {
         if (g_Conf.HasSection("GestureDisabled")) {
-            for _k, _v in g_Conf["GestureDisabled"] {
-                id := Trim(_k)
-                if (id = "" || SubStr(id, 1, 1) = ";")
-                    continue
-                g_GestureDisabled[id] := 1
+            for rawKey, rawValue in g_Conf["GestureDisabled"] {
+                id := Trim(rawKey)
+                if (id != "" && SubStr(id, 1, 1) != ";")
+                    g_GestureDisabled[id] := 1
             }
         }
     }
@@ -174,22 +185,72 @@ Gesture_ReloadLayers() {
             ctrlTitle := g_Conf.Get(sectionName, "set_ctrl_title", "")
             noglobal := (g_Conf.Get(sectionName, "noglobal", "0") = "1") ? 1 : 0
             mp := Map()
-            for _k, _v in section {
-                _k := Trim(_k)
-                _v := Trim(_v)
-                if (_k = "" || _v = "" || SubStr(_k, 1, 1) = ";")
+            for rawKey, rawAction in section {
+                key := Trim(rawKey)
+                action := Trim(rawAction)
+                if (key = "" || action = "" || SubStr(key, 1, 1) = ";")
                     continue
-                if (SubStr(_k, 1, 4) = "set_" || SubStr(_k, 1, 7) = "enable_")
+                if (SubStr(key, 1, 4) = "set_" || SubStr(key, 1, 7) = "enable_" || StrLower(key) = "noglobal")
                     continue
-                if (StrLower(_k) = "noglobal")
-                    continue
-                mp[Gesture_NormalizeFull(_k)] := _v
+                mp[Gesture_NormalizeFull(key)] := action
             }
             g_GestureApps.Push({name: appName, exe: exe, cls: cls, title: title, titleRx: titleRx,
                 ownerCls: ownerCls, ctrlCls: ctrlCls, ctrlTitle: ctrlTitle, noglobal: noglobal, map: mp})
         }
     }
+    try {
+        for name, t in g_Templates
+            if !g_GestureDefs.Has(name)
+                g_GestureDefs[name] := {method: "template", enabled: 1}
+    }
+    for key, action in g_GestureMap
+        Gesture_DefinitionEnsure(Gesture_BindingName(key), "direction")
+    for _, app in g_GestureApps
+        for key, action in app.map
+            Gesture_DefinitionEnsure(Gesture_BindingName(key), "direction")
 }
+
+Gesture_BindingName(key) {
+    key := Gesture_NormalizeFull(key)
+    pos := InStr(key, "+", false, -1)
+    return pos > 0 ? SubStr(key, pos + 1) : key
+}
+
+; Straight one-segment names are reserved for the direction recognizer.
+Gesture_IsReservedDirectionName(name) {
+    name := Gesture_Normalize(name)
+    return name = "U" || name = "R" || name = "D" || name = "L"
+}
+
+Gesture_DefinitionEnsure(name, method := "") {
+    global g_GestureDefs
+    name := Gesture_Normalize(name)
+    if (name = "")
+        return
+    if (method = "") {
+        try method := IsObject(Tpl_Get(name)) ? "template" : "direction"
+        catch {
+            method := "direction"
+        }
+    }
+    if !g_GestureDefs.Has(name)
+        g_GestureDefs[name] := {method: method, enabled: 1}
+}
+
+Gesture_DefinitionMethod(name) {
+    global g_GestureDefs
+    name := Gesture_Normalize(name)
+    try {
+        if g_GestureDefs.Has(name)
+            return g_GestureDefs[name].method
+    }
+    return "direction"
+}
+
+Gesture_DefinitionOff(name) {
+    return Gesture_DisabledHas("Global:" . Gesture_Normalize(name))
+}
+
 
 ; ---- 绑定触发键 (可重复调用, 触发键变更时自动解绑旧键) ----
 Gesture_BindTrigger() {
@@ -229,38 +290,27 @@ Gesture_BindTrigger() {
 
 ; ---- 手势串归一化: 去空格, 大写, "_" 连接 ----
 ; 命名空间 (StrokesPlus 对齐): 方向链是 DIR 空间 (U=向上直线),
-; 字母模板是 TPL 空间 (TPL:U=字母 U). "TPL:"/"DIR:" 前缀原样保留,
-; 链查不到时才走模板, 两者不再互遮 (见 Gesture_ResolveStroke).
+; 方向和形状样本只负责识别名称，动作统一按名称查找。
 Gesture_Normalize(s) {
     s := Trim(s)
-    prefix := ""
-    up := StrUpper(s)
-    if (SubStr(up, 1, 4) = "TPL:" || SubStr(up, 1, 4) = "DIR:") {
-        prefix := SubStr(up, 1, 4)
-        s := Trim(SubStr(s, 5))
-    }
     s := StrReplace(s, " ", "")
     s := StrReplace(s, ",", "_")
     s := StrReplace(s, "-", "_")
-    s := StrReplace(s, "__", "_")
-    return prefix . StrUpper(s)
+    while InStr(s, "__")
+        s := StrReplace(s, "__", "_")
+    return StrUpper(s)
 }
 
 ; ---- 全归一化 (含修饰键前缀): "ctrl + d_r" -> "CTRL+D_R", 顺序固定 CTRL+ALT+SHIFT ----
-; "TPL:U"/"DIR:U" 命名空间前缀优先剥离, 修饰键只认 CTRL/ALT/SHIFT
+; 修饰键只认 CTRL/ALT/SHIFT。
 Gesture_NormalizeFull(s) {
     s := StrUpper(Trim(s))
     s := StrReplace(s, " ", "")
-    ns := ""
-    if (SubStr(s, 1, 4) = "TPL:" || SubStr(s, 1, 4) = "DIR:") {
-        ns := SubStr(s, 1, 4)
-        s := SubStr(s, 5)
-    }
     if !InStr(s, "+")
-        return ns . Gesture_Normalize(s)
+        return Gesture_Normalize(s)
     parts := StrSplit(s, "+")
     if (parts.Length < 2)
-        return ns . Gesture_Normalize(s)
+        return Gesture_Normalize(s)
     hasC := false
     hasA := false
     hasS := false
@@ -276,7 +326,7 @@ Gesture_NormalizeFull(s) {
         i++
     }
     prefix := (hasC ? "CTRL+" : "") . (hasA ? "ALT+" : "") . (hasS ? "SHIFT+" : "")
-    return prefix . ns . Gesture_Normalize(parts[parts.Length])
+    return prefix . Gesture_Normalize(parts[parts.Length])
 }
 
 ; ---- 当前按住的修饰键 (与归一化同顺序) ----
@@ -502,65 +552,7 @@ Gesture_MatchApp(exe, cls, title := "", ownerCls := "", ctrlCls := "", ctrlTitle
 
 ; ---- 分层解析 (纯逻辑, 可单测): 返回 [动作, 层名], 未命中返回 ["", ""] ----
 ; 顺序: 应用层[修饰] -> 应用层[裸] -> 全局[修饰] -> 全局[裸]; noglobal 切断全局回退
-; Return keys in the unified namespace first, then the explicit legacy
-; DIR:/TPL: namespaces. This lets old profiles keep working while new
-; profiles bind a template exactly like any other gesture.
-Gesture_BindingKeys(kind, name, mods := "") {
-    n := Gesture_Normalize(name)
-    prefix := (kind = "template") ? "TPL:" : "DIR:"
-    out := []
-    seen := Map()
-    add := (key) => (seen.Has(key) ? 0 : (seen[key] := 1, out.Push(key)))
-    ; When both namespaces use the same literal (U is the common case), an
-    ; explicit legacy prefix wins. New names still work bare when no legacy
-    ; collision exists.
-    if (kind = "template") {
-        if (mods != "") {
-            add(Gesture_NormalizeFull(mods . "+" . prefix . n))
-            add(Gesture_NormalizeFull(mods . "+" . n))
-        }
-        add(prefix . n)
-        add(n)
-    } else {
-        if (mods != "") {
-            add(Gesture_NormalizeFull(mods . "+" . n))
-            add(Gesture_NormalizeFull(mods . "+" . prefix . n))
-        }
-        add(n)
-        add(prefix . n)
-    }
-    return out
-}
-
-Gesture_LookupBinding(mapObj, kind, name, mods, layer, &usedKey := "") {
-    usedKey := ""
-    if !IsObject(mapObj)
-        return ""
-    for _, key in Gesture_BindingKeys(kind, name, mods) {
-        try {
-            if mapObj.Has(key) && !Gesture_ChainOff(layer, key) {
-                usedKey := key
-                return mapObj[key]
-            }
-        }
-    }
-    return ""
-}
-
-Gesture_HasBinding(kind, name, exe, cls, title, mods := "", ownerCls := "", ctrlCls := "", ctrlTitle := "") {
-    global g_GestureMap
-    app := Gesture_MatchApp(exe, cls, title, ownerCls, ctrlCls, ctrlTitle)
-    if (IsObject(app)) {
-        if (Gesture_LookupBinding(app.map, kind, name, mods, app.name, &key) != "")
-            return {found: 1, canonical: !InStr(key, (kind = "template" ? "TPL:" : "DIR:"))}
-        if (Gesture_AppField(app, "noglobal"))
-            return {found: 0, blocked: 1, canonical: 0}
-    }
-    if (Gesture_LookupBinding(g_GestureMap, kind, name, mods, "全局", &key) != "")
-        return {found: 1, canonical: !InStr(key, (kind = "template" ? "TPL:" : "DIR:"))}
-    return {found: 0, blocked: 0, canonical: 0}
-}
-
+; Both recognizers resolve actions through this same scoped binding path.
 Gesture_ResolveFor(gesture, exe, cls, mods := "", title := "", ownerCls := "", ctrlCls := "", ctrlTitle := "") {
     global g_GestureMap
     g := Gesture_Normalize(gesture)
@@ -568,16 +560,30 @@ Gesture_ResolveFor(gesture, exe, cls, mods := "", title := "", ownerCls := "", c
         return ["", ""]
     app := Gesture_MatchApp(exe, cls, title, ownerCls, ctrlCls, ctrlTitle)
     if (IsObject(app)) {
-        action := Gesture_LookupBinding(app.map, "direction", g, mods, app.name)
+        action := Gesture_LookupUnified(app.map, g, mods, app.name)
         if (action != "")
             return [action, app.name]
         if (Gesture_AppField(app, "noglobal"))
             return ["", ""]
     }
-    action := Gesture_LookupBinding(g_GestureMap, "direction", g, mods, "全局")
+    action := Gesture_LookupUnified(g_GestureMap, g, mods, "全局")
     if (action != "")
         return [action, "全局"]
     return ["", ""]
+}
+
+Gesture_LookupUnified(mapObj, name, mods, layer) {
+    name := Gesture_Normalize(name)
+    try {
+        if (mods != "") {
+            key := Gesture_NormalizeFull(mods . name)
+            if (mapObj.Has(key) && !Gesture_ChainOff(layer, key))
+                return mapObj[key]
+        }
+        if (mapObj.Has(name) && !Gesture_ChainOff(layer, name))
+            return mapObj[name]
+    }
+    return ""
 }
 
 ; ---- 是否旁路: 自家窗口 / 黑名单 / IgnoreKey 按住 / 单次忽略 / 仅限定应用 ----
@@ -618,86 +624,98 @@ Gesture_IsBypass(consumeNext := true, ctx := "") {
     return false
 }
 
-; ---- 笔画统一解析: 链(DIR)优先, 模板(TPL)次之. 返回 [动作, 说明] ----
-; 方向链 "U"(向上直线) 与模板 "TPL:U"(字母 U) 分属两个命名空间:
-; 直线笔画命中链即返回; 链未命中再做模板匹配, 此时先查 TPL: 覆盖
+; ---- 笔画统一解析: 方向和形状识别器并列产生候选，再按统一名称查找动作 ----
 ; (应用层 -> 全局层), 都没有才用模板自带动作. 因此直线 U 不会再遮蔽字母 U.
-Gesture_ResolveStroke(gestureStr, pts, exe, cls, title, mods := "", ownerCls := "", ctrlCls := "", ctrlTitle := "") {
-    global g_Gesture, g_TplThreshold, g_GestureMap
-    forced := ""
-    name := gestureStr
-    if (gestureStr != "") {
-        up := StrUpper(gestureStr)
-        if (SubStr(up, 1, 4) = "TPL:") {
-            forced := "template"
-            name := Trim(SubStr(gestureStr, 5))
-        } else if (SubStr(up, 1, 4) = "DIR:") {
-            forced := "direction"
-            name := Trim(SubStr(gestureStr, 5))
-        }
+Gesture_CollectCandidates(direction, pts) {
+    global g_GestureDefs, g_TplThreshold, g_Gesture
+    out := []
+    direction := Gesture_Normalize(direction)
+    if (direction != "" && g_GestureDefs.Has(direction)) {
+        def := g_GestureDefs[direction]
+        if (def.method = "direction" || def.method = "auto")
+            out.Push({name: direction, method: "direction"
+                , score: InStr(direction, "_") ? 82 : 96, sample: 0})
     }
-
-    if (forced = "template")
-        return Gesture_ResolveTpl(name, pts, exe, cls, title, mods, ownerCls, ctrlCls, ctrlTitle)
-    if (forced = "direction")
-        return Gesture_ResolveFor(name, exe, cls, mods, title, ownerCls, ctrlCls, ctrlTitle)
-
-    dirRes := (name != "" ? Gesture_ResolveFor(name, exe, cls, mods, title, ownerCls, ctrlCls, ctrlTitle) : ["", ""])
-    tplRes := Gesture_ResolveTpl("", pts, exe, cls, title, mods, ownerCls, ctrlCls, ctrlTitle)
-    if (dirRes[1] = "")
-        return tplRes
-    if (tplRes[1] = "")
-        return dirRes
-
-    ; A configured template is a deliberate shape binding. Prefer it for a
-    ; chevron when both the quantized chain and the template are bound.
-    m := Tpl_Match(pts, 0)
-    isChevron := (name = "DR_UR" || name = "DL_UR" || name = "UR_DR" || name = "UL_DL")
-    if (isChevron && m[1] != "") {
-        tplBinding := Gesture_HasBinding("template", m[1], exe, cls, title, mods, ownerCls, ctrlCls, ctrlTitle)
-        if (tplBinding.found)
-            return tplRes
-    }
-    return dirRes
-}
-
-Gesture_ResolveTpl(tplOnly, pts, exe, cls, title, mods := "", ownerCls := "", ctrlCls := "", ctrlTitle := "") {
-    global g_Gesture, g_TplThreshold, g_GestureMap
     if (!IsObject(pts) || pts.Length < 3)
-        return ["", ""]
+        return out
     minSize := 20
-    try {
-        if (g_Gesture["threshold"] + 0 > 0)
-            minSize := g_Gesture["threshold"] + 0
+    try minSize := Max(20, g_Gesture["threshold"] + 0)
+    matches := Tpl_Candidates(pts, minSize)
+    for _, candidate in matches {
+        name := Gesture_Normalize(candidate.name)
+        if (!g_GestureDefs.Has(name) || Gesture_TplOff(name))
+            continue
+        def := g_GestureDefs[name]
+        if (def.method != "template" && def.method != "auto")
+            continue
+        if (candidate.score < g_TplThreshold)
+            continue
+        out.Push({name: name, method: "template", score: candidate.score, sample: candidate.sample})
     }
-    th := 75
-    try {
-        if (g_TplThreshold + 0 > 0)
-            th := g_TplThreshold + 0
-    }
-    m := Tpl_Match(pts, minSize, tplOnly)
-    if (m[1] = "" || m[2] < th)
-        return ["", ""]
-    if (tplOnly != "" && StrUpper(tplOnly) != StrUpper(m[1]))
-        return ["", ""]
-    app := Gesture_MatchApp(exe, cls, title, ownerCls, ctrlCls, ctrlTitle)
-    if (IsObject(app)) {
-        action := Gesture_LookupBinding(app.map, "template", m[1], mods, app.name)
-        if (action != "")
-            return [action, app.name . "/模板"]
-        if (Gesture_AppField(app, "noglobal"))
-            return ["", ""]
-    }
-    action := Gesture_LookupBinding(g_GestureMap, "template", m[1], mods, "全局")
-    if (action != "")
-        return [action, "全局/模板"]
-    t := Tpl_Get(m[1])
-    if (IsObject(t))
-        return [t.action, "模板"]
-    return ["", ""]
+    return out
 }
 
-; ---- 试笔模式: 只识别不执行 ----
+Gesture_SelectCandidate(candidates, exe, cls, title, mods := "", ownerCls := "", ctrlCls := "", ctrlTitle := "") {
+    ranked := []
+    for _, candidate in candidates {
+        binding := Gesture_ResolveFor(candidate.name, exe, cls, mods, title, ownerCls, ctrlCls, ctrlTitle)
+        if (binding[1] = "")
+            continue
+        candidate.action := binding[1]
+        candidate.layer := binding[2]
+        ranked.Push(candidate)
+    }
+    if (ranked.Length = 0)
+        return {selected: "", candidates: candidates, reason: "unbound"}
+    ; A shape needs enough lead over another shape; a direction chain is a
+    ; separate geometric candidate with a fixed score.
+    best := ranked[1]
+    second := ""
+    for _, candidate in ranked {
+        if (candidate.score > best.score) {
+            second := best
+            best := candidate
+        } else if (candidate.name != best.name && (!IsObject(second) || candidate.score > second.score))
+            second := candidate
+    }
+    ordered := [best]
+    if (IsObject(second))
+        ordered.Push(second)
+    if (IsObject(second) && best.method = "template"
+        && second.method = "template" && best.score - second.score < 4)
+        return {selected: "", candidates: ordered, reason: "ambiguous"}
+    return {selected: best, candidates: ordered, reason: "matched"}
+}
+
+Gesture_ResolveStroke(gestureStr, pts, exe, cls, title, mods := "", ownerCls := "", ctrlCls := "", ctrlTitle := "") {
+    global g_Gesture
+    decision := Gesture_SelectCandidate(Gesture_CollectCandidates(gestureStr, pts), exe, cls, title,
+        mods, ownerCls, ctrlCls, ctrlTitle)
+    g_Gesture["candidateList"] := decision.candidates
+    g_Gesture["candidate"] := decision.selected
+    if !IsObject(decision.selected)
+        return ["", decision.reason]
+    return [decision.selected.action, decision.selected.layer]
+}
+
+Gesture_CandidateSummary() {
+    global g_Gesture
+    try {
+        items := g_Gesture["candidateList"]
+        if (!IsObject(items) || items.Length = 0)
+            return ""
+        out := ""
+        for index, candidate in items {
+            if (index > 2)
+                break
+            out .= (out = "" ? "" : " | ") . candidate.name . " " . Round(candidate.score)
+                . " (" . candidate.method . ")"
+        }
+        return out
+    }
+    return ""
+}
+
 Gesture_SetTryMode(on) {
     global g_Gesture
     g_Gesture["tryMode"] := on ? 1 : 0
@@ -1102,6 +1120,9 @@ Gesture_OSD() {
             mods, ownerCls, ctrlCls, ctrlTitle)
         if (res[1] != "")
             txt .= "`n" . T("gesture.osd_action", res[1], res[2])
+        summary := Gesture_CandidateSummary()
+        if (summary != "")
+            txt .= "`n" . summary
     }
     ToolTip(txt)
 }
@@ -1224,7 +1245,7 @@ Gesture_UpCore() {
             ; 试笔模式: 只报不执行
             if (g_Gesture["tryMode"]) {
                 disp := mods . gesture
-                try ToolTip(T("gesture.try_hit", disp, res[1], res[2]))
+                try ToolTip(T("gesture.try_hit", disp, res[1], res[2]) . "`n" . Gesture_CandidateSummary())
                 catch {
                 }
                 SetTimer(Gesture_HideTip, -2000)
@@ -1234,7 +1255,7 @@ Gesture_UpCore() {
             return
         }
         if (g_Gesture["tryMode"]) {
-            try ToolTip(T("gesture.try_miss", gesture))
+            try ToolTip(T("gesture.try_miss", gesture) . "`n" . Gesture_CandidateSummary())
             catch {
             }
             SetTimer(Gesture_HideTip, -2000)

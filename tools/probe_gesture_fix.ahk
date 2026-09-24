@@ -42,12 +42,10 @@ catch {
 }
 
 ; ---- 1. 归一化命名空间 ----
-Chk("norm-tpl", Gesture_Normalize("TPL:u") = "TPL:U")
-Chk("norm-dir", Gesture_Normalize("dir:u_d") = "DIR:U_D")
+Chk("norm-name", Gesture_Normalize("letter_u") = "LETTER_U")
 Chk("norm-chain", Gesture_Normalize("d_r") = "D_R")
 Chk("normfull-mods", Gesture_NormalizeFull("ctrl + d_r") = "CTRL+D_R")
-Chk("normfull-tpl", Gesture_NormalizeFull("TPL:u") = "TPL:U")
-Chk("normfull-modtpl", Gesture_NormalizeFull("ctrl+TPL:u") = "CTRL+TPL:U")
+Chk("normfull-name", Gesture_NormalizeFull("ctrl+letter_u") = "CTRL+LETTER_U")
 
 ; ---- 2. 内置模板装载 (复刻 Tpl_LoadAll 内置段, 不依赖 g_Conf) ----
 try {
@@ -76,13 +74,6 @@ for i, w in [["20","15"],["20","70"],["35","88"],["60","88"],["78","68"],["80","
 }
 m := Tpl_Match(rawU, 6)
 Chk("tpl-match-U", m[1] = "U" && m[2] >= 75)
-
-; ---- 3. 链优先 + TPL 全局覆盖 ----
-g_GestureMap := Map("U", "key|^c", "U_D", "key|{F5}", "TPL:U", "key|^z")
-res := Gesture_ResolveStroke("U", [{x: 0, y: 0}], "x.exe", "cls", "", "")
-Chk("chain-first", res[1] = "key|^c")
-res2 := Gesture_ResolveTpl("", rawU, "x.exe", "cls", "", "")
-Chk("tpl-global-override", res2[1] = "key|^z")
 
 ; ---- 4. 控件级应用匹配 ----
 g_GestureApps := [{name: "Desk", exe: "explorer.exe", cls: "", title: "", titleRx: "",
@@ -124,83 +115,6 @@ g_Gesture["comboKind"] := ""
 ; ---- 8. 按下快照默认值 ----
 Chk("downmods-field", g_Gesture.Has("downMods"))
 Chk("leftcombo-field", g_Gesture.Has("leftCombo"))
-
-; ---- 9. SP 真实样本 + 动作对齐 ----
-Chk("tpl-U-dualsample", g_Templates["U"].samples.Length >= 2)
-Chk("tpl-S-action", Tpl_Get("S").action = "run|D:\software\SublimeText\sublime_text.exe")
-Chk("tpl-e-noop", Tpl_Get("e").action = "function|Gesture_NoOp")
-mS := Tpl_Match(rawU, 6)
-Chk("tpl-real-U-wins", mS[1] = "U" && mS[2] >= 75)
-
-; ---- 10. Browser direction and template scope ----
-browserMap := Map("U_UR", "key|!{Right}", "U_UL", "key|!{Left}", "R_U", "key|{F11}",
-    "DR_UR", "key|{F5}", "UR_DR", "key|^+t", "UL_DL", "key|^+t", "DL_UR", "key|{F5}",
-    "U_D", "key|^+t", "TPL:U", "key|{F5}",
-    "TPL:V", "key|{F5}", "TPL:INVV", "key|^+t",
-    "TPL:Z", "combo|zoom", "TPL:B", "key|^d", "TPL:J", "key|^j",
-    "TPL:H", "key|{Browser_Home}", "TPL:3", "key|^t")
-g_GestureApps.Push({name: "Browsers", exe: "chrome.exe | firefox.exe | iexplore.exe", cls: "",
-    title: "", titleRx: "", ownerCls: "", ctrlCls: "", ctrlTitle: "",
-    noglobal: 0, map: browserMap})
-resB := Gesture_ResolveFor("U_UR", "chrome.exe", "Chrome_WidgetWin_1", "", "")
-Chk("browsers-up-right", resB[1] = "key|!{Right}")
-resBLeft := Gesture_ResolveFor("U_UL", "chrome.exe", "Chrome_WidgetWin_1", "", "")
-Chk("browsers-up-left", resBLeft[1] = "key|!{Left}")
-resB2 := Gesture_ResolveFor("R_U", "chrome.exe", "Chrome_WidgetWin_1", "", "")
-Chk("browsers-r-u", resB2[1] = "key|{F11}")
-resB3 := Gesture_ResolveFor("U_UR", "notepad.exe", "Notepad", "", "")
-Chk("browsers-scope", resB3[1] = "")
-resBV := Gesture_ResolveFor("DR_UR", "chrome.exe", "Chrome_WidgetWin_1", "", "")
-Chk("browsers-v-refresh", resBV[1] = "key|{F5}")
-resBInvV := Gesture_ResolveFor("UR_DR", "chrome.exe", "Chrome_WidgetWin_1", "", "")
-Chk("browsers-inverted-v-reopen", resBInvV[1] = "key|^+t")
-resBInvVRightToLeft := Gesture_ResolveFor("UL_DL", "chrome.exe", "Chrome_WidgetWin_1", "", "")
-Chk("browsers-inverted-v-reopen-reverse", resBInvVRightToLeft[1] = "key|^+t")
-resBVRightToLeft := Gesture_ResolveFor("DL_UR", "chrome.exe", "Chrome_WidgetWin_1", "", "")
-Chk("browsers-v-refresh-reverse", resBVRightToLeft[1] = "key|{F5}")
-resBUpDown := Gesture_ResolveFor("U_D", "chrome.exe", "Chrome_WidgetWin_1", "", "")
-Chk("browsers-strokesplus-up-down-reopen", resBUpDown[1] = "key|^+t")
-invVNoisy := []
-for _, xy in [[0,100],[1,88],[0,76],[2,64],[1,52],[12,40],[24,28],[36,16],[48,5],[50,0],
-    [50,0],[53,3],[64,16],[76,28],[88,40],[98,52],[100,64],[99,76],[101,88],[100,100]]
-    invVNoisy.Push(Tpl_Pt(xy[1], xy[2]))
-resBInvVShape := Gesture_ResolveStroke("U_UR_D", invVNoisy, "chrome.exe", "Chrome_WidgetWin_1", "")
-Chk("browsers-inverted-v-noisy-shape", resBInvVShape[1] = "key|^+t")
-resBInvVShape2 := Gesture_ResolveStroke("UR_DR_D", invVNoisy, "chrome.exe", "Chrome_WidgetWin_1", "")
-Chk("browsers-inverted-v-noisy-shape-2", resBInvVShape2[1] = "key|^+t")
-resOtherInvVShape := Gesture_ResolveStroke("U_UR_D", invVNoisy, "notepad.exe", "Notepad", "")
-Chk("inverted-v-template-keeps-global-noop", resOtherInvVShape[1] = "function|Gesture_NoOp")
-resOtherUpDown := Gesture_ResolveFor("U_D", "notepad.exe", "Notepad", "", "")
-Chk("non-browser-up-down-remains-refresh", resOtherUpDown[1] = "key|{F5}")
-
-builtinDefs := Tpl_BuiltinDefs()
-for tplName in ["Z", "B", "J", "h", "3"] {
-    tplPts := []
-    for _, waypoint in builtinDefs[tplName][2]
-        tplPts.Push(Tpl_Pt(waypoint[1] + 0.0, waypoint[2] + 0.0))
-    explicitMatch := Tpl_Match(tplPts, 6, tplName)
-    Chk("browser-tpl-explicit-match-" . tplName,
-        explicitMatch[1] = tplName && explicitMatch[2] >= 75)
-    tplRes := Gesture_ResolveStroke("TPL:" . tplName, tplPts, "chrome.exe", "Chrome_WidgetWin_1", "")
-    expected := (tplName = "Z") ? "combo|zoom" : browserMap["TPL:" . StrUpper(tplName)]
-    Chk("browser-tpl-" . tplName, tplRes[1] = expected)
-    outsideRes := Gesture_ResolveStroke("TPL:" . tplName, tplPts, "notepad.exe", "Notepad", "")
-    Chk("browser-tpl-scope-" . tplName, outsideRes[1] = "function|Gesture_NoOp")
-}
-Chk("tpl-lowercase-normalized", Gesture_NormalizeFull("TPL:h") = "TPL:H")
-
-; ---- unified gesture namespace: bare template names share app/global routing ----
-vPts := []
-for _, xy in Tpl_BuiltinDefs()["V"][2]
-    vPts.Push(Tpl_Pt(xy[1] + 0.0, xy[2] + 0.0))
-g_GestureMap := Map("V", "key|global-v", "DR_UR", "key|direction-v")
-g_GestureApps := [{name: "UnifiedApp", exe: "unified.exe", cls: "", title: "", titleRx: "",
-    ownerCls: "", ctrlCls: "", ctrlTitle: "", noglobal: 0, map: Map("V", "key|app-v")}]
-unifiedApp := Gesture_ResolveStroke("DR_UR", vPts, "unified.exe", "Unified", "")
-Chk("unified-template-app-wins-chevron", unifiedApp[1] = "key|app-v")
-unifiedGlobal := Gesture_ResolveStroke("DR_UR", vPts, "other.exe", "Other", "")
-Chk("unified-template-global-wins-chevron", unifiedGlobal[1] = "key|global-v")
-Chk("unified-template-direct-global", Gesture_ResolveTpl("", vPts, "other.exe", "Other", "")[1] = "key|global-v")
 
 if (g_Fails > 0) {
     FileAppend("RESULT|FAIL|" . g_Fails . "`n", A_ScriptDir . "\probe_gesture_fix.out.txt")

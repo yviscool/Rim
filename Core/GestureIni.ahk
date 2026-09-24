@@ -187,7 +187,7 @@ GestureIni_DeleteBare(path, section, line) {
 
 ; ==================== 手势包 (导出/导入, 跨机备份分享) ====================
 GesturePkg_Sections() {
-    return Map("Gesture", 1, "Gestures", 1, "GestureBlacklist", 1
+    return Map("Gesture", 1, "GestureDefinitions", 1, "Gestures", 1, "GestureBlacklist", 1
         , "GestureTemplates", 1, "GestureDisabled", 1, "GestureDesc", 1)
 }
 
@@ -322,6 +322,35 @@ GestureStore_SetGesture(layer, gesture, action) {
     return true
 }
 
+GestureStore_SetDefinition(name, method) {
+    global g_Conf, g_ConfFile
+    name := Gesture_Normalize(name)
+    method := StrLower(Trim(method))
+    if (name = "" || (method != "direction" && method != "template" && method != "auto"))
+        return false
+    if (method = "template" && Gesture_IsReservedDirectionName(name))
+        return false
+    if (!GestureIni_Upsert(g_ConfFile, "GestureDefinitions", name, method))
+        return false
+    try g_Conf.Set("GestureDefinitions", GestureConf_KeyExact("GestureDefinitions", name), method)
+    catch {
+    }
+    Gesture_ReloadLayers()
+    return true
+}
+
+GestureStore_DelDefinition(name) {
+    global g_Conf, g_ConfFile
+    name := Gesture_Normalize(name)
+    if (!GestureIni_Delete(g_ConfFile, "GestureDefinitions", name))
+        return false
+    try g_Conf.DeleteKey("GestureDefinitions", GestureConf_KeyExact("GestureDefinitions", name))
+    catch {
+    }
+    Gesture_ReloadLayers()
+    return true
+}
+
 ; Save the binding and its description as one edit. Restore the original INI on failure.
 GestureStore_SaveGesture(layer, gesture, action, desc) {
     global g_Conf, g_ConfFile
@@ -333,6 +362,29 @@ GestureStore_SaveGesture(layer, gesture, action, desc) {
         return false
     }
     return true
+}
+
+GestureStore_SaveUnified(oldLayer, oldGesture, layer, gesture, action, desc, method, sample := "") {
+    global g_ConfFile
+    before := GestureIni_ReadText(g_ConfFile)
+    if (before = "")
+        return false
+    name := Gesture_BindingName(gesture)
+    moved := oldGesture != "" && (oldLayer != layer
+        || Gesture_NormalizeFull(oldGesture) != Gesture_NormalizeFull(gesture))
+    ok := moved ? GestureStore_MoveGesture(oldLayer, oldGesture, layer, gesture, action, desc)
+        : GestureStore_SaveGesture(layer, gesture, action, desc)
+    if (ok && sample != "") {
+        tmpl := Tpl_Get(name)
+        samples := IsObject(tmpl) ? StrSplit(Tpl_JoinSamples(tmpl), "||||") : []
+        samples.Push(sample)
+        ok := GestureStore_SetTemplateSamples(name, samples)
+    }
+    if (ok)
+        ok := GestureStore_SetDefinition(name, method)
+    if (!ok)
+        GestureStore_Restore(before)
+    return ok
 }
 
 GestureStore_MoveGesture(oldLayer, oldGesture, layer, gesture, action, desc) {
@@ -461,17 +513,18 @@ GestureStore_SetAppMatch(appName, exe, cls, title := "", titleRx := "", noglobal
     return true
 }
 
-; ---- 模板保存: name=action|||x1,y1 x2,y2 ... (同名覆盖=重录) ----
-GestureStore_SetTemplate(name, action, points) {
-    return GestureStore_SetTemplateSamples(name, action, [points])
+; ---- 模板保存: name=v2:x1,y1 ...||||v2:x1,y1 ... (同名覆盖=重录) ----
+GestureStore_SetTemplate(name, points) {
+    return GestureStore_SetTemplateSamples(name, [points])
 }
 
 ; ---- 模板多样本保存: samples 为点串数组, 以 |||| 连接 ----
-GestureStore_SetTemplateSamples(name, action, samples) {
+GestureStore_SetTemplateSamples(name, samples) {
     global g_Conf, g_ConfFile
-    name := Trim(name)
-    action := Trim(action)
-    if (name = "" || action = "" || !IsObject(samples) || samples.Length = 0)
+    name := Gesture_Normalize(name)
+    if (name = "" || !IsObject(samples) || samples.Length = 0)
+        return false
+    if Gesture_IsReservedDirectionName(name)
         return false
     if InStr(name, "=") || InStr(name, "|") || InStr(name, ":")
         return false
@@ -486,7 +539,7 @@ GestureStore_SetTemplateSamples(name, action, samples) {
     }
     if (joined = "")
         return false
-    val := action . "|||" . joined
+    val := joined
     if (!GestureIni_Upsert(g_ConfFile, "GestureTemplates", name, val, true))
         return false
     try g_Conf.Set("GestureTemplates", name, val)

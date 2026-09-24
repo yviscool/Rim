@@ -48,8 +48,7 @@ try {
     pts := []
     for _, xy in Tpl_BuiltinDefs()["V"][2]
         pts.Push(Tpl_Pt(xy[1], xy[2]))
-    Check("no global template", Gesture_ResolveTpl("V", pts, "probe.exe", "ProbeClass", "")[1] = "")
-    Check("global builtin template", Gesture_ResolveTpl("V", pts, "other.exe", "OtherClass", "")[1] = "function|Gesture_NoOp")
+    Check("unbound shape does not execute", Gesture_ResolveStroke("DR_UR", pts, "other.exe", "OtherClass", "")[1] = "")
 
     pkgPath := g_ConfFile . ".export.ini"
     Check("export", GesturePkg_Export(pkgPath))
