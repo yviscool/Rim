@@ -5,6 +5,7 @@
 ; 全部 #Include 能加载即写 marker 并 0 退出; 任何加载错走 /ErrorStdOut 并非 0 退出.
 ; 注意: 只做解析验证, 不执行任何注册/界面逻辑 (顶层可执行代码须保持无副作用).
 #Include ..\Core\I18n.ahk
+#Include ..\Core\SmartInput.ahk
 #Include ..\Core\Engine.ahk
 #Include ..\Core\Gesture.ahk
 #Include ..\Core\GestureIni.ahk

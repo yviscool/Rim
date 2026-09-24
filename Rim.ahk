@@ -192,6 +192,7 @@ global g_CommandArea := "Edit4"
 #Include Core\Engine.ahk
 #Include Core\Utils.ahk
 #Include Core\Hotkeys.ahk
+#Include Core\SmartInput.ahk
 #Include Core\Gesture.ahk
 #Include Core\GestureIni.ahk
 #Include Core\GestureTrail.ahk
@@ -326,9 +327,9 @@ BootMark("STARTUP gui-shown")
 ; ==================== 绑定热键 (经 BindKey 统一 $ 前缀, 防 Send 回环) ====================
 HotIfWinActive(g_WindowName)
 
-BindKey("Esc", EscFunction)
+BindKey("Esc", SI_Esc)
 BindKey("!F4", ExitRunZ)
-BindKey("Tab", TabFunction)
+BindKey("Tab", SI_Tab)
 BindKey("F1", Help)
 BindKey("+F1", KeyHelp)
 BindKey("F2", EditConfig)
@@ -354,18 +355,28 @@ BindKey("^j", NextCommand)
 BindKey("^k", PrevCommand)
 BindKey("Down", NextCommand)
 BindKey("Up", PrevCommand)
+BindKey("Right", SI_Right)
+BindKey("^Right", SI_AcceptWordKey)
+BindKey("Backspace", SI_Backspace)
+BindKey("^Backspace", SI_CtrlBackspace)
+BindKey("Delete", SI_DeleteKey)
+BindKey("!Up", SI_SubstrUp)
+BindKey("!Down", SI_SubstrDown)
 BindKey("~LButton", ClickFunction)
 BindKey("RButton", OpenContextMenu)
 BindKey("AppsKey", OpenContextMenu)
 BindKey("^Enter", SaveResultAsArg)
 
-; Alt+字母 快速执行 / Tab+字母 执行 / Shift+字母 定位 (对齐原版三组绑定)
-; Tab+字母原理: TabFunction 把焦点切到隐藏 Edit2, 字母 ~ 键此时才放行执行
+; Alt+字母 快速执行 (保留, 与 Alt+数字并存) / Alt+数字直达 (0=第10项)
+; (已删除 Tab+字母执行 / Shift+字母定位: Tab 还给补全, Up/Down 只翻列表, 历史翻找走 Alt+Up/Down)
 Loop g_DisplayRows {
     key := Chr(g_FirstChar + A_Index - 1)
     BindKey("!" key, RunSelectedCommand)
-    Hotkey("~" key, RunSelectedCommand)
-    Hotkey("~+" key, GotoCommand)
+}
+Loop 10 {
+    digit := Mod(A_Index, 10)
+    if (A_Index <= g_DisplayRows)
+        BindKey("!" . digit, SI_RunByIndex)
 }
 
 ; 用户自定义热键 (<...> 经工厂绑闭包, 避免循环变量共享)

@@ -119,6 +119,12 @@ RunCommand(originCmd) {
             g_HistoryCommands.Pop()
     }
 
+    ; SmartInput 输入历史 (隐私黑名单内跳过, 会话级, 供 ghost/Alt+UpDown 用)
+    try {
+        SI_NoteInput(g_CurrentInput)
+    } catch {
+    }
+
     ; 自动排名
     if (g_Conf["Config"]["AutoRank"] = "1")
         ChangeRank(originCmd)
@@ -179,9 +185,9 @@ OpenPath(filePath) {
 ; 显示当前参数 (原版 Core 插件 ShowArg)
 ShowArg() {
     global Arg, FullPipeArg
-    msg := "Arg: " Arg
+    msg := T("arg.head") . " " . Arg
     if (FullPipeArg != "")
-        msg .= "`nFullPipeArg:`n" FullPipeArg
+        msg .= "`n" . T("arg.pipehead") . "`n" FullPipeArg
     DisplayResult(msg)
 }
 

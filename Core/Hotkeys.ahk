@@ -256,6 +256,11 @@ RunCurrentCommand(*) {
         RowNavCopy()
         return
     }
+    ; SmartInput: 有灰字先接受再执行 (否则跑的是旧列表头, 与框内文字脱节)
+    try {
+        SI_AcceptGhost()
+    } catch {
+    }
     RunCommand(g_CurrentCommand)
 }
 
@@ -365,7 +370,7 @@ DisplayHistoryCommands(*) {
             Loop _hp.Length - 4
                 _h4 .= " | " . _hp[4 + A_Index]
         }
-        result .= _h1 " | " _h2 " | " _h3 " #arg: " _h4 "`n"
+        result .= _h1 " | " _h2 " | " _h3 . " " . T("hist.argsep") . " " . _h4 "`n"
         g_CurrentCommandList.Push(element)
     }
 
@@ -544,6 +549,11 @@ ProcessInputCommandCallBack(*) {
     }
 
     SearchCommand(g_CurrentInput)
+    ; SmartInput: ghost 补全 + 延迟校验 (自家填充经 expect 标记, 内部直接返回)
+    try {
+        SI_OnInputChanged()
+    } catch {
+    }
 }
 
 StartCommandLine(*) {

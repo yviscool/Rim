@@ -252,7 +252,7 @@ LoadFiles(loadRank := true) {
         }
     }
     if (g_FallbackCommands.Length = 0)
-        g_FallbackCommands.Push("function | AhkRun | Run with Ahk Run()")
+        g_FallbackCommands.Push("function | AhkRun | " . T("cmd.fallback_ahkrun"))
 
     ; 加载用户自动函数 (文件存在即调, 缺失走 OnError 网; 本构建无 IsFunc)
     if FileExist(A_ScriptDir "\Conf\UserFunctionsAuto.txt") {

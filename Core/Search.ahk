@@ -85,6 +85,8 @@ SearchCommand(command := "", firstRun := false) {
     order := g_FirstChar
     ; 已展示的执行目标 (别名/复刻行仍参与匹配保证可搜, 但同目标只展示首个命中)
     seenTargets := Map()
+    ; 命中先收集后渲染 (精确置顶需要稳定分区, 不能边扫边画)
+    matchItems := []
 
     ; 搜索所有命令
     for index, element in g_Commands {
@@ -141,23 +143,26 @@ SearchCommand(command := "", firstRun := false) {
                 continue
             seenTargets[targetKey] := true
             fullResult .= element "`n"
-            g_CurrentCommandList.Push(element)
-
-            if (order = g_FirstChar) {
-                g_CurrentCommand := element
-                result .= Chr(order++) . ">| " . elementToShow
-            } else {
-                result .= "`n" . Chr(order++) . " | " . elementToShow
+            exactHit := false
+            try {
+                exactHit := SI_IsExactHit(element, command)
+            } catch {
             }
-
-            if (order - g_FirstChar >= g_DisplayRows)
-                break
-            if (firstRun && (order - g_FirstChar >= g_DisplayRows - 4)) {
-                result .= "`n`nTotal " g_Commands.Length " entries."
-                result .= "`n`nType to search, Enter to run, Alt+letter to run, F1 for help, Esc to close."
-                break
-            }
+            matchItems.Push(Map("element", element, "show", elementToShow, "exact", exactHit))
         }
+    }
+
+    ; 精确命中置顶 (稳定分区: 精确桶在前, 桶内保持权重+注册序)
+    ; 回车永远跑首行, ghost 也向首行对齐 (见 SI_FindGhost), 三者一致才不会误执行
+    g_CurrentCommandList := []
+    order := g_FirstChar
+    for _mi, mi in matchItems {
+        if (mi["exact"] && !SearchRenderItem(mi, &result, &order, firstRun))
+            break
+    }
+    for _mi, mi in matchItems {
+        if (!mi["exact"] && !SearchRenderItem(mi, &result, &order, firstRun))
+            break
     }
 
     ; 无结果 → 先试计算器 (对齐原版: IsLabel("Calc") && Eval()!=0 → DisplayResult)
@@ -333,4 +338,25 @@ TryEvalInput(input) {
     } catch {
         return ""
     }
+}
+
+; 单行渲染 (SearchCommand 精确分区后调用; 返回 false 表示达到截断可停)
+SearchRenderItem(mi, &result, &order, firstRun) {
+    global g_CurrentCommandList, g_CurrentCommand, g_FirstChar, g_DisplayRows, g_Commands
+    element := mi["element"]
+    g_CurrentCommandList.Push(element)
+    if (order = g_FirstChar) {
+        g_CurrentCommand := element
+        result .= Chr(order++) . ">| " . mi["show"]
+    } else {
+        result .= "`n" . Chr(order++) . " | " . mi["show"]
+    }
+    if (order - g_FirstChar >= g_DisplayRows)
+        return false
+    if (firstRun && (order - g_FirstChar >= g_DisplayRows - 4)) {
+        result .= "`n`n" . T("search.footer_total", g_Commands.Length)
+        result .= "`n`n" . T("search.footer_hint")
+        return false
+    }
+    return true
 }
