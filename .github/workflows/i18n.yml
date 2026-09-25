@@ -51,3 +51,13 @@ jobs:
             & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut "tools/$p.ahk"
             if ($LASTEXITCODE -ne 0) { Write-Host "$p FAILED"; exit 1 }
           }
+      - name: Gesture store/unified/fix/ui probes + 50-entry negative corpus
+        run: |
+          foreach ($p in @("probe_gesture_store", "probe_gesture_unified", "probe_gesture_fix", "probe_gesture_ui", "probe_gesture_ui_geometry")) {
+            & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut "tools/$p.ahk"
+            if ($LASTEXITCODE -ne 0) { Write-Host "$p FAILED"; exit 1 }
+          }
+      - name: Gesture benchmark (accuracy + P95<=30ms gate)
+        run: |
+          & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut tools/benchmark_gesture.ahk
+          if ($LASTEXITCODE -ne 0) { exit 1 }

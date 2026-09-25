@@ -181,11 +181,14 @@ Core/Gesture.ahk (主门面 Facade, 保持向后兼容 API 与全局 Map)
 ### 1. Hybrid 现状（新壳旧体，行为不变）
 - `TotalCommander / Explorer / LauncherSystem`（早先）＋ `QRCode / Kanji`（本轮）：`class XxxPlugin extends RimPlugin` 只做通道注册，体内转调旧 `RegisterPlugin_*()`。`LoadLegacyCommandPlugins` 以 `Plugins.Has(小写名)` 去重，不会 double-register。
 - 每迁完一个 legacy 插件：从 `LegacyVimPlugins` 删名（Vim 通道）或确认命令通道单注册，记 CHANGELOG；`g_FuncAlias` 别名表随最后一个 legacy 命令插件退役而 sunset。`VimDConfig` 留 Vim 通道（`RegisterAction` 需引擎，勿动）。
+- TODO `Plugins/MicrosoftExcel.ahk`：三层全死（`Rim.ahk` 未 `#Include` ＋ 无 `RegisterPlugin_*` 入口 ＋ ini 置 0），55 动作/54 映射为旧 `Plugin` 基类写法，待 COM 重移植后按 Hybrid 重写或删除（2026-09 决议：先留）。
+- `g_FuncAlias` sunset 条件（非日期）：全部 `RegisterCommand(name,"function",...)` 调用方（Misc / QRCode / Kanji / LauncherCore-Host / LauncherSystem / StatsBall / VimDConfig）迁为 `RimCommand.Register` 后，删除 `LauncherCompat.AddCommand` 别名分支 + `ResolveFuncAlias` + `SearchTargetKey` 的别名回查。QRCode/Kanji 虽已 Hybrid 但仍走旧 `RegisterCommand`，别名表暂不可删。
+- 小语种缺口（`python tools/i18n_audit.py scaffold <lang>` 实测 de 缺约 1900 键，en/zh 双全量约 1918 键）：机翻填 `Lang/*.ini` 后跑 `audit --check` 即可合，翻不翻、机翻审不审由维护者定，CI 只卡 en/zh。
 
 ### 2. 巨石拆分图（按注释边界机械切，对外仅保留原 `RegisterPlugin_*` 入口）
-- `Plugins/Misc.ahk (1693)` → `Misc.Search.ahk`（搜索 18＋翻译 6）/ `Misc.Clip.ahk`（剪贴板日期取色 10）/ `Misc.Net.ahk`（ShowIp/Wifi/Dns/Ping/PubIp/Env）/ `Misc.Codec.ahk`（编解码日历汇率 10），主文件只聚合调子 `RegisterPlugin_Misc_Sub()`。
-- `Plugins/StatsBall.ahk (1793)` → `StatsBall.Sample.ahk`（采样/偏移标定）/ `StatsBall.Widget.ahk`（StatsBallObj 球体/拖拽）/ `StatsBall.Panel.ahk`（悬停面板/Boost）。
-- `Plugins/TotalCommander.ahk (3798)` → `TC.Core.ahk` / `TC.Actions.ahk` / `TC.Menu.ahk`（L1921-3425 自造菜单）/ `TC.Keymap.ahk`。
+- `Plugins/Misc.ahk (1693)` → 主文件保留聚合注册（44 命令零增减）＋共享 `MiscPipeInput/UriEncode/EvalExpression`，纯实现下沉 `Misc.Search.ahk`（搜索/翻译）/ `Misc.Clip.ahk`（剪贴板日期取色）/ `Misc.Net.ahk`（IP/WiFi/DNS/Ping/公网/环境）/ `Misc.Codec.ahk`（汇率/万年历/URL编解码/RunClipboard/帮助），经主文件 `#Include` 组装（`smoke_register` 命令数断言不变）。
+- `Plugins/StatsBall.ahk (1793)` → 采样 `StatsBall.Sample.ahk`（CPU/内存/网速/Top进程/Boost数据）＋ 自绘 `StatsBall.Render.ahk`（GDI+三段横条）＋ 主文件（入口/`g_StatsBall`/`StatsBallObj` 类整体保留：方法经 `this` 互调，类内不可再切），经主文件 `#Include` 组装（注册期不建窗的 headless 约束不变）。
+- `Plugins/TotalCommander.ahk (3798)` → 自造菜单 `TC.Menu.ahk`（定位/级联/字母跳转/回车确认/新建文件对话框，原 1803–2715）独立文件、`#Include` 组装；映射表与动作主体留本文件（`TC_MenuRouteKey` 直调探针覆盖，不走 `Send` 回环）。
 - `Core/Hotkeys.ahk (657)` 按“绑定 vs rank/历史/文件业务”拆；`Core/SmartInput.ahk` 的 `*Pure` 纯函数抽独立可测库。
 - 物理搬移待工作区脏文件落地后一次性执行（本轮只定边界，不断编译）。
 
