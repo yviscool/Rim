@@ -1,4 +1,4 @@
-﻿#Requires AutoHotkey v2.0
+#Requires AutoHotkey v2.0
 #Warn All, Off
 
 ; === Search - 搜索逻辑 (从 RunZ Core/Search.ahk 移植) ===
@@ -9,7 +9,7 @@ SearchCommand(command := "", firstRun := false) {
     global g_CurrentCommandList, g_FallbackCommands, g_FirstChar, g_DisplayRows
     global g_ExcludedCommands, g_Commands, g_EnableTCMatch, g_SkinConf
     global g_UseResultFilter, g_UseRealtimeExec, g_InputEdit, g_DisplayEdit
-    global g_WindowName, g_UseFallbackCommands, Arg, g_Conf, g_FuncAlias, g_RowActive
+    global g_WindowName, g_UseFallbackCommands, g_Arg, g_Conf, g_FuncAlias, g_RowActive
 
     g_UseDisplay := false
     g_RowActive := false
@@ -39,9 +39,9 @@ SearchCommand(command := "", firstRun := false) {
         return result
     }
     ; 管道前缀 |
-    else if (commandPrefix = "|" && Arg != "") {
+    else if (commandPrefix = "|" && g_Arg != "") {
         if (g_PipeArg = "")
-            g_PipeArg := Arg
+            g_PipeArg := g_Arg
         command := SubStr(command, 2)
         if (SubStr(command, 1, 1) = "@") {
             command := SubStr(command, 1, 4)
@@ -112,8 +112,7 @@ SearchCommand(command := "", firstRun := false) {
                 SplitPath(splitedElement[2], , &fileDir)
                 elementToSearch := StrReplace(fileDir, "\", " ") . " " . elementToSearch
             }
-        } else if (splitedElement.Length >= 4
-            && (splitedElement[2] = "file" || splitedElement[2] = "function" || splitedElement[2] = "cmd" || splitedElement[2] = "url" || splitedElement[2] = "run")) {
+        } else if (CmdLine_IsFourSeg(splitedElement)) {
             ; 四段式: key | type | cmd | desc (来自 [Commands] key=type|cmd|desc)
             ; 显示压成三段式 类型 | 别名 | 描述, 与原版列布局一致 (别名进名字列, 照样可搜)
             elementToShow := splitedElement[2] " | " splitedElement[1]
@@ -216,9 +215,9 @@ SearchCommand(command := "", firstRun := false) {
 ; (如 top/cancelTimer) 仍能命中别名行并展示它, 只是不再刷屏
 SearchTargetKey(element) {
     global g_FuncAlias
-    parts := StrSplit(element, " | ")
-    if (parts.Length >= 4
-        && (parts[2] = "file" || parts[2] = "function" || parts[2] = "cmd" || parts[2] = "url" || parts[2] = "run"))
+    parsed := CmdLine_Parse(element)
+    parts := parsed["parts"]
+    if (parsed["isFour"])
         return parts[2] . "|" . parts[3]
     if (parts.Length >= 2 && parts[1] = "function") {
         real := parts[2]
@@ -330,7 +329,7 @@ TryEvalInput(input) {
         return ""
     try {
         val := EvalExpression(input)
-        if (val = "" || InStr(val, "错误"))
+        if (val = "" || InStr(val, "错误")) ; i18n:protocol (MonsterEval 错误哨兵, 引擎零 T() 依赖)
             return ""
         if (val + 0 = 0)
             return ""

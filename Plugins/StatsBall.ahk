@@ -8,8 +8,12 @@
 
 global g_StatsBall := ""
 
-; ---------- 注册 (仅注册命令, 不建窗) ----------
+; ---------- 注册 (仅注册命令, 不建窗; 幂等: 命令+vim双通道各调一次) ----------
 RegisterPlugin_StatsBall() {
+    static registered := false
+    if (registered)
+        return
+    registered := true
     RegisterCommand("StatsBall", "function", "StatsBall_Toggle", T("cmd.StatsBall.StatsBall"))
     RegisterCommand("StatsBallBoost", "function", "StatsBall_Boost", T("cmd.StatsBall.Boost"))
 }

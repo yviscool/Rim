@@ -135,6 +135,7 @@ class GestureHook {
         g_Gesture["points"] := [{x: sx, y: sy}]
         g_Gesture["dirs"] := []
         g_Gesture["gesture"] := ""
+        g_Gesture["phase"] := "pending"
         try g_Gesture["downMods"] := GestureRecognizer.ActiveMods()
         catch {
             g_Gesture["downMods"] := ""
@@ -269,6 +270,7 @@ class GestureHook {
             if (ddx * ddx + ddy * ddy < g_Gesture["threshold"] * g_Gesture["threshold"])
                 return
             g_Gesture["gesturing"] := 1
+            g_Gesture["phase"] := "capturing"
             g_Gesture["points"] := [{x: sx, y: sy}, {x: mx, y: my}]
             GestureEngine.Recognize()
             g_Gesture["trailX"] := mx

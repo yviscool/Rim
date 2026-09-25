@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 #Warn All, Off
-
+; i18n:protocol-file (错误哨兵 "错误" 是 Search/Misc 的 InStr gate + 本引擎零 T() 依赖, 中文错误串永不翻译)
 ; === MonsterEval - 表达式引擎 (RunZ Lib/Eval.ahk v1 MONSTER → v2 忠实移植) ===
 ; 规则: 无 try / 无 IsFunc / 无 Func() / 无动态调用, 错误以 "错误..." 字符串值传递.
 ; 与原版差异 (有意):
@@ -135,10 +135,11 @@ MonsterEval1(x) {
 }
 
 ; 阶乘归约: N! / N!! (N 纯数字, 前导须为起点或运算符; 返回新串, 无匹配原样返回)
+; 注意: 调用点在 MonsterEval1 (±/¬ 替换之后), 前导集合必须含替换后的 ±¬ (只写 +- 会漏 "+N!/-N!", 见 5!+A(3,3)*4+5+4! 解析失败)
 ReduceBang(x) {
     if RegExMatch(x, "(.*?)(\d+(?:\.\d+)?)(!+)(.*)", &mt) {
         tail1 := mt[1]
-        if (tail1 = "" || RegExMatch(SubStr(tail1, -1), "[+\-*/%\\^@(,]")) {
+        if (tail1 = "" || RegExMatch(SubStr(tail1, -1), "[+\-*/%\\^@(,±¬]")) {
             v := Number(mt[2])
             bangs := mt[3]
             Loop Parse, bangs {
@@ -240,7 +241,7 @@ MonsterEvalCall(name, argsStr) {
 }
 
 EvNum(s) {
-    r := MonsterEvalOp(s)
+    r := MonsterEvalOp(ReduceBang(s))
     if (!IsNumber(r))
         return r
     return r + 0

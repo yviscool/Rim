@@ -552,3 +552,12 @@ if (menuOpen && g_TCLastCmd != 572)
 ;   诊断法：OnMessage(0x201/0x202) 记 hwnd, WM_COMMAND(0x111) 看 BN_CLICKED 出没出，
 ;   按下松开同句柄却无 BN_CLICKED 即此坑。见 Plugins/StatsBall.ahk OnLUp。
 ```
+
+### 错误 30：临时变量撞内建函数名（大小写不敏感）—— `ln` 撞 `Ln()` 对数函数
+
+```ahk
+; ❌ 实测翻车 (probe_gesture_unified 新增语料段, 加载错 "This Func cannot be used as output variable",
+;   extra 指向赋值行)：Loop Parse 里写 ln := Trim(A_LoopField)，ln 与内建 Ln() 同名，
+;   解析器把 ln 当函数，赋值即炸。同族：LOG(撞 Log())、t(撞 T())、menu(撞 Menu()) 见错误 20
+; ✅ 循环/临时变量一律用完整小写名 (negLine/codeLine/value)，绝不用两三字母缩写
+```

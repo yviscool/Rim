@@ -1,5 +1,6 @@
 #Requires AutoHotkey v2.0
 #Warn All, Off
+; i18n:protocol-file ("全局:L" 等层 ID 固件, 与引擎存储协议比对, 必须字面一致)
 
 T(key, *) {
     return key

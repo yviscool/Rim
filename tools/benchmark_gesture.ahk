@@ -198,6 +198,7 @@ Benchmark_Main() {
         }
         FileAppend("Step 5: Evaluating " . total . " samples...`n", logPath)
         sIdx := 0
+        times := []
         for item in dataset {
             sIdx++
             label := item.label
@@ -205,9 +206,11 @@ Benchmark_Main() {
             canon := (up = "U" || up = "R" || up = "D" || up = "L") ? "LETTER_" . up : up
             pts := item.pts
 
+            t0 := A_TickCount
             dirStr := GestureRecognizer.DirectionChain(pts, 6)
             candidates := GestureEngine.CollectCandidates(dirStr, pts)
             decision := GestureEngine.SelectCandidate(candidates, "explorer.exe", "CabinetWClass", "Test")
+            times.Push(A_TickCount - t0)
             FileAppend("Evaluated " . sIdx . "/" . total . " (" . item.desc . ") -> " . (IsObject(decision.selected) ? decision.selected.name : "REJECT") . "`n", logPath)
 
             selectedName := IsObject(decision.selected) ? decision.selected.name : ""
@@ -252,13 +255,38 @@ Benchmark_Main() {
     rejRate := Round(rejected / total * 100, 1)
     misRate := Round(misclassified / total * 100, 1)
 
+    ; P95 单样本耗时门禁 (Collect+Select 纯数学路径; 30ms 为交互可接受上限, headless 抖动留足余量)
+    p95 := 0
+    try {
+        st := []
+        for _, ms in times
+            st.Push(ms)
+        n := st.Length
+        Loop n - 1 {
+            swapped := false
+            Loop n - A_Index {
+                if (st[A_Index] > st[A_Index + 1]) {
+                    tmp := st[A_Index]
+                    st[A_Index] := st[A_Index + 1]
+                    st[A_Index + 1] := tmp
+                    swapped := true
+                }
+            }
+            if (!swapped)
+                break
+        }
+        p95 := n > 0 ? st[Max(1, Ceil(n * 0.95))] : 0
+    }
+
     rpt := "====================================================`n"
     rpt .= "RIM GESTURE RECOGNITION BENCHMARK REPORT`n"
     rpt .= "====================================================`n"
     rpt .= "Total Samples:   " . total . "`n"
     rpt .= "Correct:         " . correct . " (" . acc . "%)`n"
     rpt .= "Rejected:        " . rejected . " (" . rejRate . "%)`n"
-    rpt .= "Misclassified:   " . misclassified . " (" . misRate . "%)`n`n"
+    rpt .= "Misclassified:   " . misclassified . " (" . misRate . "%)`n"
+    rpt .= "P95 Eval:        " . p95 . "ms (gate <= 30ms)`n`n"
+    rpt .= "NOTE: train/test same-source (template-generated samples); 100% does not imply unseen-user accuracy; negatives in probe_gesture_unified.ahk`n`n"
 
     rpt .= "--- MISCLASSIFICATIONS & REJECTIONS ---`n"
     for err in errors {
@@ -269,4 +297,8 @@ Benchmark_Main() {
     rpt .= "====================================================`n"
     FileAppend(rpt, outPath, "UTF-8")
     FileAppend("Completed. Report saved to " . outPath . "`n", logPath)
+    if (p95 > 30) {
+        FileAppend("P95 GATE FAILED: " . p95 . "ms > 30ms`n", logPath)
+        ExitApp(1)
+    }
 }

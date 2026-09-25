@@ -2,6 +2,20 @@
 
 ; === Kanji Plugin - 简繁体转换 ===
 ; 移植自 RunZ 的 Kanji 插件 (查 Lib\Kanji\Kanji.txt 字表, 非桩)
+; Hybrid: Modern 壳 (命令通道) + 旧 RegisterPlugin_Kanji() 体
+
+class KanjiPlugin extends RimPlugin {
+    static Name => "Kanji"
+    static Title => "Kanji Converter"
+    static Description => "简繁体转换"
+
+    static RegisterCommands() {
+        RegisterPlugin_Kanji()
+    }
+}
+
+if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
+    RimPluginManager.Register(KanjiPlugin)
 
 RegisterPlugin_Kanji() {
     RegisterCommand("Kanji2S", "function", "KanjiToSimple", T("cmd.Kanji.Kanji2S"))
@@ -12,9 +26,9 @@ RegisterPlugin_Kanji() {
 }
 
 KanjiPipeInput(prompt, title) {
-    global Arg
-    if (Trim(Arg) != "")
-        return Trim(Arg)
+    global g_Arg
+    if (Trim(g_Arg) != "")
+        return Trim(g_Arg)
     clip := A_Clipboard
     if (clip != "")
         return clip

@@ -3,6 +3,20 @@
 
 ; === GUI - 显示和对齐 (从 RunZ Core/GUI.ahk 移植) ===
 
+; 皮肤配置默认值回填 (唯一 owner: 缺键访问 Map 在 v2 抛错, 对齐原版字段全集; 入口只调一次)
+EnsureSkinDefaults() {
+    global g_SkinConf
+    skinDefaults := Map("ShowInputBoxOnlyIfEmpty", "0", "BackgroundPicture", "", "RoundCorner", "0"
+        , "ShowFileExt", "0", "HideCol2", "0", "HideCol4IfEmpty", "1", "ShowTrayIcon", "1", "ShowCurrentCommand", "1"
+        , "DisplayCol3MaxLength", "30", "DisplayCol4MaxLength", "36", "DisplayRows", "15", "FirstChar", "a"
+        , "HideTitle", "1", "WidgetWidth", "650", "EditHeight", "24", "DisplayAreaHeight", "246"
+        , "FontName", "宋体", "FontSize", "12", "FontColor", "000000", "BackgroundColor", "f0f0f0", "BorderSize", "15" ; i18n:protocol ("宋体" 为系统字体名, 不可翻译)
+        , "EditColor", "f0f0f0")
+    for k, v in skinDefaults
+        if !g_SkinConf.Has(k)
+            g_SkinConf[k] := v
+}
+
 ; 获取鼠标所在行号
 getMouseCurrentLine() {
     global g_DisplayArea, g_DisplayRows, g_WindowName

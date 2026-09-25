@@ -30,7 +30,7 @@ RunCommand(originCmd) {
     global g_UseDisplay, g_DisableAutoExit, g_ExecInterval, g_PipeArg
     global g_HistoryCommands, g_Conf
     global g_CurrentInput, g_AutoConf, g_ExcludedCommands
-    global g_LastExecLabel, g_LastExecCb, FullPipeArg, Arg
+    global g_LastExecLabel, g_LastExecCb, FullPipeArg, g_Arg
 
     if (originCmd = "")
         return
@@ -41,46 +41,39 @@ RunCommand(originCmd) {
     g_DisableAutoExit := true
     g_ExecInterval := 0
 
-    splitedOriginCmd := StrSplit(originCmd, " | ")
-    if (splitedOriginCmd.Length < 2)
+    parsed := CmdLine_Parse(originCmd)
+    splitedOriginCmd := parsed["parts"]
+    if (parsed["len"] < 2)
         return
 
-    ; 元素格式:
+    ; 元素格式 (解析规则见 Core/Command.ahk CmdLine_Parse):
     ;   四段式 "key | type | cmd | desc" (来自 [Commands])
     ;   三段式 "type | cmd | desc" (插件/文件列表/回退命令)
     ;   两段式 "file | path" (文件列表)
-    if (splitedOriginCmd.Length >= 4
-        && (splitedOriginCmd[2] = "file" || splitedOriginCmd[2] = "function" || splitedOriginCmd[2] = "cmd" || splitedOriginCmd[2] = "url" || splitedOriginCmd[2] = "run")) {
-        cmdKey := splitedOriginCmd[1]
-        cmdType := splitedOriginCmd[2]
-        cmd := splitedOriginCmd[3]
-        cmdDesc := splitedOriginCmd[4]
-    } else {
-        cmdKey := ""
-        cmdType := splitedOriginCmd[1]
-        cmd := splitedOriginCmd[2]
-        cmdDesc := splitedOriginCmd.Length >= 3 ? splitedOriginCmd[3] : ""
-    }
+    cmdKey := parsed["key"]
+    cmdType := parsed["type"]
+    cmd := parsed["cmd"]
+    cmdDesc := parsed["desc"]
 
     if (cmdType = "function") {
-        ; 历史条目会把旧 Arg 追加在末尾: legacy 为第 4 段, 四段式为第 5 段
+        ; 历史条目会把旧 g_Arg 追加在末尾: legacy 为第 4 段, 四段式为第 5 段
         if (cmdKey != "") {
             if (splitedOriginCmd.Length >= 5)
-                Arg := splitedOriginCmd[5]
+                g_Arg := splitedOriginCmd[5]
         } else if (splitedOriginCmd.Length >= 4)
-            Arg := splitedOriginCmd[4]
+            g_Arg := splitedOriginCmd[4]
 
-        ExecuteAction("function|" cmd, Arg)
+        ExecuteAction("function|" cmd, g_Arg)
     }
     else {
-        ExecuteAction(cmdType "|" cmd, Arg)
+        ExecuteAction(cmdType "|" cmd, g_Arg)
     }
 
-    ; 保存历史 (对齐原版: 仅 fresh 命令拼 Arg, 重放历史不再叠加)
+    ; 保存历史 (对齐原版: 仅 fresh 命令拼 g_Arg, 重放历史不再叠加)
     if (g_Conf["Config"]["SaveHistory"] = "1" && cmd != "DisplayHistoryCommands") {
         isFresh := (cmdKey != "" && splitedOriginCmd.Length = 4) || (cmdKey = "" && splitedOriginCmd.Length = 3)
-        if (Arg != "" && isFresh)
-            g_HistoryCommands.InsertAt(1, originCmd " | " Arg)
+        if (g_Arg != "" && isFresh)
+            g_HistoryCommands.InsertAt(1, originCmd " | " g_Arg)
         else if (originCmd != "")
             g_HistoryCommands.InsertAt(1, originCmd)
 
@@ -154,7 +147,35 @@ OpenPath(filePath) {
 }
 
 ; === 统一动作/命令执行器 (Unified Action & Command Dispatcher) ===
+; 递归守卫: RimCommand.Execute ↔ ExecuteAction 双向互调, 动作串自指 (如 Action="command|self")
+; 会无界递归; 深度超 10 直接丢弃并记日志 (调用链见日志 action 字段)
 ExecuteAction(action := "", actionArg := "") {
+    static execDepth := 0
+    execDepth += 1
+    if (execDepth > 10) {
+        execDepth -= 1
+        try RimLog("ERROR", "ExecuteAction recursion overflow, drop: " . SubStr(action, 1, 120))
+        catch {
+        }
+        return
+    }
+    try {
+        ExecuteAction_Body(action, actionArg)
+    } finally {
+        execDepth -= 1
+    }
+}
+
+; command|id 与裸 ID 的 RimCommand 分发合流点 (原两处手写 IsSet+Registry.Has, 现收敛一处)
+ExecuteCommandId(id, actionArg := "") {
+    if (IsSet(RimCommand) && IsObject(RimCommand) && RimCommand.Registry.Has(id)) {
+        RimCommand.Execute(id, actionArg)
+        return true
+    }
+    return false
+}
+
+ExecuteAction_Body(action := "", actionArg := "") {
     global g_VimEngine
     if (action = "") {
         if (IsSet(g_VimEngine) && IsObject(g_VimEngine))
@@ -209,7 +230,9 @@ ExecuteAction(action := "", actionArg := "") {
                     Run(target ' "' actionArg '"')
             }
         } catch as e {
-            try FileAppend(A_Now . " RUN_FAILED: " . target . " err=" . e.Message . "`n", A_ScriptDir . "\Rim.error.log")
+            try RimLog("RUN_FAILED", target, e)
+            catch {
+            }
         }
     }
     else if (SubStr(action, 1, 4) = "key|") {
@@ -227,8 +250,8 @@ ExecuteAction(action := "", actionArg := "") {
         RunWithCmd(SubStr(action, 5))
     }
     else if (SubStr(action, 1, 8) = "command|") {
-        if (IsSet(RimCommand) && IsObject(RimCommand))
-            RimCommand.Execute(SubStr(action, 9), actionArg)
+        if (!ExecuteCommandId(SubStr(action, 9), actionArg))
+            ExecuteAction(SubStr(action, 9), actionArg)
     }
     else if (SubStr(action, 1, 4) = "url|") {
         url := SubStr(action, 5)
@@ -241,13 +264,13 @@ ExecuteAction(action := "", actionArg := "") {
         Run(url)
     }
     else if (SubStr(action, 1, 9) = "function|") {
-        global Arg
+        global g_Arg
         rest := SubStr(action, 10)
         parts := StrSplit(rest, "|")
         fn := Trim(parts[1])
         fnArg := parts.Length >= 2 ? Trim(parts[2]) : actionArg
         if (fnArg != "")
-            Arg := fnArg
+            g_Arg := fnArg
         fn := ResolveFuncAlias(fn)
         if (fnArg != "") {
             try {
@@ -258,15 +281,15 @@ ExecuteAction(action := "", actionArg := "") {
         }
         try %fn%()
         catch as e {
-            try FileAppend(A_Now . " EXEC_FAILED: " . fn . " err=" . e.Message . "`n", A_ScriptDir . "\Rim.error.log")
+            try RimLog("EXEC_FAILED", fn, e)
+            catch {
+            }
         }
     }
     else {
-        ; 检查是否为已注册的 RimCommand
-        if (IsSet(RimCommand) && IsObject(RimCommand) && RimCommand.Registry.Has(action)) {
-            RimCommand.Execute(action, actionArg)
+        ; 已注册的 RimCommand (合流点, 未注册则落到函数名直调)
+        if (ExecuteCommandId(action, actionArg))
             return
-        }
 
         ; <ActionName> 或普通函数名: 转函数名后直调
         fn := ActionToFuncName(action)
@@ -280,20 +303,22 @@ ExecuteAction(action := "", actionArg := "") {
         }
         try %fn%()
         catch as e {
-            try FileAppend(A_Now . " EXEC_FAILED: " . fn . " err=" . e.Message . "`n", A_ScriptDir . "\Rim.error.log")
+            try RimLog("EXEC_FAILED", fn, e)
+            catch {
+            }
         }
     }
 }
 
-; VIMD_CMD 兼容接口: 委托至 ExecuteAction
+; VIMD_CMD 兼容接口: 委托至 ExecuteAction (垫片保留: 插件/手势动作串经此进入, 退役需全仓动作串审计)
 VIMD_CMD(action := "") {
     ExecuteAction(action)
 }
 
 ; 显示当前参数 (原版 Core 插件 ShowArg)
 ShowArg() {
-    global Arg, FullPipeArg
-    msg := T("arg.head") . " " . Arg
+    global g_Arg, FullPipeArg
+    msg := T("arg.head") . " " . g_Arg
     if (FullPipeArg != "")
         msg .= "`n" . T("arg.pipehead") . "`n" FullPipeArg
     DisplayResult(msg)

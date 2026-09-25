@@ -105,6 +105,33 @@ GestureIni_Upsert(path, section, key, value, caseSense := false) {
     return GestureIni_WriteText(path, out)
 }
 
+; ---- 带回读校验的 Upsert (事务写原语): 写盘后重读确认键值一致, 否则 false (调用方回滚内存)
+; UI 触发的低频操作才用, 高频采样路径禁调 (多一次读盘)
+GestureIni_UpsertVerified(path, section, key, value, caseSense := false) {
+    if (!GestureIni_Upsert(path, section, key, value, caseSense))
+        return false
+    try {
+        text := GestureIni_ReadText(path)
+        if (text = "")
+            return false
+        lines := StrSplit(text, "`n", "`r")
+        h := GestureIni_FindSection(lines, section)
+        if (h = 0)
+            return false
+        nx := GestureIni_NextSection(lines, h)
+        k := GestureIni_FindKey(lines, h + 1, nx, key, caseSense)
+        if (k = 0)
+            return false
+        got := lines[k]
+        pos := InStr(got, "=")
+        if (pos = 0)
+            return false
+        return Trim(SubStr(got, pos + 1)) = Trim(value)
+    } catch {
+        return false
+    }
+}
+
 ; ---- 删除 key 行, 返回是否删到 ----
 GestureIni_Delete(path, section, key, caseSense := false) {
     text := GestureIni_ReadText(path)
@@ -301,8 +328,8 @@ GestureConf_KeyExact(section, key) {
 
 GestureStore_LayerSection(layer) {
     global g_GestureAppPrefix
-    if (layer = "" || layer = "全局")
-        return "Gestures"
+    if (layer = "" || layer = GestureLayer_Global())
+        return GestureSec_Gestures()
     return g_GestureAppPrefix . layer
 }
 
@@ -330,9 +357,9 @@ GestureStore_SetDefinition(name, method) {
         return false
     if (method = "template" && GestureRecognizer.IsReservedDirectionName(name))
         return false
-    if (!GestureIni_Upsert(g_ConfFile, "GestureDefinitions", name, method))
+    if (!GestureIni_UpsertVerified(g_ConfFile, GestureSec_Defs(), name, method))
         return false
-    try g_Conf.Set("GestureDefinitions", GestureConf_KeyExact("GestureDefinitions", name), method)
+    try g_Conf.Set(GestureSec_Defs(), GestureConf_KeyExact(GestureSec_Defs(), name), method)
     catch {
     }
     GestureEngine.ReloadLayers()
@@ -449,7 +476,7 @@ GestureStore_SetGestureDesc(layer, gesture, desc) {
     global g_Conf, g_ConfFile
     id := GestureDescId(layer, gesture)
     desc := Trim(desc)
-    sec := "GestureDesc"
+    sec := GestureSec_Desc()
     if (desc = "") {
         GestureIni_Delete(g_ConfFile, sec, id)
         try g_Conf.DeleteKey(sec, GestureConf_KeyExact(sec, id))
@@ -457,7 +484,7 @@ GestureStore_SetGestureDesc(layer, gesture, desc) {
         }
         return true
     }
-    if (!GestureIni_Upsert(g_ConfFile, sec, id, desc))
+    if (!GestureIni_UpsertVerified(g_ConfFile, sec, id, desc))
         return false
     try g_Conf.Set(sec, GestureConf_KeyExact(sec, id), desc)
     catch {
@@ -468,7 +495,7 @@ GestureStore_SetGestureDesc(layer, gesture, desc) {
 GestureStore_DelGestureDesc(layer, gesture) {
     global g_Conf, g_ConfFile
     id := GestureDescId(layer, gesture)
-    sec := "GestureDesc"
+    sec := GestureSec_Desc()
     GestureIni_Delete(g_ConfFile, sec, id)
     try g_Conf.DeleteKey(sec, GestureConf_KeyExact(sec, id))
     catch {
@@ -478,7 +505,7 @@ GestureStore_DelGestureDesc(layer, gesture) {
 
 Gesture_GetGestureDesc(layer, gesture) {
     global g_Conf
-    try return g_Conf.Get("GestureDesc", GestureDescId(layer, gesture), "")
+    try return g_Conf.Get(GestureSec_Desc(), GestureDescId(layer, gesture), "")
     catch {
     }
     return ""
@@ -577,21 +604,21 @@ GestureStore_SetDisabled(id, off) {
         return false
     ok := false
     if (off)
-        ok := GestureIni_AppendBare(g_ConfFile, "GestureDisabled", id)
+        ok := GestureIni_AppendBare(g_ConfFile, GestureSec_Disabled(), id)
     else
-        ok := GestureIni_DeleteBare(g_ConfFile, "GestureDisabled", id)
+        ok := GestureIni_DeleteBare(g_ConfFile, GestureSec_Disabled(), id)
     if (!ok && !off) {
         ok := true  ; 本就不存在视为成功
     }
     if (!ok)
         return false
     try {
-        if !g_Conf.HasSection("GestureDisabled")
-            g_Conf.AddSection("GestureDisabled")
+        if !g_Conf.HasSection(GestureSec_Disabled())
+            g_Conf.AddSection(GestureSec_Disabled())
         if (off)
-            g_Conf.AddKey("GestureDisabled", id, "")
+            g_Conf.AddKey(GestureSec_Disabled(), id, "")
         else
-            g_Conf.DeleteKey("GestureDisabled", id)
+            g_Conf.DeleteKey(GestureSec_Disabled(), id)
     } catch {
     }
     GestureEngine.ReloadLayers()

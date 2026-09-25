@@ -2,6 +2,7 @@
 #Warn All, Off
 
 ; === tools/smoke_audit_fixes.ahk - 验证 7 大修复点回归测试 ===
+; i18n:protocol-file (UrlEncode("中文测试") 为编解码固件输入, 必须字面一致)
 
 passed := 0
 failed := 0
@@ -109,10 +110,11 @@ try {
     Assert(false, "Test 4 failed: " . e.Message)
 }
 
-; --- 测试 5: LegacyVimPlugins 干净无死入口 ---
+; --- 测试 5: LegacyVimPlugins 名单与入口一致 ---
+; (本探针未 include 插件文件, 只断言名单成员; 可调用性由 smoke_register 的 TryReg 全覆盖)
 try {
     Assert(!RimPluginManager.LegacyVimPlugins.Has("MicrosoftExcel"), "LegacyVimPlugins does not contain MicrosoftExcel")
-    Assert(!RimPluginManager.LegacyVimPlugins.Has("VimEditor"), "LegacyVimPlugins does not contain VimEditor")
+    Assert(RimPluginManager.LegacyVimPlugins.Has("VimEditor"), "LegacyVimPlugins contains wired VimEditor")
     Assert(!RimPluginManager.LegacyVimPlugins.Has("VimEditorAdapters"), "LegacyVimPlugins does not contain VimEditorAdapters")
 } catch Error as e {
     Assert(false, "Test 5 failed: " . e.Message)

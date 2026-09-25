@@ -179,9 +179,16 @@ def scan_hardcoded(files):
             lines = p.read_text(encoding="utf-8-sig").splitlines()
         except OSError:
             continue
+        # 文件级豁免: 纯协议引擎 (如 MonsterEval 错误哨兵 "错误" + 零 T() 依赖铁律), 头 5 行标记
+        if any("i18n:protocol-file" in l for l in lines[:5]):
+            continue
         for ln, raw in enumerate(lines, 1):
             # 白名单: 语种自称必须用母语写 (I18nDisplayName), 窗口哨兵永不翻译
             if "names := Map(" in raw or "g_WindowName" in raw:
+                continue
+            # 豁免标记: 存储协议 ID / 错误哨兵 / 测试固件必须保持字面中文 (改了就断兼容或断言)
+            # 用法: 行尾加注释 ; i18n:protocol (注释剥离前先判, 故尾注有效)
+            if "i18n:protocol" in raw:
                 continue
             code = strip_trailing_comment(raw)
             if not code.strip():

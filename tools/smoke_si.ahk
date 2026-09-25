@@ -2,6 +2,7 @@
 #Warn All, Off
 
 ; 常驻冒烟探针: SmartInput 纯函数 (headless 可跑, 不碰 GUI/配置)
+; i18n:protocol-file (全文件为含中文 desc 的命令池固件, 断言解析行为, 必须字面一致)
 ; 跑法: MSYS_NO_PATHCONV=1 "/c/Program Files/AutoHotkey/v2/AutoHotkey64.exe" /ErrorStdOut tools/smoke_si.ahk
 #Include ..\Core\SmartInput.ahk
 

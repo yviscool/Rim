@@ -5,18 +5,18 @@
 ; Faithful v2 port of RunZ Plugins Core v1, 207 lines.
 ; 移植规则如下
 ; v1 的每个 Label 子程序变为同名 v2 函数, 逻辑不变, GoSub 变为直接调用.
-; 每个命令一律先读全局 Arg, 再读剪切板, 两者皆空才弹 InputBox.
+; 每个命令一律先读全局 g_Arg, 再读剪切板, 两者皆空才弹 InputBox.
 ; 结果一律走 DisplayResult, 不用 MsgBox 显示结果.
 ; 本构建加载期检查说明
 ; 静态调用未知函数名会加载失败, 所以主程序提供的函数一律走 Host 动态调用.
-; 加载期读未赋值变量会卡住, 所以 Arg 和 FullPipeArg 在此给顶层空值.
+; 加载期读未赋值变量会卡住, 所以 g_Arg 和 FullPipeArg 在此给顶层空值.
 ; g_Conf 由主程序赋值, 此处哑赋值仅为通过独立加载检查, 永不执行.
 ; 本构建把分号当注释, 即使在字符串里, 所以字符串中的分号一律用重音符转义.
 ; 以下名字已存在于主程序或其他插件, 本文件只注册透传, 不重复定义
 ; Help KeyHelp ReindexFiles EditConfig CleanupRank 见 Core Hotkeys
 ; ShowArg 见 Core Execution, RunClipboard 见 Misc 插件
 
-global Arg := ""
+global g_Arg := ""
 global FullPipeArg := ""
 
 __LauncherCore_LoadGuard() {
@@ -56,11 +56,11 @@ Core() {
     Host("RegisterCommand", "Open", "function", "Open", T("cmd.LauncherCore.Open"))
 }
 
-; ---- 输入链 Arg 大于剪切板大于 InputBox ----
+; ---- 输入链 g_Arg 大于剪切板大于 InputBox ----
 CoreInput(prompt, title) {
-    global Arg
-    if (Arg != "")
-        return Arg
+    global g_Arg
+    if (g_Arg != "")
+        return g_Arg
     clip := ""
     try {
         clip := Trim(A_Clipboard)
@@ -163,8 +163,8 @@ Open() {
 
 ; ---- 原版 CountNumber ----
 CountNumber() {
-    global Arg, FullPipeArg
-    spaceCount := StrSplit(Arg, " ").Length
+    global g_Arg, FullPipeArg
+    spaceCount := StrSplit(g_Arg, " ").Length
     lineCount := StrSplit(FullPipeArg, "`n").Length
     if (SubStr(FullPipeArg, -1) = "`n")
         lineCount := lineCount - 1
@@ -175,8 +175,8 @@ CountNumber() {
 
 ; ---- 原版 InstallPlugin ----
 InstallPlugin() {
-    global Arg
-    pluginPath := Trim(Arg)
+    global g_Arg
+    pluginPath := Trim(g_Arg)
     if (pluginPath = "") {
         try {
             pluginPath := Trim(A_Clipboard)

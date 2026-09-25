@@ -4,6 +4,8 @@
 ; 常驻冒烟探针 1/2: 全文件解析 (CI + 本地 `./AutoHotkey64.exe /ErrorStdOut tools/smoke_parse.ahk`)
 ; 全部 #Include 能加载即写 marker 并 0 退出; 任何加载错走 /ErrorStdOut 并非 0 退出.
 ; 注意: 只做解析验证, 不执行任何注册/界面逻辑 (顶层可执行代码须保持无副作用).
+#Include ..\Lib\MD5.ahk
+#Include ..\Lib\MonsterEval.ahk
 #Include ..\Core\I18n.ahk
 #Include ..\Core\SmartInput.ahk
 #Include ..\Core\Context.ahk
@@ -13,6 +15,12 @@
 #Include ..\Core\Workspace.ahk
 #Include ..\Core\Execution.ahk
 #Include ..\Core\Engine.ahk
+#Include ..\Core\Utils.ahk
+#Include ..\Core\Files.ahk
+#Include ..\Core\Search.ahk
+#Include ..\Core\GUI.ahk
+#Include ..\Core\Hotkeys.ahk
+#Include ..\Core\Tray.ahk
 #Include ..\Core\Gesture.ahk
 #Include ..\Core\GestureIni.ahk
 #Include ..\Core\GesturePreview.ahk
@@ -35,6 +43,7 @@
 #Include ..\Plugins\TotalCommander.ahk
 #Include ..\Plugins\VimDConfig.ahk
 #Include ..\Plugins\VimEditor.ahk
+#Include ..\Plugins\VimEditorAdapters.ahk
 #Include ..\Plugins\WinMerge.ahk
 #Include ..\Plugins\MicrosoftExcel.ahk
 #Include ..\Gui\GestureUI.ahk

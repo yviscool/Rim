@@ -62,14 +62,14 @@ RegisterPlugin_Misc() {
     RegisterCommand("Calendar", "function", "Calendar", T("cmd.Misc.Calendar"))
     RegisterCommand("UrlEncode", "function", "UrlEncodeCmd", T("cmd.Misc.UrlEncode"))
     RegisterCommand("UrlDecode", "function", "UrlDecodeCmd", T("cmd.Misc.UrlDecode"))
-    ; 注: RunClipboard 由 LauncherCore 提供(Arg 感知), 此处不重复注册避免同名
+    ; 注: RunClipboard 由 LauncherCore 提供(g_Arg 感知), 此处不重复注册避免同名
 }
 
-; 管道输入: Arg > 剪切板 > InputBox
+; 管道输入: g_Arg > 剪切板 > InputBox
 MiscPipeInput(prompt, title) {
-    global Arg
-    if (Trim(Arg) != "")
-        return Trim(Arg)
+    global g_Arg
+    if (Trim(g_Arg) != "")
+        return Trim(g_Arg)
     clip := Trim(A_Clipboard)
     if (clip != "")
         return clip
@@ -80,7 +80,7 @@ MiscPipeInput(prompt, title) {
 ; 搜索命令格式：命令名|url|描述
 ; 在 Launcher 中输入 "Google keyword" 即可搜索
 
-; === 翻译功能 (Arg > 剪切板 > InputBox) ===
+; === 翻译功能 (g_Arg > 剪切板 > InputBox) ===
 TranslateWord() {
     word := MiscPipeInput(T("misc.prompt_translate"), T("misc.title_translate"))
     if (word = "")
@@ -362,8 +362,8 @@ ParseYouDaoHtml(html, word) {
 BaiduFanyi(word) {
     try {
         ; 百度翻译 API（需要 APPID）
-        appid := Rim.config.GetConfig("baidu_fanyi_appid", "")
-        secret := Rim.config.GetConfig("baidu_fanyi_secret", "")
+        appid := Rim.config.Get("Config", "baidu_fanyi_appid", "")
+        secret := Rim.config.Get("Config", "baidu_fanyi_secret", "")
 
         if (appid = "" || secret = "") {
             ; 未配置 API，使用网页版
@@ -1075,8 +1075,8 @@ PingShow() {
 
 ; === 公网 IP (ip.netart.cn, 国产源免代理; 不用 JSON 库, 正则直取) ===
 PubIpShow() {
-    global Arg
-    target := Trim(Arg)
+    global g_Arg
+    target := Trim(g_Arg)
     geo := Misc_NetartGeo(target)
     if (!geo.Has("ip")) {
         DisplayResult(T("misc.pubip_failed"))
@@ -1147,8 +1147,8 @@ Misc_HttpDirect(url) {
 
 ; === 环境变量 (空参全表; 单名精确取; 含分号自动拆行; 只读) ===
 EnvShow() {
-    global Arg
-    name := Trim(Arg)
+    global g_Arg
+    name := Trim(g_Arg)
     all := Map()
     names := []
     out := Misc_RunUtf8("set")
@@ -1310,7 +1310,7 @@ Calendar() {
     ; 备用: https://wannianrili.bmcx.com/
 }
 
-; === URL 编码/解码 (原版: Arg > 剪切板, 结果进剪切板 + DisplayResult) ===
+; === URL 编码/解码 (原版: g_Arg > 剪切板, 结果进剪切板 + DisplayResult) ===
 UrlEncodeCmd() {
     input := MiscPipeInput(T("misc.prompt_urlenc"), T("misc.title_urlenc"))
     if (input = "")

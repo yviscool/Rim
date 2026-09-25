@@ -45,7 +45,7 @@ Rim 采用严格的单向依赖 6 层架构模型，杜绝模块间的循环依�
 
 ## 二、统一插件架构契约 (`Core/Plugin.ahk`)
 
-Rim 彻底抛弃了旧时代的黑名单与双轨制加载模式。任何新增功能模块只需继承 `RimPlugin` 即可即插即用：
+Rim 正在从双轨制向统一插件契约过渡。现状是过渡态：新插件继承 `RimPlugin` 即插即用，11 个历史 Vim 插件仍经 `RimPluginManager.LegacyVimPlugins` 白名单 + `RegisterPlugin_*` 字符串协议分发（命令通道在 `Core/Files.ahk:238 RegisterAllCommands`，Vim 通道在 `Rim.ahk` 引擎就绪后；`OnExitAll` 由进程退出回调触发，见 `Rim.ahk Rim_OnExit`）。新增插件 checklist：
 
 ### 1. 生命周期阶段 (Lifecycle Phases)
 
@@ -71,6 +71,13 @@ Rim 彻底抛弃了旧时代的黑名单与双轨制加载模式。任何新增�
   └─ 6. RimPluginManager.OnExitAll()
         └─ Plugin.OnExit()               (销毁外部钩子、专属定时器)
 ```
+
+> 新增插件 checklist（缺一即静默不加载，无报错）：
+> 1. `Plugins/Foo.ahk` 写 `RegisterPlugin_Foo()`（旧）或 `class FooPlugin extends RimPlugin` + 尾部 `RimPluginManager.Register()`（新；Vim 部分仍需旧函数）。
+> 2. `Rim.ahk` 加 `#Include *i Plugins\Foo.ahk`（目录扫描只填名单不加载代码）。
+> 3. `Conf/rim.ini [Plugins]` 加 `Foo=1`（开关大小写不敏感，见 `Core/Plugin.ahk IsEnabled`）。
+> 4. 用户可见串走 `T("...")` 并在 `Lang/en.ini + zh-CN.ini` 补键，跑 `python tools/i18n_audit.py audit --check`。
+> 5. Vim 插件确认 `LegacyVimPlugins` 名单；手势插件判 `IsSet(GestureRegistry)` 后注册。
 
 ### 2. 标准插件实现范式 (示例)
 
@@ -166,3 +173,30 @@ Core/Gesture.ahk (主门面 Facade, 保持向后兼容 API 与全局 Map)
    - 线程级消息回调（如 `0x202 WM_LBUTTONUP`）禁止无条件调用 `ReleaseCapture()`，只能释放本窗口捕获的句柄，防止篡改系统其他应用的按钮交互。
 4. **路径解析相对化**：
    - 库与模块内读取数据或配置，严禁使用 `A_ScriptDir` 拼接，统一采用 `A_LineFile` 反查根目录，确保从子目录或测试脚本执行时均不丢失依赖。
+
+---
+
+## 六、Legacy 退役与巨石拆分路线
+
+### 1. Hybrid 现状（新壳旧体，行为不变）
+- `TotalCommander / Explorer / LauncherSystem`（早先）＋ `QRCode / Kanji`（本轮）：`class XxxPlugin extends RimPlugin` 只做通道注册，体内转调旧 `RegisterPlugin_*()`。`LoadLegacyCommandPlugins` 以 `Plugins.Has(小写名)` 去重，不会 double-register。
+- 每迁完一个 legacy 插件：从 `LegacyVimPlugins` 删名（Vim 通道）或确认命令通道单注册，记 CHANGELOG；`g_FuncAlias` 别名表随最后一个 legacy 命令插件退役而 sunset。`VimDConfig` 留 Vim 通道（`RegisterAction` 需引擎，勿动）。
+
+### 2. 巨石拆分图（按注释边界机械切，对外仅保留原 `RegisterPlugin_*` 入口）
+- `Plugins/Misc.ahk (1693)` → `Misc.Search.ahk`（搜索 18＋翻译 6）/ `Misc.Clip.ahk`（剪贴板日期取色 10）/ `Misc.Net.ahk`（ShowIp/Wifi/Dns/Ping/PubIp/Env）/ `Misc.Codec.ahk`（编解码日历汇率 10），主文件只聚合调子 `RegisterPlugin_Misc_Sub()`。
+- `Plugins/StatsBall.ahk (1793)` → `StatsBall.Sample.ahk`（采样/偏移标定）/ `StatsBall.Widget.ahk`（StatsBallObj 球体/拖拽）/ `StatsBall.Panel.ahk`（悬停面板/Boost）。
+- `Plugins/TotalCommander.ahk (3798)` → `TC.Core.ahk` / `TC.Actions.ahk` / `TC.Menu.ahk`（L1921-3425 自造菜单）/ `TC.Keymap.ahk`。
+- `Core/Hotkeys.ahk (657)` 按“绑定 vs rank/历史/文件业务”拆；`Core/SmartInput.ahk` 的 `*Pure` 纯函数抽独立可测库。
+- 物理搬移待工作区脏文件落地后一次性执行（本轮只定边界，不断编译）。
+
+### 3. 真机回归最小清单（headless 探针测不到输入路由，必须人手过）
+1. Explorer 拖文件时画手势：文件不丢、不误触，短点右键菜单正常。
+2. 桌面空白右键菜单、浏览器拖选文本，长按不触发。
+3. R+滚轮切任务栏窗口（含最小化恢复不闪烁），R+左键点+滚轮进音量模式，松开不弹菜单。
+4. TC 下 i 菜单：F/S/上下/回车/Esc，菜单未抢到焦点时不吞键。
+5. 多屏 + 125%/150% DPI：手势轨迹不断裂，StatsBall 贴边位置正确。
+6. 睡眠唤醒后钩子仍在（`LowLevelHooksTimeout` 200ms 零冻结），托盘图标不 Doppelganger。
+
+### 4. CI 门禁现状
+- 已有：`i18n_audit --check` ＋ `smoke_parse/register/si/command/context/plugin/workspace/gesture/audit_fixes`（见 `.github/workflows/i18n.yml`）。
+- 待补（本轮脚本已就绪，工作流文件等脏区落地后加两行）：`probe_gesture_store/unified/fix` 进 `smoke` job；`benchmark_gesture.ahk` P95 门禁（>30ms 即非 0 退出，本地基线 16ms）。

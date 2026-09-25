@@ -24,7 +24,7 @@ ShowGestureManager(*) {
     ; 注意: "全部"/"全局" 是层存储标识 (ini 键 + Core 过滤比较), 禁止翻译, 保持原文
     tabs.UseTab(1)
     mg.Add("Text", "x26 y52 Section", T("gesture.layer"))
-    filterDdl := mg.Add("DropDownList", "x+6 w150", ["全部"])
+    filterDdl := mg.Add("DropDownList", "x+6 w150", [T("gesture.filter_all")])
     filterDdl.OnEvent("Change", GestureMgr_OnFilter)
     mg.Add("Button", "x+8 w76", T("gesture.btn_record_new")).OnEvent("Click", GestureMgr_OnRecordNew)
     mg.Add("Button", "x+6 w56", T("gesture.btn_add")).OnEvent("Click", GestureMgr_OnAdd)
@@ -172,7 +172,7 @@ ShowGestureManager(*) {
     g_GestureMgr["gui"] := mg
     g_GestureMgr["tabs"] := tabs
     g_GestureMgr["filter"] := filterDdl
-    g_GestureMgr["filterItems"] := ["全部"]
+    g_GestureMgr["filterItems"] := [T("gesture.filter_all")]
     g_GestureMgr["lv"] := lv
     g_GestureMgr["gefilter"] := geFilter
     g_GestureMgr["prevPic"] := prevPic
@@ -231,7 +231,7 @@ GestureMgr_RefreshAll() {
 GestureMgr_RefreshFilter() {
     global g_GestureMgr
     try {
-        items := ["全部", "全局"]
+        items := [T("gesture.filter_all"), "全局"] ; i18n:protocol ("全局" 为层 ID, 与存储/引擎比对)
         for i, n in GestureEngine.ListAppNames()
             items.Push(n)
         g_GestureMgr["filterItems"] := items
@@ -248,7 +248,7 @@ GestureMgr_CurrentFilter() {
     try {
         return g_GestureMgr["filter"].Text
     } catch {
-        return "全部"
+        return T("gesture.filter_all")
     }
 }
 
@@ -262,7 +262,7 @@ GestureMgr_RefreshGestures() {
         try needle := Trim(g_GestureMgr["gefilter"].Value)
         count := 0
         for i, row in GestureEngine.ListAll() {
-            if (filter != "全部" && row[1] != filter)
+            if (filter != T("gesture.filter_all") && row[1] != filter)
                 continue
             text := row[1] . " " . row[2] . " " . row[3]
             if (needle != "" && !InStr(text, needle))
@@ -374,7 +374,7 @@ GestureMgr_OnTplDel(*) {
         GestureMgr_SetStatus(T("gesture.st_tpl_pick_del"))
         return
     }
-    if (SubStr(row[2], 1, 2) = "内置") {
+    if (SubStr(row[2], 1, StrLen(T("gesture.tpl_builtin"))) = T("gesture.tpl_builtin")) {
         GestureMgr_SetStatus(T("gesture.st_tpl_builtin"))
         return
     }
@@ -541,7 +541,7 @@ GestureMgr_OnGeFilter(*) {
 GestureMgr_OnFilter(*) {
     GestureMgr_RefreshGestures()
     f := GestureMgr_CurrentFilter()
-    if (f != "全部" && f != "全局") {
+    if (f != T("gesture.filter_all") && f != "全局") { ; i18n:protocol ("全局" 为层 ID)
         app := GestureEngine.GetApp(f)
         if (IsObject(app)) {
             info := T("gesture.app_match", f)
@@ -728,12 +728,12 @@ GestureMgr_OnTplPreview(*) {
 }
 
 GestureMgr_OnAdd(*) {
-    GestureEditDialog("new", "全局", "", "", "")
+    GestureEditDialog("new", "全局", "", "", "") ; i18n:protocol (层 ID, 下同两处)
 }
 
 GestureMgr_OnRecordNew(*) {
     ; 先开空对话框并立即进入录制, 画完自动填入
-    dlg := GestureEditDialog("new", "全局", "", "", "")
+    dlg := GestureEditDialog("new", "全局", "", "", "") ; i18n:protocol (层 ID)
     if (IsObject(dlg))
         GestureDlg_ArmRecord(dlg)
 }
@@ -780,11 +780,11 @@ GestureMgr_OnToggle(*) {
 
 GestureMgr_OnLayerOff(*) {
     f := GestureMgr_CurrentFilter()
-    if (f = "全部" || f = "全局") {
+    if (f = T("gesture.filter_all") || f = "全局") { ; i18n:protocol ("全局" 为层 ID)
         GestureMgr_SetStatus(T("gesture.st_layer_filter_hint"))
         return
     }
-    id := "应用层:" . f
+    id := "应用层:" . f ; i18n:protocol (禁用集 ID 前缀)
     off := !GestureEngine.LayerOff(f)
     if (GestureStore_SetDisabled(id, off))
         GestureMgr_SetStatus(off ? T("gesture.st_layer_off", f) : T("gesture.st_layer_on", f))
@@ -799,7 +799,7 @@ GestureMgr_OnTplToggle(*) {
         GestureMgr_SetStatus(T("gesture.st_tpl_pick_toggle"))
         return
     }
-    id := "模板:" . row[1]
+    id := "模板:" . row[1] ; i18n:protocol (禁用集 ID 前缀)
     off := !GestureEngine.TplOff(row[1])
     if (GestureStore_SetDisabled(id, off))
         GestureMgr_SetStatus(off ? T("gesture.st_tpl_off", row[1]) : T("gesture.st_tpl_on", row[1]))
@@ -864,7 +864,7 @@ GestureMgr_OnBlToggle(*) {
         }
         pat := blLv.GetText(row, 1)
         off := !GestureEngine.BlOff(pat)
-        if (GestureStore_SetDisabled("黑名单:" . pat, off))
+        if (GestureStore_SetDisabled("黑名单:" . pat, off)) ; i18n:protocol (禁用集 ID 前缀)
             GestureMgr_SetStatus(off ? T("gesture.st_bl_off", pat) : T("gesture.st_bl_on", pat))
         else
             GestureMgr_SetStatus(T("gesture.st_toggle_failed"))
@@ -1058,7 +1058,7 @@ GestureEditDialog(mode, layer, gesture, action, desc := "") {
     de := Gui(, mode = "new" ? T("gesture.dlg_new") : T("gesture.dlg_edit"))
     de.SetFont("s10", "Microsoft YaHei")
     de.Add("Text", "xm ym", T("gesture.dlg_layer"))
-    layers := ["全局"]
+    layers := ["全局"] ; i18n:protocol (层 ID)
     for i, n in GestureEngine.ListAppNames()
         layers.Push(n)
     layerDdl := de.Add("DropDownList", "x+6 w180", layers)
@@ -1330,7 +1330,7 @@ GestureDlg_OnSave(mode) {
     dlg := GestureDlg_CurrentDlg()
     if (dlg = "")
         return
-    layer := "全局"
+    layer := "全局" ; i18n:protocol (层 ID)
     gesture := ""
     action := ""
     desc := ""

@@ -53,6 +53,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit 1 }
           & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut tools/smoke_si.ahk
           if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: Command/Context/Plugin/Workspace/Gesture/Audit probes
+        run: |
+          foreach ($p in @("smoke_command", "smoke_context", "smoke_plugin", "smoke_workspace", "smoke_gesture", "smoke_audit_fixes")) {
+            & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut "tools/$p.ahk"
+            if ($LASTEXITCODE -ne 0) { Write-Host "$p FAILED"; exit 1 }
+          }
 
   # ---------- 构建: 定版 -> 烫印 -> 编译 -> 打包 ----------
   build:
@@ -153,6 +159,10 @@ jobs:
           New-Item -ItemType Directory -Force "$stage\Conf\Skins" | Out-Null
           Copy-Item "$PWD\Conf\Skins\*" "$stage\Conf\Skins\" -Recurse
           Copy-Item "$PWD\Conf\rim.template.ini" "$stage\Conf\rim.ini"
+          # 首跑自愈文件的开箱默认值 (缺失时运行时重建, 但便携包直接带上免首次重建)
+          foreach ($f in @("workspaces.ini", "SearchFileList.txt", "ControlPanelFunctions.txt")) {
+            if (Test-Path "$PWD\Conf\$f") { Copy-Item "$PWD\Conf\$f" "$stage\Conf\$f" }
+          }
           Copy-Item "$PWD\Conf\VERSION" "$stage\Conf\VERSION"
           Copy-Item "$PWD\README.md" $stage
           Copy-Item "$PWD\LICENSE" $stage

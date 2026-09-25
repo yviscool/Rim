@@ -2,6 +2,11 @@
 ; 为不支持vim的编辑器注入vim编辑功能
 ; AHK v2注意: 函数名不区分大小写, 所有大写键用Key后缀
 
+; 统一插件入口 (Legacy vim 通道经此调用; 直接调 VimEditorPlugin.Register() 等效)
+RegisterPlugin_VimEditor() {
+    VimEditorPlugin.Register()
+}
+
 class VimEditorPlugin {
     static Name := "VimEditor"
     static enabled := true
@@ -172,7 +177,7 @@ class VimEditorPlugin {
     }
 
     RegisterAction(name, comment := "") {
-        try Rim.engine.SetAction(name, comment)
+        try Rim.vim.SetAction(name, comment)
     }
 
     InitBindings() {
@@ -180,130 +185,135 @@ class VimEditorPlugin {
     }
 
     DoBind() {
-        engine := Rim.engine
-        for winClass, _ in this.EditorWindows
+        engine := Rim.vim
+        for winClass, _ in VimEditorPlugin.EditorWindows
             this.BindWindow(engine, winClass)
         this.BindWindow(engine, "VimEditor_Global")
     }
 
     BindWindow(engine, wn) {
-        m := this.MODE_NORMAL
+        m := VimEditorPlugin.MODE_NORMAL
+        ; 窗口注册 (ini 未配的编辑器类在此建窗; 已有窗口则复用, 类名一致无覆盖风险)
+        engine.SetWin(wn, wn, "")
+        ; 历史调用形如 MapKey(wn, mode, key, action)，经局部闭包转正为引擎顺序 (key, action, wn, mode)
+        mk := (w, mo, k, a) => engine.MapKey(k, a, w, mo)
 
         ; 模式切换
-        engine.MapKey(wn, m, "i", "VimEditor_InsertMode")
-        engine.MapKey(wn, m, "a", "VimEditor_a")
-        engine.MapKey(wn, m, "o", "VimEditor_o")
-        engine.MapKey(wn, m, "I", "VimEditor_IKey")
-        engine.MapKey(wn, m, "A", "VimEditor_AKey")
-        engine.MapKey(wn, m, "O", "VimEditor_OKey")
-        engine.MapKey(wn, m, "s", "VimEditor_s")
-        engine.MapKey(wn, m, "S", "VimEditor_SKey")
+        mk(wn, m, "i", "VimEditor_InsertMode")
+        mk(wn, m, "a", "VimEditor_a")
+        mk(wn, m, "o", "VimEditor_o")
+        mk(wn, m, "I", "VimEditor_IKey")
+        mk(wn, m, "A", "VimEditor_AKey")
+        mk(wn, m, "O", "VimEditor_OKey")
+        mk(wn, m, "s", "VimEditor_s")
+        mk(wn, m, "S", "VimEditor_SKey")
 
         ; 光标移动
-        engine.MapKey(wn, m, "h", "VimEditor_h")
-        engine.MapKey(wn, m, "j", "VimEditor_j")
-        engine.MapKey(wn, m, "k", "VimEditor_k")
-        engine.MapKey(wn, m, "l", "VimEditor_l")
-        engine.MapKey(wn, m, "w", "VimEditor_w")
-        engine.MapKey(wn, m, "W", "VimEditor_WKey")
-        engine.MapKey(wn, m, "b", "VimEditor_b")
-        engine.MapKey(wn, m, "B", "VimEditor_BKey")
-        engine.MapKey(wn, m, "e", "VimEditor_e")
-        engine.MapKey(wn, m, "E", "VimEditor_EKey")
-        engine.MapKey(wn, m, "0", "VimEditor_0")
-        engine.MapKey(wn, m, "^", "VimEditor_Caret")
-        engine.MapKey(wn, m, "$", "VimEditor_Dollar")
-        engine.MapKey(wn, m, "gg", "VimEditor_Go")
-        engine.MapKey(wn, m, "G", "VimEditor_GKey")
-        engine.MapKey(wn, m, "H", "VimEditor_HKey")
-        engine.MapKey(wn, m, "M", "VimEditor_MKey")
-        engine.MapKey(wn, m, "L", "VimEditor_LKey")
-        engine.MapKey(wn, m, "<Ctrl-u>", "VimEditor_CtrlU")
-        engine.MapKey(wn, m, "<Ctrl-d>", "VimEditor_CtrlD")
-        engine.MapKey(wn, m, "<Ctrl-b>", "VimEditor_CtrlB")
-        engine.MapKey(wn, m, "<Ctrl-f>", "VimEditor_CtrlF")
+        mk(wn, m, "h", "VimEditor_h")
+        mk(wn, m, "j", "VimEditor_j")
+        mk(wn, m, "k", "VimEditor_k")
+        mk(wn, m, "l", "VimEditor_l")
+        mk(wn, m, "w", "VimEditor_w")
+        mk(wn, m, "W", "VimEditor_WKey")
+        mk(wn, m, "b", "VimEditor_b")
+        mk(wn, m, "B", "VimEditor_BKey")
+        mk(wn, m, "e", "VimEditor_e")
+        mk(wn, m, "E", "VimEditor_EKey")
+        mk(wn, m, "0", "VimEditor_0")
+        mk(wn, m, "^", "VimEditor_Caret")
+        mk(wn, m, "$", "VimEditor_Dollar")
+        mk(wn, m, "gg", "VimEditor_Go")
+        mk(wn, m, "G", "VimEditor_GKey")
+        mk(wn, m, "H", "VimEditor_HKey")
+        mk(wn, m, "M", "VimEditor_MKey")
+        mk(wn, m, "L", "VimEditor_LKey")
+        mk(wn, m, "<Ctrl-u>", "VimEditor_CtrlU")
+        mk(wn, m, "<Ctrl-d>", "VimEditor_CtrlD")
+        mk(wn, m, "<Ctrl-b>", "VimEditor_CtrlB")
+        mk(wn, m, "<Ctrl-f>", "VimEditor_CtrlF")
 
         ; 查找移动
-        engine.MapKey(wn, m, "f", "VimEditor_f")
-        engine.MapKey(wn, m, "F", "VimEditor_FKey")
-        engine.MapKey(wn, m, "t", "VimEditor_t")
-        engine.MapKey(wn, m, "T", "VimEditor_TKey")
-        engine.MapKey(wn, m, ";", "VimEditor_semicolon")
+        mk(wn, m, "f", "VimEditor_f")
+        mk(wn, m, "F", "VimEditor_FKey")
+        mk(wn, m, "t", "VimEditor_t")
+        mk(wn, m, "T", "VimEditor_TKey")
+        mk(wn, m, ";", "VimEditor_semicolon")
 
         ; 编辑操作
-        engine.MapKey(wn, m, "x", "VimEditor_x")
-        engine.MapKey(wn, m, "X", "VimEditor_XKey")
-        engine.MapKey(wn, m, "r", "VimEditor_r")
-        engine.MapKey(wn, m, "dd", "VimEditor_dd")
-        engine.MapKey(wn, m, "D", "VimEditor_DKey")
-        engine.MapKey(wn, m, "C", "VimEditor_CKey")
-        engine.MapKey(wn, m, "cc", "VimEditor_cc")
-        engine.MapKey(wn, m, "yy", "VimEditor_yy")
-        engine.MapKey(wn, m, "Y", "VimEditor_YKey")
-        engine.MapKey(wn, m, "p", "VimEditor_p")
-        engine.MapKey(wn, m, "P", "VimEditor_PKey")
-        engine.MapKey(wn, m, "u", "VimEditor_u")
-        engine.MapKey(wn, m, "<Ctrl-r>", "VimEditor_CtrlR")
-        engine.MapKey(wn, m, "J", "VimEditor_JKey")
-        engine.MapKey(wn, m, "gJ", "VimEditor_gJ")
-        engine.MapKey(wn, m, "~", "VimEditor_tilde")
-        engine.MapKey(wn, m, ".", "VimEditor_dot")
+        mk(wn, m, "x", "VimEditor_x")
+        mk(wn, m, "X", "VimEditor_XKey")
+        mk(wn, m, "r", "VimEditor_r")
+        mk(wn, m, "dd", "VimEditor_dd")
+        mk(wn, m, "D", "VimEditor_DKey")
+        mk(wn, m, "C", "VimEditor_CKey")
+        mk(wn, m, "cc", "VimEditor_cc")
+        mk(wn, m, "yy", "VimEditor_yy")
+        mk(wn, m, "Y", "VimEditor_YKey")
+        mk(wn, m, "p", "VimEditor_p")
+        mk(wn, m, "P", "VimEditor_PKey")
+        mk(wn, m, "u", "VimEditor_u")
+        mk(wn, m, "<Ctrl-r>", "VimEditor_CtrlR")
+        mk(wn, m, "J", "VimEditor_JKey")
+        mk(wn, m, "gJ", "VimEditor_gJ")
+        mk(wn, m, "~", "VimEditor_tilde")
+        mk(wn, m, ".", "VimEditor_dot")
 
         ; 文本对象
-        engine.MapKey(wn, m, "diw", "VimEditor_diw")
-        engine.MapKey(wn, m, "daw", "VimEditor_daw")
-        engine.MapKey(wn, m, "ciw", "VimEditor_ciw")
-        engine.MapKey(wn, m, "caw", "VimEditor_caw")
-        engine.MapKey(wn, m, "yiw", "VimEditor_yiw")
-        engine.MapKey(wn, m, "yaw", "VimEditor_yaw")
-        engine.MapKey(wn, m, "dib", "VimEditor_dib")
-        engine.MapKey(wn, m, "dab", "VimEditor_dab")
-        engine.MapKey(wn, m, "cib", "VimEditor_cib")
-        engine.MapKey(wn, m, "cab", "VimEditor_cab")
-        engine.MapKey(wn, m, "di`"", "VimEditor_diq")
-        engine.MapKey(wn, m, "ci`"", "VimEditor_ciq")
-        engine.MapKey(wn, m, "yi`"", "VimEditor_yiq")
-        engine.MapKey(wn, m, "di'", "VimEditor_diqq")
-        engine.MapKey(wn, m, "ci'", "VimEditor_ciqq")
-        engine.MapKey(wn, m, "yi'", "VimEditor_yiqq")
+        mk(wn, m, "diw", "VimEditor_diw")
+        mk(wn, m, "daw", "VimEditor_daw")
+        mk(wn, m, "ciw", "VimEditor_ciw")
+        mk(wn, m, "caw", "VimEditor_caw")
+        mk(wn, m, "yiw", "VimEditor_yiw")
+        mk(wn, m, "yaw", "VimEditor_yaw")
+        mk(wn, m, "dib", "VimEditor_dib")
+        mk(wn, m, "dab", "VimEditor_dab")
+        mk(wn, m, "cib", "VimEditor_cib")
+        mk(wn, m, "cab", "VimEditor_cab")
+        mk(wn, m, "di`"", "VimEditor_diq")
+        mk(wn, m, "ci`"", "VimEditor_ciq")
+        mk(wn, m, "yi`"", "VimEditor_yiq")
+        mk(wn, m, "di'", "VimEditor_diqq")
+        mk(wn, m, "ci'", "VimEditor_ciqq")
+        mk(wn, m, "yi'", "VimEditor_yiqq")
 
         ; 查找替换
-        engine.MapKey(wn, m, "/", "VimEditor_slash")
-        engine.MapKey(wn, m, "?", "VimEditor_question")
-        engine.MapKey(wn, m, "n", "VimEditor_n")
-        engine.MapKey(wn, m, "N", "VimEditor_NKey")
-        engine.MapKey(wn, m, "*", "VimEditor_star")
-        engine.MapKey(wn, m, "#", "VimEditor_hash")
-        engine.MapKey(wn, m, "%", "VimEditor_percent")
+        mk(wn, m, "/", "VimEditor_slash")
+        mk(wn, m, "?", "VimEditor_question")
+        mk(wn, m, "n", "VimEditor_n")
+        mk(wn, m, "N", "VimEditor_NKey")
+        mk(wn, m, "*", "VimEditor_star")
+        mk(wn, m, "#", "VimEditor_hash")
+        mk(wn, m, "%", "VimEditor_percent")
 
         ; 宏
-        engine.MapKey(wn, m, "q", "VimEditor_q")
-        engine.MapKey(wn, m, "@", "VimEditor_at")
+        mk(wn, m, "q", "VimEditor_q")
+        mk(wn, m, "@", "VimEditor_at")
 
         ; 可视模式
-        engine.MapKey(wn, m, "v", "VimEditor_VisualMode")
-        engine.MapKey(wn, m, "V", "VimEditor_VisualLineMode")
+        mk(wn, m, "v", "VimEditor_VisualMode")
+        mk(wn, m, "V", "VimEditor_VisualLineMode")
 
         ; 数字前缀
-        engine.MapKey(wn, m, "1", "VimEditor_1")
-        engine.MapKey(wn, m, "2", "VimEditor_2")
-        engine.MapKey(wn, m, "3", "VimEditor_3")
-        engine.MapKey(wn, m, "4", "VimEditor_4")
-        engine.MapKey(wn, m, "5", "VimEditor_5")
-        engine.MapKey(wn, m, "6", "VimEditor_6")
-        engine.MapKey(wn, m, "7", "VimEditor_7")
-        engine.MapKey(wn, m, "8", "VimEditor_8")
-        engine.MapKey(wn, m, "9", "VimEditor_9")
+        mk(wn, m, "1", "VimEditor_1")
+        mk(wn, m, "2", "VimEditor_2")
+        mk(wn, m, "3", "VimEditor_3")
+        mk(wn, m, "4", "VimEditor_4")
+        mk(wn, m, "5", "VimEditor_5")
+        mk(wn, m, "6", "VimEditor_6")
+        mk(wn, m, "7", "VimEditor_7")
+        mk(wn, m, "8", "VimEditor_8")
+        mk(wn, m, "9", "VimEditor_9")
 
         ; Insert/Visual模式Esc
-        engine.MapKey(wn, this.MODE_INSERT, "<Esc>", "VimEditor_NormalMode")
-        engine.MapKey(wn, this.MODE_VISUAL, "<Esc>", "VimEditor_NormalMode")
-        engine.MapKey(wn, this.MODE_VISUAL_LINE, "<Esc>", "VimEditor_NormalMode")
+        mk(wn, VimEditorPlugin.MODE_INSERT, "<Esc>", "VimEditor_NormalMode")
+        mk(wn, VimEditorPlugin.MODE_VISUAL, "<Esc>", "VimEditor_NormalMode")
+        mk(wn, VimEditorPlugin.MODE_VISUAL_LINE, "<Esc>", "VimEditor_NormalMode")
     }
 
     static Register() {
         VimEditorPlugin()
-        Log("VimEditor: 插件已注册 - v" VimEditorPlugin.version " - " VimEditorPlugin.EditorWindows.Count " 种编辑器")
+        ; 注册期日志: 探针线束未含 Utils.ahk 时 Log 不存在, try 吞掉 (运行时正常写日志)
+        try Log("VimEditor: 插件已注册 - v" VimEditorPlugin.version " - " VimEditorPlugin.EditorWindows.Count " 种编辑器")
     }
 }
 
@@ -345,8 +355,9 @@ VimEditor_Toggle() {
         wc := ""
         try wc := WinGetClass("A")
         if (wc != "") {
-            engine := Rim.engine
-            engine.Copy("VimEditor_Global", wc, wc, "")
+            engine := Rim.vim
+            engine.CopyWin("VimEditor_Global", wc)
+            engine.SetWin(wc, wc, "")
             engine.SetMode("normal", wc)
             ; Map 值是 i18n key 或英文直通原文, 经 T() 统一解析
             ; (audit 视 ved.ed_* 为间接引用, 属已知白名单, 见 T(变量) 调用)

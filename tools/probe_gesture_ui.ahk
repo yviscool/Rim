@@ -1,5 +1,6 @@
 #Requires AutoHotkey v2.0
 #Warn All, Off
+; i18n:protocol-file (对话框层参数 "全局" 固件, 与引擎层 ID 比对)
 
 T(key, *) {
     return key

@@ -51,20 +51,20 @@ class RimWorkspace {
                 . "tc=1`n"
                 . "tc_left=" . appRoot . "\Core`n"
                 . "tc_right=" . appRoot . "\Plugins`n"
-                . "desc=Rim 仓库开发空间`n`n"
+                . "desc=" . T("ws.desc_rim") . "`n`n"
                 . "[Workspace:dev]`n"
                 . "title=General Development`n"
                 . "root=C:\`n"
                 . "editor=code`n"
                 . "terminal=1`n"
                 . "tc=1`n"
-                . "desc=通用编程开发工作空间`n`n"
+                . "desc=" . T("ws.desc_dev") . "`n`n"
                 . "[Workspace:files]`n"
                 . "title=File Management`n"
                 . "tc=1`n"
                 . "tc_left=C:\`n"
                 . "tc_right=D:\`n"
-                . "desc=双栏文件比对与管理空间`n"
+                . "desc=" . T("ws.desc_files") . "`n"
             )
             try FileAppend(defaultIni, cfgFile, "UTF-8")
         }
@@ -102,7 +102,7 @@ class RimWorkspace {
                     try {
                         RimCommand.Register("workspace." . wsName, item.Title, (*) => RimWorkspace.Open(wsName), Map(
                             "Category", "Workspace",
-                            "Description", item.Description != "" ? item.Description : "工作空间: " . item.Title,
+                            "Description", item.Description != "" ? item.Description : T("ws.fallback_desc", item.Title),
                             "Keywords", "ws workspace " . wsName
                         ))
                     } catch {
@@ -279,44 +279,44 @@ InitWorkspaceCommands() {
 
     RimCommand.Register("workspace.open", "Open Workspace", (arg := "") => RimWorkspace.Open(arg), Map(
         "Category", "Workspace",
-        "Description", "按名称或路径激活工作空间 (如 ws rim, ws dev, ws D:\project)",
+        "Description", T("cmd.workspace.open"),
         "Keywords", "workspace open ws switch restore"
     ))
 
     RimCommand.Register("workspace.save", "Save Current Workspace", (arg := "") => RimWorkspace.CaptureCurrent(arg != "" ? arg : "snapshot"), Map(
         "Category", "Workspace",
-        "Description", "将当前环境保存为工作空间快照 (如 ws.save mydev)",
+        "Description", T("cmd.workspace.save"),
         "Keywords", "workspace save snapshot"
     ))
 
     ; 窗口布局指令挂载
     RimCommand.Register("window.tile_left", "Tile Left", (*) => RimWindow.Tile("A", "left"), Map(
         "Category", "Window",
-        "Description", "将当前窗口分屏至屏幕左侧半屏 (50%)",
+        "Description", T("cmd.workspace.tile_left"),
         "Keywords", "window tile left half"
     ))
 
     RimCommand.Register("window.tile_right", "Tile Right", (*) => RimWindow.Tile("A", "right"), Map(
         "Category", "Window",
-        "Description", "将当前窗口分屏至屏幕右侧半屏 (50%)",
+        "Description", T("cmd.workspace.tile_right"),
         "Keywords", "window tile right half"
     ))
 
     RimCommand.Register("window.tile_top", "Tile Top", (*) => RimWindow.Tile("A", "top"), Map(
         "Category", "Window",
-        "Description", "将当前窗口分屏至屏幕上方半屏 (50%)",
+        "Description", T("cmd.workspace.tile_top"),
         "Keywords", "window tile top half"
     ))
 
     RimCommand.Register("window.tile_bottom", "Tile Bottom", (*) => RimWindow.Tile("A", "bottom"), Map(
         "Category", "Window",
-        "Description", "将当前窗口分屏至屏幕下方半屏 (50%)",
+        "Description", T("cmd.workspace.tile_bottom"),
         "Keywords", "window tile bottom half"
     ))
 
     RimCommand.Register("window.next_monitor", "Move to Next Monitor", (*) => RimWindow.MoveToNextMonitor("A"), Map(
         "Category", "Window",
-        "Description", "将活动窗口抛掷到下一台物理显示器",
+        "Description", T("cmd.workspace.next_monitor"),
         "Keywords", "window monitor screen next display"
     ))
 }

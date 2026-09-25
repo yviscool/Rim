@@ -3,7 +3,8 @@
 
 ; === Core/Plugin.ahk - Rim 统一插件生命周期架构 (Unified Plugin Architecture) ===
 ; 标准化插件契约 (Lifecycle Contract) 与隔离执行沙箱 (Sandbox Manager)
-; 彻底拔除旧式双轨制加载与黑名单硬编码，提供即插即用、单文件自闭环的模块化扩展体系
+; 过渡态：新插件走 RimPlugin 六阶段，11 个历史 Vim 插件仍经下方 LegacyVimPlugins
+; 白名单 + RegisterPlugin_* 分发（命令通道见 Files.ahk，Vim 通道需引擎就绪）；OnExitAll 由 Rim_OnExit 触发
 
 ; ==============================================================================
 ; 1. 基础插件契约类: 供新式插件继承并按需实现各生命周期方法
@@ -50,8 +51,10 @@ class RimPluginManager {
     static LegacyVimPlugins := Map(
         "General", 1, "Explorer", 1, "TCCompare", 1, "WinMerge", 1,
         "BeyondCompare4", 1, "Foobar2000", 1, "TCDialog", 1, "TotalCommander", 1,
-        "StrokePlus", 1, "VimDConfig", 1
+        "StrokePlus", 1, "VimDConfig", 1, "VimEditor", 1
     )
+    ; 注意: VimDConfig 实为命令插件 (RegisterCommand)，但其 RegisterAction 需 g_VimEngine
+    ; 就绪后才能注册，故暂留 vim 通道 (LoadFiles 期引擎尚未创建)；勿移入命令通道。
 
     ; 注册插件类
     static Register(pluginClass) {
@@ -84,14 +87,35 @@ class RimPluginManager {
         return list
     }
 
-    ; 校验插件是否在配置中启用
+    ; 校验插件是否在配置中启用（[Plugins] 键大小写不敏感：先精确命中，缺失再扫全节比对）
     static IsEnabled(name) {
         global g_Conf
         if (IsSet(g_Conf) && IsObject(g_Conf) && g_Conf.HasSection("Plugins")) {
-            val := g_Conf.Get("Plugins", name, "1")
+            val := g_Conf.Get("Plugins", name, "__MISSING__")
+            if (val = "__MISSING__") {
+                try {
+                    for k, v in g_Conf.GetSection("Plugins") {
+                        if (StrLower(k) = StrLower(name)) {
+                            val := v
+                            break
+                        }
+                    }
+                }
+                if (val = "__MISSING__")
+                    return true
+            }
             return (val != "0")
         }
         return true
+    }
+
+    ; LegacyVim 名单大小写不敏感判定（ini/文件名大小写写偏仍能命中，避免静默跳过）
+    static HasLegacyVim(pName) {
+        for k, _ in RimPluginManager.LegacyVimPlugins {
+            if (StrLower(k) = StrLower(pName))
+                return true
+        }
+        return false
     }
 
     ; 阶段 1: 初始化所有激活插件 (沙箱保护)
@@ -147,7 +171,7 @@ class RimPluginManager {
         for idx, pName in pluginList {
             key := StrLower(Trim(pName))
             ; 若已是 Modern 插件或属于 Legacy Vim 插件，跳过 (按各阶段正常接入)
-            if (RimPluginManager.Plugins.Has(key) || RimPluginManager.LegacyVimPlugins.Has(pName))
+            if (RimPluginManager.Plugins.Has(key) || RimPluginManager.HasLegacyVim(pName))
                 continue
 
             if (!RimPluginManager.IsEnabled(pName))
@@ -178,7 +202,7 @@ class RimPluginManager {
             if (RimPluginManager.Plugins.Has(key))
                 continue
 
-            if (!RimPluginManager.LegacyVimPlugins.Has(pName))
+            if (!RimPluginManager.HasLegacyVim(pName))
                 continue
 
             if (!RimPluginManager.IsEnabled(pName))
@@ -213,10 +237,15 @@ class RimPluginManager {
     }
 
     static _LogErr(where, err) {
+        ; RimLog 常驻 (Core/Utils.ahk); 探针等未包含 Utils 时回落直写 (外层 try 兜底)
         try {
-            msg := A_Now . " [PLUGIN_ERR] " . where . ": " . err.Message . " @ " . err.File . ":" . err.Line . "`n"
-            FileAppend(msg, A_ScriptDir . "\Rim.error.log")
+            RimLog("PLUGIN_ERR", where, err)
         } catch {
+            try {
+                msg := A_Now . " [PLUGIN_ERR] " . where . ": " . err.Message . " @ " . err.File . ":" . err.Line . "`n"
+                FileAppend(msg, A_ScriptDir . "\Rim.error.log")
+            } catch {
+            }
         }
     }
 }

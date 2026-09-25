@@ -131,7 +131,7 @@ SI_HeadPure(text) {
 SI_BlockedPure(text) {
     if (text == "")
         return true
-    if RegExMatch(text, "i)(password|passwd|pwd|token|secret|apikey|api_key|creditcard|ssn|身份证|密码|口令)")
+    if RegExMatch(text, "i)(password|passwd|pwd|token|secret|apikey|api_key|creditcard|ssn|身份证|密码|口令)") ; i18n:protocol (隐私黑名单功能词, 非 UI)
         return true
     try {
         extra := Trim(g_Conf.Get("SmartInput", "PrivacyExtra", ""))

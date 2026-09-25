@@ -142,7 +142,7 @@ Customize in the config UI, or as `key=<action>[=mode]` ini lines such as `dd=<d
 
 ## 4. Tray and Config Center
 
-Right-click tray: show launcher, gesture manager, config center, StatsBall toggle, suspend, restart, quit. The config center edits launcher, hotkeys, plugin switches, TC, and Vim maps; `[Plugins]` toggles 18 plugins individually.
+Right-click tray: show launcher, gesture manager, config center, StatsBall toggle, suspend, restart, quit. The config center edits launcher, hotkeys, plugin switches, TC, and Vim maps; `[Plugins]` toggles each plugin individually (18 active entries: MicrosoftExcel ships disabled pending a COM re-port; see `Conf/rim.template.ini`).
 
 ## 5. StatsBall
 

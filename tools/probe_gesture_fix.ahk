@@ -14,6 +14,7 @@ T(k, params*) {
 #Include ..\Core\GestureTemplate.ahk
 #Include ..\Core\GestureSPData.ahk
 #Include ..\Core\GestureTrail.ahk
+#Include ..\Core\GesturePreview.ahk
 
 ; 模态错误框会挂起探针: 转存档 + 非 0 退出
 Probe_OnError(e, mode) {
@@ -115,6 +116,34 @@ g_Gesture["comboKind"] := ""
 ; ---- 8. 按下快照默认值 ----
 Chk("downmods-field", g_Gesture.Has("downMods"))
 Chk("leftcombo-field", g_Gesture.Has("leftCombo"))
+Chk("phase-field", g_Gesture.Has("phase") && g_Gesture["phase"] = "idle")
+
+; ---- 9. soak: 200 次预览位图构建+释放无错; 50 段轨迹 Show/Line/Hide 无挂起 ----
+; 只观测不修 (Preview 按 HWND 跟踪句柄、Trail XOR 重绘, 先拿基线数据)
+soakPts := []
+for _, xy in Tpl_BuiltinDefs()["V"][2]
+    soakPts.Push(Tpl_Pt(xy[1], xy[2]))
+soakOk := 0
+Loop 200 {
+    try {
+        hbm := GesturePreview_PointsBitmap(soakPts, 120, 120)
+        if (hbm) {
+            DllCall("DeleteObject", "Ptr", hbm)
+            soakOk++
+        }
+    }
+}
+Chk("soak-bitmap-200", soakOk = 200)
+trailOk := true
+try {
+    GestureTrail_Show()
+    Loop 50
+        GestureTrail_Line(A_Index * 3, A_Index * 2, A_Index * 3 + 5, A_Index * 2 + 5)
+    GestureTrail_Hide()
+} catch {
+    trailOk := false
+}
+Chk("soak-trail-50", trailOk)
 
 if (g_Fails > 0) {
     FileAppend("RESULT|FAIL|" . g_Fails . "`n", A_ScriptDir . "\probe_gesture_fix.out.txt")

@@ -2,6 +2,20 @@
 
 ; === QRCode Plugin - 二维码生成 ===
 ; 移植自 RunZ 的 QRCode 插件
+; Hybrid: Modern 壳 (命令通道) + 旧 RegisterPlugin_QRCode() 体 (Vim/手势无诉求, 不进 LegacyVim 名单)
+
+class QRCodePlugin extends RimPlugin {
+    static Name => "QRCode"
+    static Title => "QR Code Generator"
+    static Description => "二维码生成 (文本/剪切板/URL)"
+
+    static RegisterCommands() {
+        RegisterPlugin_QRCode()
+    }
+}
+
+if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
+    RimPluginManager.Register(QRCodePlugin)
 
 RegisterPlugin_QRCode() {
     RegisterCommand("QRCode", "function", "GenerateQRCode", T("cmd.QRCode.QRCode"))
@@ -10,11 +24,11 @@ RegisterPlugin_QRCode() {
     RegisterCommand("QRUrl", "function", "QRFromUrl", T("cmd.QRCode.QRUrl"))
 }
 
-; === 二维码生成 (Arg > 剪切板 > InputBox; 空输入 DisplayResult 报错) ===
+; === 二维码生成 (g_Arg > 剪切板 > InputBox; 空输入 DisplayResult 报错) ===
 QRCodePipeInput(prompt, title) {
-    global Arg
-    if (Trim(Arg) != "")
-        return Trim(Arg)
+    global g_Arg
+    if (Trim(g_Arg) != "")
+        return Trim(g_Arg)
     clip := Trim(A_Clipboard)
     if (clip != "")
         return clip

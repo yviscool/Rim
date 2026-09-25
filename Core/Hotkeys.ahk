@@ -265,29 +265,29 @@ RunCurrentCommand(*) {
 }
 
 ParseArg(*) {
-    global Arg, g_PipeArg, g_CurrentInput, g_UseFallbackCommands
+    global g_Arg, g_PipeArg, g_CurrentInput, g_UseFallbackCommands
     if (g_PipeArg != "") {
-        Arg := g_PipeArg
+        g_Arg := g_PipeArg
         return
     }
 
     commandPrefix := SubStr(g_CurrentInput, 1, 1)
 
     if (commandPrefix = ";" || commandPrefix = ":") {
-        Arg := SubStr(g_CurrentInput, 2)
+        g_Arg := SubStr(g_CurrentInput, 2)
         return
     }
     else if (commandPrefix = "@") {
-        Arg := SubStr(g_CurrentInput, 4)
+        g_Arg := SubStr(g_CurrentInput, 4)
         return
     }
 
     if (InStr(g_CurrentInput, " ") && !g_UseFallbackCommands)
-        Arg := SubStr(g_CurrentInput, InStr(g_CurrentInput, " ") + 1)
+        g_Arg := SubStr(g_CurrentInput, InStr(g_CurrentInput, " ") + 1)
     else if (g_UseFallbackCommands)
-        Arg := g_CurrentInput
+        g_Arg := g_CurrentInput
     else
-        Arg := ""
+        g_Arg := ""
 }
 
 CleanupRank(*) {
@@ -460,9 +460,9 @@ WatchUserFileList(*) {
 }
 
 SaveResultAsArg(*) {
-    global Arg, FullPipeArg, g_DisplayEdit, g_CurrentCommand, g_SkinConf
+    global g_Arg, FullPipeArg, g_DisplayEdit, g_CurrentCommand, g_SkinConf
     global g_InputEdit, g_CommandFilter
-    Arg := ""
+    g_Arg := ""
     result := g_DisplayEdit.Value
 
     if (g_SkinConf["HideCol2"] = "1") {
@@ -475,23 +475,23 @@ SaveResultAsArg(*) {
     }
 
     if (InStr(g_CurrentCommand, "file | ") = 1)
-        Arg .= StrSplit(g_CurrentCommand, " | ")[2]
+        g_Arg .= StrSplit(g_CurrentCommand, " | ")[2]
     else if (!InStr(result, " | ")) {
-        Arg .= StrReplace(result, "`n", " ")
-        Arg := StrReplace(Arg, "`r")
+        g_Arg .= StrReplace(result, "`n", " ")
+        g_Arg := StrReplace(g_Arg, "`r")
     } else {
         if (g_SkinConf["HideCol2"] = "1") {
             Loop Parse, result, "`n", "`r" {
-                Arg .= Trim(StrSplit(A_LoopField, " | ")[2]) " "
+                g_Arg .= Trim(StrSplit(A_LoopField, " | ")[2]) " "
             }
         } else {
             Loop Parse, result, "`n", "`r" {
-                Arg .= Trim(StrSplit(A_LoopField, " | ")[3]) " "
+                g_Arg .= Trim(StrSplit(A_LoopField, " | ")[3]) " "
             }
         }
     }
 
-    Arg := Trim(Arg)
+    g_Arg := Trim(g_Arg)
     g_InputEdit.Value := "|"
     g_InputEdit.Focus()
     Send("{End}")

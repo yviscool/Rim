@@ -588,7 +588,7 @@ Tpl_List() {
     out := []
     try {
         for name, t in g_Templates
-            out.Push([name, "", (t.builtin ? "内置" : "自定义") . " x" . t.samples.Length])
+            out.Push([name, "", (t.builtin ? T("gesture.tpl_builtin") : T("gesture.tpl_custom")) . " x" . t.samples.Length])
     }
     return out
 }

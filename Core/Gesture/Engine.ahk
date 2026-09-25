@@ -34,6 +34,7 @@ class GestureEngine {
 
         ; 1. 录制模式截获
         if (g_Gesture["recording"]) {
+            g_Gesture["phase"] := "recording"
             if (gesture = "")
                 return
             g_Gesture["recorded"] := gesture
@@ -48,6 +49,7 @@ class GestureEngine {
 
         ; 2. 模板录制截获
         if (g_Gesture["tplRecording"]) {
+            g_Gesture["phase"] := "tpl-recording"
             tcb := g_Gesture["tplRecordCb"]
             g_Gesture["tplRecording"] := 0
             g_Gesture["tplRecordCb"] := ""
@@ -65,9 +67,10 @@ class GestureEngine {
 
         ; 3. 左键组合技 (画 L/R 时按左键切窗口)
         if (leftCombo && (gesture = "L" || gesture = "R")) {
+            g_Gesture["phase"] := "combo"
             if (g_Gesture["tryMode"]) {
                 try ToolTip(T("gesture.try_hit", gesture . "+LButton",
-                    gesture = "L" ? "<SP_SwitchLast>" : "<SP_SwitchNext>", "组合"))
+                    gesture = "L" ? "<SP_SwitchLast>" : "<SP_SwitchNext>", T("gesture.layer_combo")))
                 SetTimer(GestureEngine.fnHideTip, -2000)
             } else if (gesture = "L") {
                 try Send("!+{Esc}")
@@ -89,6 +92,7 @@ class GestureEngine {
         mods := g_Gesture.Has("downMods") ? g_Gesture["downMods"] : ""
 
         ; 5. 多层候选解析: 动态 Registry -> App 层 -> 全局层 -> 模板层
+        g_Gesture["phase"] := "resolving"
         res := GestureEngine.ResolveStroke(gesture, pts, exe, cls, title, mods, ownerCls, ctrlCls, ctrlTitle)
         action := res[1]
         layer := res[2]
@@ -97,6 +101,7 @@ class GestureEngine {
         GestureEngine.stats.lastPattern := gesture
 
         if (action != "") {
+            g_Gesture["phase"] := "matched"
             GestureEngine.stats.recognized++
             GestureEngine.stats.lastAction := Type(action) = "String" ? action : "Func"
             GestureEngine.stats.lastLayer := layer
@@ -110,11 +115,12 @@ class GestureEngine {
                 return
             }
 
-            GestureEngine.ExecuteAction(action)
+            GestureEngine.Dispatch(action)
             return
         }
 
         ; 未命中
+        g_Gesture["phase"] := "cancelled"
         GestureEngine.stats.missed++
         if (g_Gesture["tryMode"]) {
             try ToolTip(T("gesture.try_miss", gesture) . "`n" . GestureEngine.CandidateSummary())
@@ -221,7 +227,7 @@ class GestureEngine {
         ; 优先级: 插件/应用层优先
         appRanked := []
         for _, candidate in ranked {
-            if (candidate.layer != "global" && candidate.layer != "全局")
+            if (candidate.layer != "global" && candidate.layer != "全局") ; i18n:protocol (Registry 层名 vs INI 全局层 ID, 存储协议)
                 appRanked.Push(candidate)
         }
         evalPool := (appRanked.Length > 0) ? appRanked : ranked
@@ -261,6 +267,8 @@ class GestureEngine {
     }
 
     ; ---- 分层解析手势: Registry -> App -> Global ----
+    ; noglobal 单点仲裁: 有且仅有此处决定"应用层未命中是否回退全局" (模板/方向双通道候选
+    ; 在此之前只收集, 在此之后只按 action 裁决; 新增通道禁各自另起检查, 探针 unified "noglobal" 常驻断言)
     static ResolveFor(gesture, exe, cls, mods := "", title := "", ownerCls := "", ctrlCls := "", ctrlTitle := "") {
         global g_GestureMap
         g := GestureRecognizer.Normalize(gesture)
@@ -284,9 +292,9 @@ class GestureEngine {
 
         ; 3. INI 全局层匹配
         if (IsSet(g_GestureMap) && IsObject(g_GestureMap)) {
-            action := GestureEngine.LookupUnified(g_GestureMap, g, mods, "全局")
+            action := GestureEngine.LookupUnified(g_GestureMap, g, mods, "全局") ; i18n:protocol (全局层 ID)
             if (action != "")
-                return [action, "全局"]
+                return [action, "全局"] ; i18n:protocol (全局层 ID)
         }
 
         return ["", ""]
@@ -307,6 +315,12 @@ class GestureEngine {
     }
 
     ; ---- 动作执行器 ----
+    ; Dispatch 为 ExecuteAction 的改名别名 (全局 ExecuteAction 另有其人, 见 Core/Execution.ahk);
+    ; 新代码调 Dispatch, 旧调用与探针保持兼容
+    static Dispatch(action) {
+        return GestureEngine.ExecuteAction(action)
+    }
+
     static ExecuteAction(action) {
         global g_GestureHookBefore, g_GestureHookAfter
         if (Type(action) = "String" && Trim(action) = "")
@@ -402,7 +416,7 @@ class GestureEngine {
             }
             if (g_Gesture["tryMode"]) {
                 try ToolTip(T("gesture.try_wheel", which . "+LButton",
-                    which = "WheelUp" ? "<SP_VolUp>" : "<SP_VolDown>", "组合"))
+                    which = "WheelUp" ? "<SP_VolUp>" : "<SP_VolDown>", T("gesture.layer_combo")))
                 SetTimer(GestureEngine.fnHideTip, -2000)
             } else {
                 try Send(which = "WheelUp" ? "{Volume_Up}" : "{Volume_Down}")
@@ -415,7 +429,7 @@ class GestureEngine {
             g_Gesture["volUsed"] := 1
             if (g_Gesture["tryMode"]) {
                 try ToolTip(T("gesture.try_wheel", which . "+LButton",
-                    which = "WheelUp" ? "<SP_VolUp>" : "<SP_VolDown>", "组合"))
+                    which = "WheelUp" ? "<SP_VolUp>" : "<SP_VolDown>", T("gesture.layer_combo")))
                 SetTimer(GestureEngine.fnHideTip, -2000)
             } else {
                 try Send(which = "WheelUp" ? "{Volume_Up}" : "{Volume_Down}")
@@ -460,7 +474,7 @@ class GestureEngine {
                 SetTimer(GestureEngine.fnHideTip, -2000)
                 return
             }
-            GestureEngine.ExecuteAction(res[1])
+            GestureEngine.Dispatch(res[1])
             if (g_Gesture["showOSD"]) {
                 actStr := Type(res[1]) = "String" ? res[1] : "Function"
                 try ToolTip(T("gesture.wheel", (mods . which), actStr, res[2]))
@@ -687,13 +701,13 @@ class GestureEngine {
         return GestureEngine.DisabledHas(layer . ":" . key)
     }
     static TplOff(name) {
-        return GestureEngine.DisabledHas("模板:" . name)
+        return GestureEngine.DisabledHas(GestureLayer_Template() . ":" . name)
     }
     static BlOff(pat) {
-        return GestureEngine.DisabledHas("黑名单:" . pat)
+        return GestureEngine.DisabledHas(GestureLayer_Blacklist() . ":" . pat)
     }
     static LayerOff(name) {
-        return GestureEngine.DisabledHas("应用层:" . name)
+        return GestureEngine.DisabledHas(GestureLayer_App() . ":" . name)
     }
 
     ; ---- 录制控制 ----
@@ -966,7 +980,7 @@ class GestureEngine {
         out := []
         try {
             for _k, _v in g_GestureMap
-                out.Push(["全局", _k, _v])
+                out.Push(["全局", _k, _v]) ; i18n:protocol (全局层 ID)
             for i, app in g_GestureApps {
                 for _k, _v in app.map
                     out.Push([app.name, _k, _v])
@@ -1008,7 +1022,7 @@ class GestureEngine {
 
     static LayerHas(layer, gkey) {
         global g_GestureMap
-        if (layer = "" || layer = "全局") {
+        if (layer = "" || layer = "全局") { ; i18n:protocol (全局层 ID)
             try return g_GestureMap.Has(gkey)
             return false
         }

@@ -52,21 +52,6 @@ class VimEngine {
         return true
     }
 
-    ; === 插件管理 ===
-    SetPlugin(name, author, ver, comment) {
-        plugin := Plugin(name, author, ver, comment)
-        this.PluginList[name] := plugin
-        return plugin
-    }
-
-    LoadPlugin(name) {
-        if !this.PluginList.Has(name)
-            this.PluginList[name] := Plugin(name, "", "", "")
-
-        plugin := this.PluginList[name]
-        plugin.CheckSub()
-    }
-
     ; === Action 管理 ===
     SetAction(name, comment := "") {
         if !this.ActionList.Has(name)
@@ -209,65 +194,6 @@ class VimEngine {
         if win.modeList.Has(modeName)
             return win.modeList[modeName]
         return ""
-    }
-
-    ; === 配置持久化 ===
-    SaveWinList() {
-        config := Rim.config
-        winSection := Map()
-
-        for name, win in this.WinList {
-            winData := Map()
-            winData["class"] := win.winClass
-            winData["exe"] := win.winFile
-            winSection[name] := winData
-        }
-
-        config.data["winlist"] := winSection
-        config.Save()
-    }
-
-    LoadWinList() {
-        config := Rim.config
-        winSection := config.GetSection("winlist")
-
-        for name, data in winSection {
-            if IsObject(data) {
-                winClass := data.Has("class") ? data["class"] : ""
-                winFile := data.Has("exe") ? data["exe"] : ""
-                this.AddWin(name, winClass, winFile)
-            }
-        }
-    }
-
-    SaveModeList() {
-        config := Rim.config
-
-        for winName, win in this.WinList {
-            modeSection := Map()
-            for modeName, modeObj in win.modeList {
-                modeData := Map()
-                modeData["name"] := modeName
-                modeSection[modeName] := modeData
-            }
-            config.data["modelist_" winName] := modeSection
-        }
-
-        config.Save()
-    }
-
-    LoadModeList() {
-        config := Rim.config
-
-        for winName, win in this.WinList {
-            sectionName := "modelist_" winName
-            if config.data.Has(sectionName) {
-                modeSection := config.data[sectionName]
-                for modeName, data in modeSection {
-                    this.SetMode(modeName, winName)
-                }
-            }
-        }
     }
 
     mode(mode, winName := "") {

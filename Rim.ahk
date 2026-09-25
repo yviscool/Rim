@@ -57,7 +57,8 @@ global g_AutoConf := EasyIni(g_AutoConfFile)
 ; 启动 guard: 配置没读出来就 loud-fail, 不带病运行
 ; (OnError 网会吞掉加载异常, 曾导致 g_Conf 未赋值还继续跑)
 if (!IsObject(g_Conf) || !g_Conf.HasSection("Config")) {
-    try FileAppend(A_Now . " FATAL: 配置加载失败 " . g_ConfFile . "`n", A_ScriptDir . "\Rim.error.log")
+    ; 注意: 此处 RimLog 尚不可用 (Utils 在下方才 #Include), 直写保日志不丢
+    try FileAppend(A_Now . " FATAL: 配置加载失败 " . g_ConfFile . "`n", A_ScriptDir . "\Rim.error.log") ; i18n:protocol (启动早夭日志, 与 MsgBox 同文案 key)
     catch {
     }
     MsgBox(T("msg.config_load_failed", g_ConfFile))
@@ -74,16 +75,8 @@ if (g_Conf["Gui"]["Skin"] != "")
 else
     global g_SkinConf := g_Conf["Gui"]
 
-; 皮肤配置默认值（避免 v2 Map 访问不存在的键报错, 对齐原版字段全集）
-skinDefaults := Map("ShowInputBoxOnlyIfEmpty", "0", "BackgroundPicture", "", "RoundCorner", "0"
-    , "ShowFileExt", "0", "HideCol2", "0", "HideCol4IfEmpty", "1", "ShowTrayIcon", "1", "ShowCurrentCommand", "1"
-    , "DisplayCol3MaxLength", "30", "DisplayCol4MaxLength", "36", "DisplayRows", "15", "FirstChar", "a"
-    , "HideTitle", "1", "WidgetWidth", "650", "EditHeight", "24", "DisplayAreaHeight", "246"
-    , "FontName", "宋体", "FontSize", "12", "FontColor", "000000", "BackgroundColor", "f0f0f0", "BorderSize", "15"
-    , "EditColor", "f0f0f0")
-for k, v in skinDefaults
-    if !g_SkinConf.Has(k)
-        g_SkinConf[k] := v
+; 皮肤配置默认值 (owner 见 Core/GUI.ahk EnsureSkinDefaults, 避免入口堆字段表)
+EnsureSkinDefaults()
 
 ; ==================== 托盘菜单 (尽早构建一次: 默认菜单闪现窗口从 ~200ms 压到 ~10ms) ====================
 ; 回调名编译期已解析, 运行时引用安全; 失败也不拦启动, 后面正式位置会再建一次兜底
@@ -93,8 +86,8 @@ try {
 } catch {
 }
 
-; 运行时状态
-global Arg := ""
+; 运行时状态 (g_Arg: 命令参数总线; 写入 owner=Execution/Hotkeys 管道, 插件只读; g_ 前缀防局部遮蔽)
+global g_Arg := ""
 global FullPipeArg := ""
 ; 不能是 Rim.ahk 的子串, 否则按键绑定会有问题 (对齐原版 4 空格)
 global g_WindowName := "RunZ    "
@@ -133,16 +126,30 @@ global g_FuncAlias := Map()
 
 ; ==================== 全局错误网 (本构建无 IsFunc/Func, 运行时错转日志不断线) ====================
 Rim_OnError(e, mode) {
+    ; 全局错误网 (运行时错转日志不断线); RimLog 常驻 (错误回调只在运行期触发, Utils 必已加载)
     try {
         stack := ""
         try stack := StrReplace(e.Stack, "`n", " <- ")
         catch {
         }
-        FileAppend(A_Now . " ERROR: " . e.Message . " what=" . e.What . " extra=" . e.Extra . " @ " . e.Line . " " . e.File . " stack=" . stack . "`n", A_ScriptDir . "\Rim.error.log")
+        RimLog("ERROR", e.Message . " what=" . e.What . " extra=" . e.Extra . " @ " . e.Line . " " . e.File . " stack=" . stack)
+    } catch {
+        try FileAppend(A_Now . " ERROR: " . e.Message . " @ " . e.Line . "`n", A_ScriptDir . "\Rim.error.log")
+        catch {
+        }
     }
     return -1
 }
 OnError(Rim_OnError, -1)
+
+; 进程退出/重载统一收尾：触发插件 OnExit（销毁钩子/定时器），IsSet 守卫防启动早期退出
+Rim_OnExit(reason, code) {
+    try {
+        if IsSet(RimPluginManager)
+            RimPluginManager.OnExitAll()
+    }
+}
+OnExit(Rim_OnExit)
 
 ; 动态名 → 可调用对象 (替代缺失的 Func(); 闭包内动态调用经验证可加载)
 MakeCb(name) {
@@ -290,7 +297,6 @@ Rim.vim := g_VimEngine
 Rim.config := g_Conf
 ; 自家窗口旁路: 输入框打字不进 vim 分发
 g_VimEngine.SelfWinTitle := g_WindowName
-global g_TCPluginOn := RimPluginManager.IsEnabled("TotalCommander")
 
 VimPluginOn(name) => RimPluginManager.IsEnabled(name)
 
@@ -302,10 +308,7 @@ VimdCheckHotKey()
     ; ==================== 鼠标手势 (StrokePlus 重构 P1) ====================
     ; 右键按住拖拽=手势, 短点=普通右键; 映射见 [Gesture]/[Gestures]
     RimPluginManager.RegisterAllGestures()
-    if (RimPluginManager.IsEnabled("StrokePlus"))
-        RegisterPlugin_StrokePlus()
-    if (RimPluginManager.IsEnabled("StatsBall"))
-        RegisterPlugin_StatsBall()
+    ; StrokePlus/StatsBall 经 LoadLegacyVimPlugins/LoadLegacyCommandPlugins 已注册, 此处不再直调
     GestureEngine.Init()
 
 ; ==================== 文件监控 ====================
@@ -420,7 +423,7 @@ ExcludeWindow(name) {
 
 ; ===== VimDesktop ini→map 编译器 (最小闭环: exclude/global/各窗口段) =====
 VimdCheckHotKey() {
-    global g_VimEngine, g_Conf, g_TCPluginOn
+    global g_VimEngine, g_Conf
     if !IsObject(g_VimEngine)
         return
     ; 排除窗口

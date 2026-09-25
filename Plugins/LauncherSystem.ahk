@@ -194,7 +194,7 @@ EmptyRecycle() {
 }
 
 ListProcess() {
-    global Arg
+    global g_Arg
     result := ""
 
     for process in ComObjGet("winmgmts:").ExecQuery("select * from Win32_Process") {
@@ -209,7 +209,7 @@ ListProcess() {
     result := Sort(result)
 
     SetCommandFilter("KillProcess|ShowProcess|CountNumber")
-    DisplayResult(FilterResult(AlignText(result), Arg))
+    DisplayResult(FilterResult(AlignText(result), g_Arg))
     TurnOnResultFilter()
 }
 
@@ -256,8 +256,8 @@ SystemState() {
 }
 
 KillProcess() {
-    global Arg
-    args := StrSplit(Arg, " ")
+    global g_Arg
+    args := StrSplit(g_Arg, " ")
     for _, argument in args {
         argument := Trim(argument)
         if (argument = "")
@@ -265,12 +265,12 @@ KillProcess() {
         ProcessClose(argument)
     }
 
-    DisplayResult(T("sys.killed", Arg))
+    DisplayResult(T("sys.killed", g_Arg))
 }
 
 SendToClip() {
-    global Arg
-    A_Clipboard := Arg
+    global g_Arg
+    A_Clipboard := g_Arg
     Clip()
 }
 
@@ -293,7 +293,7 @@ ListWindow() {
 }
 
 ActivateWindow() {
-    global Arg, FullPipeArg
+    global g_Arg, FullPipeArg
     DisplayResult()
     ClearInput()
 
@@ -308,7 +308,7 @@ ActivateWindow() {
             WinActivate(Trim(splitedLine[4]))
         }
     } else {
-        for _, argument in StrSplit(Arg, " ") {
+        for _, argument in StrSplit(g_Arg, " ") {
             argument := Trim(argument)
             if (argument = "")
                 continue
@@ -318,7 +318,7 @@ ActivateWindow() {
 }
 
 ListAllService() {
-    global Arg
+    global g_Arg
     result := ""
     for service in ComObjGet("winmgmts:").ExecQuery("select * from Win32_Service") {
         result .= "* | " . T("sys.row_service") . " | " . service.Name . " | " . service.DisplayName . "`n"
@@ -326,12 +326,12 @@ ListAllService() {
     result := Sort(result)
 
     SetCommandFilter("CountNumber|ShowService")
-    DisplayResult(FilterResult(AlignText(result), Arg))
+    DisplayResult(FilterResult(AlignText(result), g_Arg))
     TurnOnResultFilter()
 }
 
 ListRunningService() {
-    global Arg
+    global g_Arg
     result := ""
     for service in ComObjGet("winmgmts:").ExecQuery("select * from Win32_Service") {
         if (service.Started != 0) {
@@ -341,14 +341,14 @@ ListRunningService() {
     result := Sort(result)
 
     SetCommandFilter("CountNumber|ShowService")
-    DisplayResult(FilterResult(AlignText(result), Arg))
+    DisplayResult(FilterResult(AlignText(result), g_Arg))
     TurnOnResultFilter()
 }
 
 ShowService() {
-    global Arg
+    global g_Arg
     result := ""
-    parts := StrSplit(Trim(Arg), " ")
+    parts := StrSplit(Trim(g_Arg), " ")
     first := parts.Length >= 1 ? parts[1] : ""
     ; 暂时只支持一个，选得多了查起来太慢
     for service in ComObjGet("winmgmts:").ExecQuery("select * from Win32_Service where Name = '" . first . "'") {
@@ -366,9 +366,9 @@ ShowService() {
 }
 
 ShowProcess() {
-    global Arg
+    global g_Arg
     result := ""
-    parts := StrSplit(Trim(Arg), " ")
+    parts := StrSplit(Trim(g_Arg), " ")
     first := parts.Length >= 1 ? parts[1] : ""
     ; 暂时只支持一个，选得多了查起来太慢
     for process in ComObjGet("winmgmts:").ExecQuery("select * from Win32_Process where Name = '" . first . "'") {
@@ -395,7 +395,7 @@ VolumeMute() {
 }
 
 ; === 定时关机/重启 (单例倒计时) ===
-; 参数只读 Arg (不读剪切板/InputBox, 防误设):
+; 参数只读 g_Arg (不读剪切板/InputBox, 防误设):
 ;   空            → 查状态
 ;   cancel/off/取消 → 取消
 ;   纯数字        → 分钟 (30 = 30分钟, 最常用)
@@ -415,13 +415,13 @@ global g_ShutdownTimerDeadline := ""
 global g_ShutdownTimerShadows := []
 
 ShutdownTimer() {
-    global Arg
-    ShutdownTimer_Impl("shutdown", Trim(Arg))
+    global g_Arg
+    ShutdownTimer_Impl("shutdown", Trim(g_Arg))
 }
 
 RestartTimer() {
-    global Arg
-    ShutdownTimer_Impl("restart", Trim(Arg))
+    global g_Arg
+    ShutdownTimer_Impl("restart", Trim(g_Arg))
 }
 
 CancelShutdown(*) {

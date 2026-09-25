@@ -10,6 +10,11 @@
 ;   3) 提供几个手势专属小动作(前进/后退/上下页/音量)
 
 RegisterPlugin_StrokePlus() {
+    ; 幂等: vim 通道 + Rim.ahk 直调各一次，重复进入直接返回
+    static registered := false
+    if (registered)
+        return
+    registered := true
     global g_Conf, g_ConfFile
     ; 动作说明注册(与 General 插件风格一致, 经 ActionToFuncName 转函数调用)
     RegisterAction("<SP_Back>", T("act.StrokePlus.SP_Back"))

@@ -15,6 +15,8 @@
 global g_RegActions := []
 global g_RegCommands := []
 global g_RegFails := []
+; 经 Rim.vim 方法注册的动作 (VimEditor 通道), 单列断言, 不混入 A| 导出
+global g_EngineActions := []
 
 class ConfStub {
     Get(s, k, d := "") {
@@ -50,6 +52,8 @@ class EngineStub {
         return true
     }
     SetAction(a, b := "") {
+        global g_EngineActions
+        g_EngineActions.Push([String(a), String(b)])
     }
     SetWin(a, b := "", c := "") {
     }
@@ -142,7 +146,51 @@ TryReg("RegisterPlugin_TCCompare")
 TryReg("RegisterPlugin_TCDialog")
 TryReg("RegisterPlugin_TotalCommander")
 TryReg("RegisterPlugin_VimDConfig")
+TryReg("RegisterPlugin_VimEditor")
 TryReg("RegisterPlugin_WinMerge")
+
+; VimEditor 绑定干跑: DoBind 经 SetTimer 异步, 探针退出前跑不到, 此处直调
+; (EngineStub 吞掉全部副作用; 实例调静态的 bug 在此现形, 真机 error.log 曾红)
+try {
+    VimEditorPlugin().DoBind()
+} catch as e {
+    global g_RegFails
+    g_RegFails.Push("VimEditorDoBind: " . e.Message . " @line=" . e.Line)
+}
+; 幂等回归: 双通道各调一次的插件, 调两次也只留一份命令
+TryReg("RegisterPlugin_StatsBall")
+TryReg("RegisterPlugin_StrokePlus")
+
+; VimEditor 经引擎方法注册, 动作数即接线证据 (InitActions 约 100+)
+veCount := 0
+for r in g_EngineActions {
+    if (SubStr(r[1], 1, 10) = "VimEditor_")
+        veCount++
+}
+if (veCount < 50) {
+    global g_RegFails
+    g_RegFails.Push("VimEditorActions: only " . veCount . " (expect >=50)")
+}
+sbCount := 0
+for r in g_RegCommands {
+    if (r[1] = "StatsBall" || r[1] = "StatsBallBoost")
+        sbCount++
+}
+if (sbCount != 2) {
+    global g_RegFails
+    g_RegFails.Push("StatsBallIdempotent: got " . sbCount . " rows (expect 2)")
+}
+for pname, _ in RimPluginManager.LegacyVimPlugins {
+    fn := ""
+    try fn := %("RegisterPlugin_" . pname)%
+    catch {
+        fn := ""
+    }
+    if (!IsObject(fn) || !HasMethod(fn, "Call")) {
+        global g_RegFails
+        g_RegFails.Push("LegacyNoEntry:" . pname)
+    }
+}
 
 out := ""
 for r in g_RegActions
@@ -154,4 +202,10 @@ for f in g_RegFails
 FileAppend(out, A_ScriptDir . "\..\smoke_register.out.txt")
 if (g_RegFails.Length > 0)
     ExitApp(1)
+; zh-CN 回落断言: 中文包就绪且非 raw key (只读检查, 不影响上面的 en 导出)
+I18nSetLang("zh-CN", false)
+if (T("tray.show") = "tray.show") {
+    FileAppend("F|i18n-zh-canary: zh-CN map empty`n", A_ScriptDir . "\..\smoke_register.out.txt")
+    ExitApp(1)
+}
 ExitApp(0)

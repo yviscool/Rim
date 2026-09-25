@@ -23,27 +23,6 @@ StrEndsWith(str, suffix) {
 }
 
 ; === 文件工具 ===
-FileReadLines(filePath) {
-    lines := []
-    if FileExist(filePath) {
-        loop read, filePath {
-            lines.Push(A_LoopReadLine)
-        }
-    }
-    return lines
-}
-
-FileWriteLines(filePath, lines) {
-    content := ""
-    for line in lines
-        content .= line "`r`n"
-    try {
-        f := FileOpen(filePath, "w")
-        f.Write(content)
-        f.Close()
-    }
-}
-
 FileAppendLine(filePath, line) {
     try {
         f := FileOpen(filePath, "a")
@@ -92,7 +71,8 @@ IsWindowActive(winTitle) {
     return WinActive(winTitle) > 0
 }
 
-; === 热键格式转换 ===
+; === 热键格式转换 (展示侧; 引擎绑定侧见 Engine.ahk Convert2VIM/ConvertFromVim, 以引擎侧为准) ===
+; 方向: 未来收敛为单一 KeyCodec 模块, 合并前两对并存但禁新增第三套转换表
 ConvertToAHK(vimKey) {
     key := vimKey
     key := StrReplace(key, "<C-", "^")
@@ -134,7 +114,7 @@ class Logger {
 
     static Init(appDir) {
         this.logFile := appDir "\Rim.log"
-        this.logLevel := Rim.config.GetConfig("log_level", "INFO")
+        this.logLevel := Rim.config.Get("Config", "log_level", "INFO")
     }
 
     static Debug(message) {
@@ -165,7 +145,7 @@ class Logger {
         OutputDebug logLine
 
         ; 写入日志文件
-        if (Rim.config.GetConfig("enable_log", "0") = "1") {
+        if (Rim.config.Get("Config", "enable_log", "0") = "1") {
             this.WriteLog(logLine)
         }
     }
@@ -192,7 +172,7 @@ class Logger {
             f.WriteLine(logLine)
             f.Close()
         } catch as e {
-            OutputDebug "日志写入失败: " e.Message
+            OutputDebug T("util.log_write_fail") . e.Message
         }
     }
 
@@ -212,6 +192,28 @@ class Logger {
 ; === 兼容旧日志函数 ===
 Log(message, level := "INFO") {
     Logger.Log(message, level)
+}
+
+; === 统一错误日志 (RimLog) ===
+; 全库散落 FileAppend(..., "Rim.error.log") 的唯一收敛点: 同文件、同格式、永不抛错
+; 用法: RimLog("WARN", "GestureEngine.Dispatch failed: ...") / RimLog("ERROR", where, err)
+; 注意: 不经 Logger (Logger 依赖 Rim.config 且默认关闭文件落盘); 此处直接写 Rim.error.log
+RimLog(level, msg, err := "") {
+    try {
+        line := A_Now . " [" . level . "] " . msg
+        if (IsObject(err)) {
+            try line .= ": " . err.Message . " @ " . err.File . ":" . err.Line
+            catch {
+            }
+        } else if (err != "") {
+            line .= " " . err
+        }
+        FileAppend(line . "`n", A_ScriptDir . "\Rim.error.log")
+    } catch {
+    }
+    try OutputDebug "[Rim][" . level . "] " . msg
+    catch {
+    }
 }
 
 ; === 错误处理 ===
@@ -245,9 +247,9 @@ CleanupTempFiles() {
                 }
             }
         }
-        Log("清理了 " count " 个临时文件")
+        Log(T("util.clean_temp_done", count))
     } catch as e {
-        Log("清理临时文件失败: " e.Message, "WARN")
+        Log(T("util.clean_temp_fail", e.Message), "WARN")
     }
 }
 
@@ -277,163 +279,14 @@ CleanupLogFiles() {
                 f := FileOpen(logFile, "w")
                 f.Write(newContent)
                 f.Close()
-                Log("日志文件已清理")
+                Log(T("util.log_cleaned"))
             }
         }
     } catch as e {
-        Log("清理日志文件失败: " e.Message, "WARN")
+        Log(T("util.clean_log_fail", e.Message), "WARN")
     }
 }
 
-; === 性能优化 ===
-class PerfTimer {
-    static timers := Map()
+; 文件尾注: PerfTimer / MemoryManager / FileWatcher / ConfigBackup 已切除
+; (2026-09, 全仓零调用; 误删恢复见 git 历史)
 
-    static Start(name) {
-        this.timers[name] := A_TickCount
-    }
-
-    static Stop(name) {
-        if this.timers.Has(name) {
-            elapsed := A_TickCount - this.timers[name]
-            this.timers.Delete(name)
-            return elapsed
-        }
-        return 0
-    }
-
-    static Log(name) {
-        elapsed := this.Stop(name)
-        if (elapsed > 0) {
-            Log("性能 [" name "]: " elapsed "ms")
-        }
-    }
-}
-
-; === 内存管理 ===
-class MemoryManager {
-    static GetUsage() {
-        try {
-            pid := DllCall("kernel32\GetCurrentProcessId", "UInt")
-            hProc := DllCall("kernel32\OpenProcess", "UInt", 0x1000, "Int", 0, "UInt", pid, "Ptr")
-            if (!hProc)
-                return 0
-            try {
-                pmc := Buffer(72, 0)
-                NumPut("UInt", 72, pmc, 0)
-                if DllCall("psapi\GetProcessMemoryInfo", "Ptr", hProc, "Ptr", pmc, "UInt", 72)
-                    return NumGet(pmc, 8, "Ptr") // 1048576
-            } finally {
-                DllCall("kernel32\CloseHandle", "Ptr", hProc)
-            }
-        } catch {
-        }
-        return 0
-    }
-
-    static ForceGC() {
-        ; AutoHotkey v2 没有公开 GC 控制接口; 不再用 WMI 伪造一次昂贵查询.
-        return false
-    }
-}
-
-; === 文件监控增强 ===
-class FileWatcher {
-    static watchers := Map()
-
-    static Watch(filePath, callback, interval := 1000) {
-        this.watchers[filePath] := Map(
-            "callback", callback,
-            "lastTime", FileExist(filePath) ? FileGetTime(filePath) : "",
-            "interval", interval
-        )
-    }
-
-    static Check() {
-        for filePath, info in this.watchers {
-            if !FileExist(filePath)
-                continue
-
-            currentTime := FileGetTime(filePath)
-            if (currentTime != info["lastTime"]) {
-                info["lastTime"] := currentTime
-                try {
-                    info["callback"].Call(filePath)
-                }
-            }
-        }
-    }
-
-    static Stop(filePath) {
-        if this.watchers.Has(filePath)
-            this.watchers.Delete(filePath)
-    }
-
-    static StopAll() {
-        this.watchers.Clear()
-    }
-}
-
-; === 配置备份增强 ===
-class ConfigBackup {
-    static backupDir := ""
-
-    static Init(appDir) {
-        this.backupDir := appDir "\Backup"
-        if !DirExist(this.backupDir)
-            DirCreate this.backupDir
-    }
-
-    static CreateBackup(name := "") {
-        if (name = "")
-            name := FormatTime(, "yyyyMMddHHmmss")
-
-        backupFile := this.backupDir "\rim_" name ".ini"
-        configFile := Rim.config.configFile
-
-        if FileExist(configFile) {
-            try {
-                FileCopy configFile, backupFile, 1
-                Log("配置备份已创建: " backupFile)
-                return true
-            } catch as e {
-                Log("配置备份失败: " e.Message, "ERROR")
-            }
-        }
-        return false
-    }
-
-    static RestoreBackup(name) {
-        backupFile := this.backupDir "\rim_" name ".ini"
-        if FileExist(backupFile) {
-            try {
-                FileCopy backupFile, Rim.config.configFile, 1
-                Log("配置已恢复: " backupFile)
-                return true
-            } catch as e {
-                Log("配置恢复失败: " e.Message, "ERROR")
-            }
-        }
-        return false
-    }
-
-    static ListBackups() {
-        backups := []
-        Loop Files, this.backupDir "\rim_*.ini" {
-            backups.Push(A_LoopFileName)
-        }
-        return backups
-    }
-
-    static CleanupOldBackups(keepCount := 10) {
-        backups := this.ListBackups()
-        if (backups.Length > keepCount) {
-            Loop backups.Length - keepCount {
-                backupFile := this.backupDir "\" backups[A_Index]
-                try {
-                    FileDelete backupFile
-                }
-            }
-        }
-    }
-}

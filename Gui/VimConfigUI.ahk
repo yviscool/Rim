@@ -1139,6 +1139,14 @@ VimCfg_BuildActionsTab(g) {
     }
 }
 
+; 动作浏览器取词: 正则从插件源码抠出的 T("key") 字面量 key (恒为 act./cmd. 静态键);
+; 动态审计会将其列为 dynamic, 但值域封闭 (源码字面量), T() 缺键回落 key 本身, 永不抛错
+VimCfg_TrKey(key) {
+    if (key = "")
+        return ""
+    return T(key)
+}
+
 VimCfg_AcPick(*) {
     global g_VimCfg
     name := ""
@@ -1153,12 +1161,12 @@ VimCfg_AcPick(*) {
             if RegExMatch(_line, 'RegisterAction\("([^"]+)"(?:\s*,\s*(?:"([^"]*)"|T\("([^"]+)"\)))?', &mm) {
                 desc := mm[2]
                 if (desc = "" && mm[3] != "")
-                    desc := T(mm[3])
+                    desc := VimCfg_TrKey(mm[3])
                 lines.Push(Map("action", mm[1], "desc", desc))
             } else if RegExMatch(_line, '(?:Host\s*\(\s*"RegisterCommand"\s*,\s*|RegisterCommand\s*\(\s*)"([^"]+)"\s*,\s*"([^"]+)"(?:\s*,\s*"[^"]*")?(?:\s*,\s*(?:"([^"]*)"|T\("([^"]+)"\)))?', &mc) {
                 desc := mc[3]
                 if (desc = "" && mc[4] != "")
-                    desc := T(mc[4])
+                    desc := VimCfg_TrKey(mc[4])
                 lines.Push(Map("action", mc[1] " [" mc[2] "]", "desc", desc))
             }
         }

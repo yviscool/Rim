@@ -24,8 +24,8 @@ Check(label, condition) {
 }
 
 try {
-    FileAppend("[Gesture]`nTemplateThreshold=75`n[GestureDefinitions]`nV=template`nDR_UR=direction`n"
-        . "[Gestures]`nV=key|global-v`nDR_UR=key|direction`n"
+    FileAppend("[Gesture]`nTemplateThreshold=75`n[GestureDefinitions]`nV=template`nDR_UR=direction`nD_R=direction`n"
+        . "[Gestures]`nV=key|global-v`nDR_UR=key|direction`nD_R=key|direction-dr`n"
         . "[GestureApp:Browser]`nset_file=browser.exe`nV=key|browser-v`n"
         . "[GestureApp:Music]`nset_file=music.exe`nV=key|music-v`n"
         . "[GestureApp:Locked]`nset_file=locked.exe`nnoglobal=1`n", g_ConfFile, "UTF-8")
@@ -39,8 +39,41 @@ try {
     Check("music V", Gesture_ResolveStroke("DR_UR", vPts, "music.exe", "Player", "")[1] = "key|music-v")
     Check("global V", Gesture_ResolveStroke("DR_UR", vPts, "other.exe", "Other", "")[1] = "key|global-v")
     Check("noglobal", Gesture_ResolveStroke("DR_UR", vPts, "locked.exe", "Locked", "")[1] = "")
-    Check("direction only", Gesture_ResolveStroke("DR_UR", [{x: 0, y: 0}], "other.exe", "Other", "")[1] = "key|direction")
-    Check("candidate name", IsObject(g_Gesture["candidate"]) && g_Gesture["candidate"].name = "DR_UR")
+    Check("direction only", Gesture_ResolveStroke("D_R", [{x: 0, y: 0}, {x: 0, y: 20}, {x: 20, y: 20}], "other.exe", "Other", "")[1] = "key|direction-dr")
+    Check("candidate name", IsObject(g_Gesture["candidate"]) && g_Gesture["candidate"].name = "D_R")
+
+    ; 负样本语料 (随手轨迹必须零触发; 确定性序列, 禁 Random, 防误触回归)
+    negPts := [{x: 0, y: 0}, {x: 7, y: 3}, {x: 2, y: 9}, {x: 11, y: 5}, {x: 4, y: 12}, {x: 9, y: 2}]
+    Check("negative scribble unbound", Gesture_ResolveStroke("D_R", negPts, "other.exe", "Other", "")[1] = "")
+    Check("degenerate single point unbound", Gesture_ResolveStroke("D_R", [{x: 5, y: 5}], "other.exe", "Other", "")[1] = "")
+
+    ; 语料文件批量断言 (tools/gesture_negatives.txt, 50 条; 方向无绑定 + 模板分全 < 75)
+    negPath := A_ScriptDir . "\gesture_negatives.txt"
+    negText := FileRead(negPath, "UTF-8")
+    negCount := 0
+    negBad := 0
+    Loop Parse, negText, "`n", "`r" {
+        negLine := Trim(A_LoopField)
+        if (negLine = "" || SubStr(negLine, 1, 1) = ";")
+            continue
+        cPts := []
+        for _, tok in StrSplit(negLine, " ") {
+            xy := StrSplit(Trim(tok), ",")
+            if (xy.Length >= 2)
+                cPts.Push(Tpl_Pt(xy[1] + 0.0, xy[2] + 0.0))
+        }
+        if (cPts.Length < 3)
+            continue
+        negCount++
+        if (Gesture_ResolveStroke("D_R", cPts, "other.exe", "Other", "")[1] != "")
+            negBad++
+        for _, mcand in Tpl_Candidates(cPts, 20) {
+            if (mcand.score >= 75)
+                negBad++
+        }
+    }
+    Check("negatives loaded", negCount >= 50)
+    Check("negatives zero-fire", negBad = 0)
     Check("no prefix", Gesture_Normalize("V") = "V" && Gesture_Normalize("DR_UR") = "DR_UR")
 
     enc := "v2:" . Tpl_Encode(Tpl_Prepare(vPts))

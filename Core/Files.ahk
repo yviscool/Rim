@@ -117,8 +117,7 @@ AddCommand(element) {
             if (g_Conf.Get("Config", "SearchFullPath", "0") = "1")
                 cmdObj["elementToSearch"] := StrReplace(cmdObj["fileDir"], "\", " ") . " " . cmdObj["elementToSearch"]
         }
-    } else if (splitedElement.Length >= 4
-        && (splitedElement[2] = "file" || splitedElement[2] = "function" || splitedElement[2] = "cmd" || splitedElement[2] = "url" || splitedElement[2] = "run")) {
+    } else if (CmdLine_IsFourSeg(splitedElement)) {
         ; 四段式: key | type | cmd | desc (来自 [Commands] key=type|cmd|desc)
         cmdKey := splitedElement[1]
         cmdType := splitedElement[2]

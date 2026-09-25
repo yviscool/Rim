@@ -1,5 +1,6 @@
 #Requires AutoHotkey v2.0
 #Warn All, Off
+; i18n:protocol-file (断言 zh 语言包解析出的状态栏中文, 固件期望值必须字面一致)
 
 T(key, p1 := "", p2 := "", *) {
     global g_LangMap
