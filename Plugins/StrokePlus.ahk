@@ -30,6 +30,8 @@ RegisterPlugin_StrokePlus() {
     RegisterAction("<SP_PlayPause>", T("act.StrokePlus.SP_PlayPause"))
     RegisterAction("<SP_Next>", T("act.StrokePlus.SP_Next"))
     RegisterAction("<SP_Prev>", T("act.StrokePlus.SP_Prev"))
+    RegisterAction("<SP_TaskNext>", T("act.StrokePlus.SP_TaskNext"))
+    RegisterAction("<SP_TaskPrev>", T("act.StrokePlus.SP_TaskPrev"))
     Register_GestureDefaults()
 }
 
@@ -78,8 +80,8 @@ Register_GestureDefaults() {
         "L_D", "run|explorer.exe",
         "L_U", "<SP_Home>",
         "D_L_D", "<SP_IgnoreNext>",
-        "WheelUp", "<Gen_NextTab>",
-        "WheelDown", "<Gen_PrevTab>",
+        "WheelUp", "<SP_TaskPrev>",
+        "WheelDown", "<SP_TaskNext>",
         "CTRL+WheelUp", "<SP_VolUp>",
         "CTRL+WheelDown", "<SP_VolDown>"
     )
@@ -203,4 +205,159 @@ SP_Next() {
 
 SP_Prev() {
     Send("{Media_Prev}")
+}
+
+; 按住触发键时滚轮前后切换任务栏窗口 (自维护窗口列表按 Z 序循环,
+; 含最小化窗口自动还原 —— Alt+Esc 切不到最小化窗口, 故不用它)
+SP_TaskNext() {
+    SP_TaskSwitch(1)
+}
+
+SP_TaskPrev() {
+    SP_TaskSwitch(-1)
+}
+
+SP_TaskSwitch(dir) {
+    global g_Gesture
+    static hwnds := []
+    static idx := 0
+    static lastTick := 0
+    ; 1.5 秒内连滚沿用同一列表 (步进一格); 超时或列表空则重建
+    if (hwnds.Length = 0 || A_TickCount - lastTick > 1500) {
+        hwnds := SP_TaskWindows()
+        idx := SP_TaskActiveIndex(hwnds)
+    }
+    lastTick := A_TickCount
+    if (hwnds.Length = 0)
+        return
+    tried := 0
+    while (tried < hwnds.Length && hwnds.Length > 0) {
+        idx := Mod(idx + dir + hwnds.Length * 8, hwnds.Length)
+        h := hwnds[idx + 1]
+        if (SP_TaskActivate(h)) {
+            showTip := true
+            try showTip := g_Gesture["showOSD"]
+            catch {
+            }
+            if (showTip) {
+                try ToolTip(SP_TaskTitle(h))
+                catch {
+                }
+                try SetTimer(SP_TaskHideTip, -800)
+                catch {
+                }
+            }
+            return
+        }
+        ; 窗口已关闭: 剔除; dir>0 时下轮恰好落在补位元素上, 故回退一格抵消步进
+        hwnds.RemoveAt(idx + 1)
+        if (dir > 0)
+            idx := idx - 1
+        tried++
+    }
+}
+
+; 任务栏口径的顶层窗口: 有标题、可见、非托盘/桌面宿主、非子窗口、非 DWM 隐藏
+SP_TaskWindows() {
+    out := []
+    for h in WinGetList() {
+        try cls := WinGetClass("ahk_id " . h)
+        catch {
+            continue
+        }
+        if (cls = "Progman" || cls = "WorkerW" || cls = "Shell_TrayWnd"
+            || cls = "Shell_SecondaryTrayWnd" || cls = "DV2ControlHost")
+            continue
+        try title := WinGetTitle("ahk_id " . h)
+        catch {
+            continue
+        }
+        if (Trim(title) = "")
+            continue
+        try style := WinGetStyle("ahk_id " . h)
+        catch {
+            continue
+        }
+        if (!(style & 0x10000000)) ; WS_VISIBLE (最小化窗口仍保留此位, 会被收录)
+            continue
+        try exStyle := WinGetExStyle("ahk_id " . h)
+        catch {
+            exStyle := 0
+        }
+        if ((exStyle & 0x80) && !(exStyle & 0x40000)) ; 工具窗口且无 APPWINDOW
+            continue
+        try hasOwner := DllCall("GetWindow", "Ptr", h, "UInt", 4, "Ptr")
+        catch {
+            hasOwner := 0
+        }
+        if (hasOwner && !(exStyle & 0x40000))
+            continue
+        if (SP_TaskCloaked(h))
+            continue
+        out.Push(h)
+    }
+    return out
+}
+
+SP_TaskCloaked(h) {
+    try {
+        buf := Buffer(4, 0)
+        hr := DllCall("dwmapi\DwmGetWindowAttribute", "Ptr", h, "UInt", 14, "Ptr", buf, "UInt", 4)
+        if (hr = 0)
+            return NumGet(buf, 0, "UInt") != 0
+    }
+    return false
+}
+
+SP_TaskActiveIndex(hwnds) {
+    try active := WinGetID("A")
+    catch {
+        return 0
+    }
+    for i, h in hwnds {
+        if (h = active)
+            return i - 1
+    }
+    return 0
+}
+
+; 还原 (最小化则先 WinRestore, 否则只在任务栏闪) 并激活; 成功 true, 窗口已死 false
+SP_TaskActivate(h) {
+    w := "ahk_id " . h
+    try {
+        if (!WinExist(w))
+            return false
+    } catch {
+        return false
+    }
+    try {
+        if (WinGetMinMax(w) = -1)
+            WinRestore(w)
+    } catch {
+    }
+    try WinActivate(w)
+    catch {
+        return false
+    }
+    return true
+}
+
+SP_TaskTitle(h) {
+    try title := WinGetTitle("ahk_id " . h)
+    catch {
+        title := ""
+    }
+    if (Trim(title) != "")
+        return title
+    try exe := WinGetProcessName("ahk_id " . h)
+    catch {
+        exe := ""
+    }
+    return exe != "" ? exe : "?"
+}
+
+SP_TaskHideTip(*) {
+    try ToolTip()
+    catch {
+    }
 }

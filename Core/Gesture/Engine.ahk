@@ -388,8 +388,19 @@ class GestureEngine {
             try title := WinGetTitle("A")
         }
 
-        ; 组合: 触发键 + 左键 + 滚轮 -> 调音量
-        if (held && leftHeld && (which = "WheelUp" || which = "WheelDown")) {
+        ; 组合: 触发键 + 左键 + 滚轮 -> 调音量.
+        ; 两种进法: ① 按住左键的同时滚 (经典); ② 点一下左键锁存音量模式后松开左键再滚
+        ; (Hook.OnLeftDown/OnPoll 置 volMode, 本次右键会话内有效, 松开左键仍可连滚).
+        volLatched := false
+        try volLatched := gestureDown && g_Gesture["volMode"]
+        if ((held && leftHeld && (which = "WheelUp" || which = "WheelDown")) ||
+            (volLatched && (which = "WheelUp" || which = "WheelDown"))) {
+            if (volLatched)
+                g_Gesture["volUsed"] := 1
+            else if (gestureDown) {
+                g_Gesture["volMode"] := 1
+                g_Gesture["volUsed"] := 1
+            }
             if (g_Gesture["tryMode"]) {
                 try ToolTip(T("gesture.try_wheel", which . "+LButton",
                     which = "WheelUp" ? "<SP_VolUp>" : "<SP_VolDown>", "组合"))

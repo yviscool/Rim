@@ -19,6 +19,8 @@ class GestureHook {
     static fnWheelDown := ObjBindMethod(GestureHook, "OnWheelDown")
     static fnWheelLeft := ObjBindMethod(GestureHook, "OnWheelLeft")
     static fnWheelRight := ObjBindMethod(GestureHook, "OnWheelRight")
+    static fnLeftDown := ObjBindMethod(GestureHook, "OnLeftDown")
+    static fnLeftUp := ObjBindMethod(GestureHook, "OnLeftUp")
 
     ; ---- 触发键绑定 ----
     static Bind(trigger) {
@@ -122,6 +124,8 @@ class GestureHook {
         g_Gesture["gesturing"] := 0
         g_Gesture["cancelled"] := 0
         g_Gesture["leftCombo"] := 0
+        g_Gesture["volMode"] := 0
+        g_Gesture["volUsed"] := 0
         g_Gesture["forwardDown"] := 0
         g_Gesture["comboUntil"] := 0
         g_Gesture["startX"] := sx
@@ -138,6 +142,56 @@ class GestureHook {
 
         pollInterval := g_Gesture["poll"] > 0 ? g_Gesture["poll"] : 10
         SetTimer(GestureHook_PollTimer, pollInterval)
+        ; 右键会话内吞掉左键单击: 点一下左键即锁存音量模式 (R 仍按住时滚轮调音量),
+        ; 避免这次左键点透到下层窗口. 会话结束 (R 松开) 时解绑.
+        GestureHook.ArmLeftSwallow()
+    }
+
+    ; ---- 左键吞掉 (仅右键会话内有效) ----
+    static ArmLeftSwallow() {
+        try Hotkey("$LButton", GestureHook.fnLeftDown, "On")
+        catch {
+        }
+        try Hotkey("$LButton Up", GestureHook.fnLeftUp, "On")
+        catch {
+        }
+    }
+
+    static DisarmLeftSwallow() {
+        try Hotkey("$LButton", "Off")
+        catch {
+        }
+        try Hotkey("$LButton Up", "Off")
+        catch {
+        }
+    }
+
+    ; 右键按住时点一下左键: 锁存音量模式, 本次单击不透传
+    static OnLeftDown(*) {
+        global g_Gesture
+        if (!g_Gesture["down"])
+            return
+        g_Gesture["leftCombo"] := 1
+        if (!g_Gesture["volMode"]) {
+            g_Gesture["volMode"] := 1
+            ; 进音量模式: 藏掉已画一半的轨迹, 后续轮询不再刷手势 OSD/轨迹, 免得互盖
+            try GestureTrail_Hide()
+            catch {
+            }
+            if (g_Gesture["showOSD"]) {
+                try ToolTip(T("gesture.vol_ready"))
+                catch {
+                }
+            }
+        }
+        ; 吞掉: 不做任何透传, 等待 OnLeftUp / 滚轮 / 右键松开
+    }
+
+    static OnLeftUp(*) {
+        global g_Gesture
+        ; 会话内吞掉与 OnLeftDown 配对的松开, 会话外不拦截 (热键已解绑, 正常走不到)
+        if (!g_Gesture["down"])
+            return
     }
 
     ; ---- 采样轮询 (防卡死与轨迹跟进) ----
@@ -163,10 +217,22 @@ class GestureHook {
             }
         }
 
-        ; 左键组合键监听
+        ; 左键组合键监听 (热键吞掉为主, 这里是兜底: 热键漏绑时也能锁存)
         try {
-            if GetKeyState("LButton", "P")
+            if GetKeyState("LButton", "P") {
                 g_Gesture["leftCombo"] := 1
+                if (!g_Gesture["volMode"]) {
+                    g_Gesture["volMode"] := 1
+                    try GestureTrail_Hide()
+                    catch {
+                    }
+                    if (g_Gesture["showOSD"]) {
+                        try ToolTip(T("gesture.vol_ready"))
+                        catch {
+                        }
+                    }
+                }
+            }
         }
 
         MouseGetPos(&mx, &my)
@@ -180,7 +246,9 @@ class GestureHook {
         } else if (g_Gesture["cancelDelay"] > 0 && !g_Gesture["recording"]
             && !g_Gesture["tplRecording"] && !g_Gesture["tryMode"]
             && A_TickCount - g_Gesture["lastMoveTick"] >= g_Gesture["cancelDelay"]
-            && !GestureEngine.ComboActive()) {
+            && !GestureEngine.ComboActive() && !g_Gesture["volMode"]) {
+            ; volMode 会话永不回落: 调音量时手难免静止超 CancelDelay,
+            ; 一旦 BeginRelay 就会弹出原生右键菜单, 与音量手势打架
             GestureHook.BeginRelay()
             return
         }
@@ -202,26 +270,31 @@ class GestureHook {
             g_Gesture["gesturing"] := 1
             g_Gesture["points"] := [{x: sx, y: sy}, {x: mx, y: my}]
             GestureEngine.Recognize()
-            try {
-                GestureTrail_Show()
-                GestureTrail_Line(sx, sy, mx, my)
-            } catch {
-            }
             g_Gesture["trailX"] := mx
             g_Gesture["trailY"] := my
-            if (g_Gesture["showOSD"])
-                GestureEngine.OSD()
+            if (!g_Gesture["volMode"]) {
+                try {
+                    GestureTrail_Show()
+                    GestureTrail_Line(sx, sy, mx, my)
+                } catch {
+                }
+                if (g_Gesture["showOSD"])
+                    GestureEngine.OSD()
+            }
             return
         }
 
-        try GestureTrail_Line(g_Gesture["trailX"], g_Gesture["trailY"], mx, my)
-        catch {
+        if (!g_Gesture["volMode"]) {
+            try GestureTrail_Line(g_Gesture["trailX"], g_Gesture["trailY"], mx, my)
+            catch {
+            }
         }
         g_Gesture["trailX"] := mx
         g_Gesture["trailY"] := my
         GestureEngine.Recognize()
-        GestureEngine.PollComboArm()
-        if (g_Gesture["showOSD"])
+        if (!g_Gesture["volMode"])
+            GestureEngine.PollComboArm()
+        if (g_Gesture["showOSD"] && !g_Gesture["volMode"])
             GestureEngine.OSD()
     }
 
@@ -280,6 +353,16 @@ class GestureHook {
         try GestureTrail_Hide()
         catch {
         }
+
+        ; 音量会话 (右键按住期间点过左键且滚过轮): 吞掉, 不回放右键也不派发笔画.
+        ; 若只点了左键但没滚轮 (volUsed=0), 则走原逻辑 (L/R+左键切窗口 / 短点回放).
+        if (g_Gesture["volUsed"]) {
+            g_Gesture["volMode"] := 0
+            g_Gesture["volUsed"] := 0
+            GestureHook.DisarmLeftSwallow()
+            return
+        }
+        GestureHook.DisarmLeftSwallow()
 
         if (wasGesturing && !wasCancelled) {
             ; 委托给引擎处理分发
@@ -410,8 +493,11 @@ class GestureHook {
         g_Gesture["startContext"] := ""
         g_Gesture["downMods"] := ""
         g_Gesture["leftCombo"] := 0
+        g_Gesture["volMode"] := 0
+        g_Gesture["volUsed"] := 0
         g_Gesture["comboUntil"] := 0
         g_Gesture["comboKind"] := ""
+        GestureHook.DisarmLeftSwallow()
     }
 
     ; ---- 窗口上下文捕获 ----
