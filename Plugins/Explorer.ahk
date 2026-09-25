@@ -4,6 +4,55 @@
 ; 完整移植自 VimDesktop 的 Explorer 插件
 ; 支持 COM 接口获取路径, insert/normal 模式系统
 
+class ExplorerPlugin extends RimPlugin {
+    static Name => "Explorer"
+    static Title => "Windows Explorer Enhancement"
+    static Description => "Windows 资源管理器增强 (Vim 模式、路径提取、TC联动)"
+
+    static RegisterContext() {
+        try RimContext.RegisterProvider("explorer", Explorer_ContextProvider)
+    }
+
+    static RegisterCommands() {
+        try {
+            RimCommand.Register("explorer.open_tc", "Open Explorer Dir in TC", (*) => Exp_OpenInTC(), Map(
+                "Category", "File",
+                "Description", "在 Total Commander 中打开当前资源管理器路径",
+                "ContextFilter", (ctx) => ctx.AppId = "explorer"
+            ))
+            RimCommand.Register("explorer.copy_path", "Copy Current Explorer Path", (*) => Exp_CopyPath(), Map(
+                "Category", "File",
+                "Description", "复制当前资源管理器中的文件夹路径",
+                "ContextFilter", (ctx) => ctx.AppId = "explorer"
+            ))
+        }
+    }
+
+    static RegisterGestures() {
+        if (!IsSet(GestureRegistry) || !IsObject(GestureRegistry))
+            return
+        GestureRegistry.Register("U", (*) => Send("!{Up}"), "ahk_class CabinetWClass", {
+            description: "Explorer: 返回上层目录",
+            pluginName: "Explorer"
+        })
+        GestureRegistry.Register("L", (*) => Send("!{Left}"), "ahk_class CabinetWClass", {
+            description: "Explorer: 后退",
+            pluginName: "Explorer"
+        })
+        GestureRegistry.Register("R", (*) => Send("!{Right}"), "ahk_class CabinetWClass", {
+            description: "Explorer: 前进",
+            pluginName: "Explorer"
+        })
+    }
+
+    static RegisterKeymaps(engine) {
+        RegisterPlugin_Explorer()
+    }
+}
+
+if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
+    RimPluginManager.Register(ExplorerPlugin)
+
 RegisterPlugin_Explorer() {
     ; 窗名与 ini [CabinetWClass] 对齐 (原 custom ini 即如此), 避免孤儿窗
     RegisterWin("CabinetWClass", "CabinetWClass", "explorer.exe")
@@ -76,6 +125,11 @@ RegisterPlugin_Explorer() {
     ; 模式切换
     MapKey("i", "<Gen_InsertMode>", "CabinetWClass", "normal")
     MapKey("<Esc>", "<Gen_NormalMode>", "CabinetWClass", "insert")
+
+    ; 注册上下文提供者
+    try {
+        RimContext.RegisterProvider("explorer", Explorer_ContextProvider)
+    }
 }
 
 ; 输入框/树/菜单内透传原键 (对齐原版 Explorer_ForceInsertMode)
@@ -118,6 +172,40 @@ Explorer_GetWindow() {
         }
     }
     return ""
+}
+
+; 获取当前 Explorer 选中文件列表
+Explorer_GetSelectedFiles() {
+    results := []
+    try {
+        hwnd := WinActive("A")
+        for window in ComObject("Shell.Application").Windows {
+            if (window.hwnd = hwnd) {
+                for item in window.Document.SelectedItems()
+                    results.Push(item.Path)
+                break
+            }
+        }
+    }
+    return results
+}
+
+; 获取当前选中的单个文件 (取首个)
+Explorer_GetSelectedFile() {
+    files := Explorer_GetSelectedFiles()
+    return files.Length > 0 ? files[1] : ""
+}
+
+; Explorer 上下文提供者
+Explorer_ContextProvider(ctx) {
+    p := Explorer_GetPath()
+    if (p != "")
+        ctx.CurrentDir := p
+    sel := Explorer_GetSelectedFiles()
+    if (sel.Length > 0) {
+        ctx.SelectedFiles := sel
+        ctx.SelectedFile := sel[1]
+    }
 }
 
 ; === 动作函数 ===

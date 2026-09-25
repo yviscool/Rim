@@ -94,7 +94,7 @@ TypeLabel(type) {
         return T("type.file") . " | "
     else if (type = "function")
         return T("type.function") . " | "
-    else if (type = "cmd")
+    else if (type = "cmd" || type = "command")
         return T("type.cmd") . " | "
     else if (type = "url")
         return T("type.url") . " | "
@@ -115,22 +115,26 @@ FocusedClassNN(winTitle := "A") {
     }
 }
 
-; URL 编码 (v2: VarSetCapacity→Buffer)
+; URL 编码 (v2: 正确多字节 UTF-8 百分号编码)
 UrlEncode(url, enc := "UTF-8") {
     enc := Trim(enc)
     if (enc = "")
         return url
-    formatInteger := A_FormatInteger
-    SetFormat("IntegerFast", "H")
     bufSize := StrPut(url, enc)
     buff := Buffer(bufSize, 0)
     StrPut(url, buff, enc)
     encoded := ""
     Loop bufSize - 1 {
         byte := NumGet(buff, A_Index - 1, "UChar")
-        encoded .= (byte > 127 || byte < 33) ? "%" SubStr(byte, 3) : Chr(byte)
+        unreserved := (byte >= 0x30 && byte <= 0x39) || (byte >= 0x41 && byte <= 0x5A)
+            || (byte >= 0x61 && byte <= 0x7A) || byte = 0x2D || byte = 0x5F || byte = 0x2E || byte = 0x7E
+        if (unreserved)
+            encoded .= Chr(byte)
+        else if (byte = 0x20)
+            encoded .= "+"
+        else
+            encoded .= "%" Format("{:02X}", byte)
     }
-    SetFormat("IntegerFast", formatInteger)
     return encoded
 }
 

@@ -25,7 +25,7 @@ BuildTrayMenu() {
     A_TrayMenu.Add(T("tray.exit"), ExitRunZ)
     ; 试笔复选态恢复 (重建会丢勾选)
     try {
-        if (Gesture_IsTryMode())
+        if (GestureEngine.IsTryMode())
             A_TrayMenu.ToggleCheck(T("gesture.tray_try"))
     } catch {
     }

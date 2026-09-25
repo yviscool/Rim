@@ -1,4 +1,4 @@
-﻿#Requires AutoHotkey v2.0
+#Requires AutoHotkey v2.0
 #Warn All, Off
 
 ; === Files - 文件加载和索引 (从 RunZ Core/Files.ahk 移植) ===
@@ -76,6 +76,12 @@ ResolveSearchDir(dir) {
 ; 添加命令到全局列表
 AddCommand(element) {
     global g_Commands, g_CommandObjects, g_SkinConf, g_Conf
+
+    ; 幂等去重检查 (防止重复追加同名指令)
+    for existing in g_Commands {
+        if (existing = element)
+            return
+    }
 
     g_Commands.Push(element)
 
@@ -227,17 +233,15 @@ LoadFiles(loadRank := true) {
             AddCommand(key)
     }
 
-    ; 加载插件: 直调 RegisterPlugin_X (本构建无 IsFunc; 缺失走 OnError 网记日志继续)
-    ; Vim 系插件走引擎注册, 不在这里重复跑 (漏网会在引擎创建前撞墙, 见 StrokePlus)
-    vimOnly := Map("General", 1, "Explorer", 1, "TCCompare", 1, "WinMerge", 1
-        , "BeyondCompare4", 1, "Foobar2000", 1, "TCDialog", 1, "TotalCommander", 1
-        , "MicrosoftExcel", 1, "VimEditor", 1, "VimEditorAdapters", 1, "StrokePlus", 1
-        , "VimDConfig", 1)
-    for index, element in g_Plugins {
-        if (vimOnly.Has(element))
-            continue
-        funcName := "RegisterPlugin_" element
-        %funcName%()
+    ; 加载插件命令: 由 RimPluginManager 统一驱动 (兼容 Modern Plugin 与 Legacy Command Plugin)
+    if (IsSet(RimPluginManager) && IsObject(RimPluginManager)) {
+        RimPluginManager.RegisterAllCommands()
+        RimPluginManager.LoadLegacyCommandPlugins(g_Plugins)
+    }
+
+    ; 加载语义指令 (RimCommand) 与工作空间指令到全局启动池
+    if (IsSet(RimCommand) && IsObject(RimCommand)) {
+        RimCommand.PopulateAllToLauncher()
     }
 
     ; 加载回退命令: 全部收录 (原版按顺序, 第一项为回车默认)
@@ -274,11 +278,12 @@ LoadFiles(loadRank := true) {
                 AddCommand(_line)
         }
 
-    ; 加载控制面板函数
-    if (g_Conf.Get("Config", "LoadControlPanelFunctions", "0") = "1" && FileExist(A_ScriptDir "\Core\ControlPanelFunctions.txt"))
-        for _line in ReadFileLines(A_ScriptDir "\Core\ControlPanelFunctions.txt") {
+    ; 加载控制面板函数 (优先 Conf 目录，兼容 Core 历史位置)
+    cplFile := FileExist(A_ScriptDir "\Conf\ControlPanelFunctions.txt") ? (A_ScriptDir "\Conf\ControlPanelFunctions.txt") : (A_ScriptDir "\Core\ControlPanelFunctions.txt")
+    if (g_Conf.Get("Config", "LoadControlPanelFunctions", "0") = "1" && FileExist(cplFile))
+        for _line in ReadFileLines(cplFile) {
             if (Trim(_line) != "")
-                AddCommand(_line)
+                AddCommand(Trim(_line))
         }
 
     ; 合并排名: 仅仍存在于新鲜索引的键参与置顶, 僵尸键跳过 (下次 Ctrl+R 清理)

@@ -17,6 +17,9 @@ debug_*
 test_*
 tcspy.txt
 *_out.txt
+*.out.txt
+tmp_*
+scratch/
 Backup/
 
 # 系统

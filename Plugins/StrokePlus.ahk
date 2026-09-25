@@ -77,7 +77,7 @@ Register_GestureDefaults() {
         "R_D", "run|D:\software\Chrome\App\Chrome.exe",
         "L_D", "run|explorer.exe",
         "L_U", "<SP_Home>",
-        "D_L_D", "function|Gesture_IgnoreNext",
+        "D_L_D", "<SP_IgnoreNext>",
         "WheelUp", "<Gen_NextTab>",
         "WheelDown", "<Gen_PrevTab>",
         "CTRL+WheelUp", "<SP_VolUp>",
@@ -119,9 +119,9 @@ Register_GestureDefaults() {
         catch {
         }
     }
-    ; 同步进内存映射(ini 已有键由 GestureInit 载入, 这里只补新增)
+    ; 同步进内存映射(ini 已有键由 GestureEngine.Init 载入, 这里只补新增)
     for k, v in defaultsGestures {
-        nk := Gesture_NormalizeFull(k)
+        nk := GestureRecognizer.NormalizeFull(k)
         try {
             if (!g_GestureMap.Has(nk))
                 g_GestureMap[nk] := v
@@ -130,6 +130,9 @@ Register_GestureDefaults() {
 }
 
 ; === 手势专属动作实现 (名与 <> 内一致, 经 ActionToFuncName 调用) ===
+SP_IgnoreNext() {
+    GestureEngine.IgnoreNext()
+}
 SP_Back() {
     Send("!{Left}")
 }

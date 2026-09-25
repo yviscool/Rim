@@ -6,6 +6,9 @@
 ; 外部断言: 0 退出 + 无 F| 行 + 描述无空/CJK/raw-key.
 ; (en 下跑: 证明英文包零缺键; 详见 tools/i18n_audit.py)
 #Include ..\Core\I18n.ahk
+#Include ..\Core\Context.ahk
+#Include ..\Core\Plugin.ahk
+#Include ..\Core\Command.ahk
 #Include ..\Core\Engine.ahk
 #Include ..\Core\Gesture.ahk
 
@@ -36,6 +39,15 @@ class ConfStub {
 }
 class EngineStub {
     SetBeforeActionDoForWin(a, b) {
+    }
+    SetPreKeyFilterForWin(a, b) {
+    }
+    RegisterPrefixActionHandler(a, b) {
+    }
+    RegisterActionValidator(a, b) {
+    }
+    IsValidAction(a) {
+        return true
     }
     SetAction(a, b := "") {
     }

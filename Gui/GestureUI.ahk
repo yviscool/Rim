@@ -139,7 +139,7 @@ ShowGestureManager(*) {
     mg.Add("Text", "x+8 yp+2 w550", T("gesture.set_onlydef_hint"))
 
     cfgTry := mg.Add("CheckBox", "xs y+6", T("gesture.set_try"))
-    cfgTry.OnEvent("Click", (*) => Gesture_SetTryMode(cfgTry.Value ? true : false))
+    cfgTry.OnEvent("Click", (*) => GestureEngine.SetTryMode(cfgTry.Value ? true : false))
 
     ; 操作按钮行
     mg.Add("Button", "xs y+8 w100", T("gesture.btn_save_settings")).OnEvent("Click", GestureCfg_OnSave)
@@ -217,7 +217,7 @@ GestureMgr_RefreshFilter() {
     global g_GestureMgr
     try {
         items := ["全部", "全局"]
-        for i, n in Gesture_ListAppNames()
+        for i, n in GestureEngine.ListAppNames()
             items.Push(n)
         g_GestureMgr["filterItems"] := items
         ddl := g_GestureMgr["filter"]
@@ -246,13 +246,13 @@ GestureMgr_RefreshGestures() {
         needle := ""
         try needle := Trim(g_GestureMgr["gefilter"].Value)
         count := 0
-        for i, row in Gesture_ListAll() {
+        for i, row in GestureEngine.ListAll() {
             if (filter != "全部" && row[1] != filter)
                 continue
             text := row[1] . " " . row[2] . " " . row[3]
             if (needle != "" && !InStr(text, needle))
                 continue
-            st := Gesture_ChainOff(row[1], row[2]) ? T("gesture.st_off") : T("gesture.st_on")
+            st := GestureEngine.ChainOff(row[1], row[2]) ? T("gesture.st_off") : T("gesture.st_on")
             d := Gesture_GetGestureDesc(row[1], row[2])
             if (d = "")
                 d := GestureMgr_DescribeAction(row[3])
@@ -283,10 +283,10 @@ GestureMgr_RefreshBlacklist() {
         needle := ""
         try needle := Trim(g_GestureMgr["blfilter"].Value)
         n := 0
-        for i, pat in Gesture_ListBlacklist() {
+        for i, pat in GestureEngine.ListBlacklist() {
             if (needle != "" && !InStr(pat, needle))
                 continue
-            blLv.Add("", pat, Gesture_BlOff(pat) ? T("gesture.st_off") : T("gesture.st_on"))
+            blLv.Add("", pat, GestureEngine.BlOff(pat) ? T("gesture.st_off") : T("gesture.st_on"))
             n++
         }
         if (n = 0 && needle = "")
@@ -311,7 +311,7 @@ GestureMgr_RefreshTemplates() {
         for i, row in Tpl_List() {
             if (needle != "" && !InStr(row[1] . " " . row[3], needle))
                 continue
-            st := Gesture_TplOff(row[1]) ? T("gesture.st_off") : T("gesture.st_on")
+            st := GestureEngine.TplOff(row[1]) ? T("gesture.st_off") : T("gesture.st_on")
             tplLv.Add("", row[1], row[3], st)
             count++
         }
@@ -413,8 +413,8 @@ TplDlg_Current() {
 
 TplDlg_Close(saved) {
     global g_GestureMgr
-    if (Gesture_IsTplRecording())
-        Gesture_CancelTplRecord()
+    if (GestureEngine.IsTplRecording())
+        GestureEngine.CancelTplRecord()
     try {
         if (g_GestureMgr.Has("tplDlg") && IsObject(g_GestureMgr["tplDlg"])) {
             g_GestureMgr["tplDlg"]["gui"].Destroy()
@@ -442,7 +442,7 @@ TplDlg_OnRecord(*) {
     try dlg["hint"].Text := T("gesture.tpl_recording")
     catch {
     }
-    Gesture_ArmTplRecord((enc) => TplDlg_OnRecorded(enc))
+    GestureEngine.ArmTplRecord((enc) => TplDlg_OnRecorded(enc))
 }
 
 TplDlg_OnRecorded(enc) {
@@ -527,7 +527,7 @@ GestureMgr_OnFilter(*) {
     GestureMgr_RefreshGestures()
     f := GestureMgr_CurrentFilter()
     if (f != "全部" && f != "全局") {
-        app := Gesture_GetApp(f)
+        app := GestureEngine.GetApp(f)
         if (IsObject(app)) {
             info := T("gesture.app_match", f)
             if (app.exe != "")
@@ -681,9 +681,9 @@ GestureMgr_OnPreview(*) {
 GestureMgr_ShowChain(key) {
     global g_GestureMgr
     try {
-        if (Gesture_DefinitionMethod(Gesture_BindingName(key)) = "template") {
-            g_GestureMgr["prevTx"].Text := Gesture_BindingName(key)
-            GesturePreview_SetPic(g_GestureMgr["prevPic"], GesturePreview_Template(Gesture_BindingName(key), 120, 120))
+        if (GestureEngine.DefinitionMethod(GestureRecognizer.BindingName(key)) = "template") {
+            g_GestureMgr["prevTx"].Text := GestureRecognizer.BindingName(key)
+            GesturePreview_SetPic(g_GestureMgr["prevPic"], GesturePreview_Template(GestureRecognizer.BindingName(key), 120, 120))
             return
         }
         info := GesturePreview_ChainInfo(key)
@@ -755,7 +755,7 @@ GestureMgr_OnToggle(*) {
         return
     }
     id := row[1] . ":" . row[2]
-    off := !Gesture_ChainOff(row[1], row[2])
+    off := !GestureEngine.ChainOff(row[1], row[2])
     if (GestureStore_SetDisabled(id, off))
         GestureMgr_SetStatus(T("gesture.st_row_toggled", off ? T("gesture.st_off") : T("gesture.st_on"), row[1], row[2]))
     else
@@ -770,7 +770,7 @@ GestureMgr_OnLayerOff(*) {
         return
     }
     id := "应用层:" . f
-    off := !Gesture_LayerOff(f)
+    off := !GestureEngine.LayerOff(f)
     if (GestureStore_SetDisabled(id, off))
         GestureMgr_SetStatus(off ? T("gesture.st_layer_off", f) : T("gesture.st_layer_on", f))
     else
@@ -785,7 +785,7 @@ GestureMgr_OnTplToggle(*) {
         return
     }
     id := "模板:" . row[1]
-    off := !Gesture_TplOff(row[1])
+    off := !GestureEngine.TplOff(row[1])
     if (GestureStore_SetDisabled(id, off))
         GestureMgr_SetStatus(off ? T("gesture.st_tpl_off", row[1]) : T("gesture.st_tpl_on", row[1]))
     else
@@ -815,7 +815,7 @@ GestureMgr_OnTplAppend(*) {
         return
     }
     GestureMgr_SetStatus(T("gesture.st_appending", row[1], t.samples.Length))
-    Gesture_ArmTplRecord((enc) => TplAppend_Save(row[1], enc))
+    GestureEngine.ArmTplRecord((enc) => TplAppend_Save(row[1], enc))
 }
 
 TplAppend_Save(name, enc) {
@@ -848,7 +848,7 @@ GestureMgr_OnBlToggle(*) {
             return
         }
         pat := blLv.GetText(row, 1)
-        off := !Gesture_BlOff(pat)
+        off := !GestureEngine.BlOff(pat)
         if (GestureStore_SetDisabled("黑名单:" . pat, off))
             GestureMgr_SetStatus(off ? T("gesture.st_bl_off", pat) : T("gesture.st_bl_on", pat))
         else
@@ -930,7 +930,7 @@ GestureCfg_Load() {
         c["osd"].Value := GestureCfg_Val("showOSD") ? 1 : 0
         c["trail"].Value := GestureCfg_Val("trail") ? 1 : 0
         c["onlyDef"].Value := GestureCfg_Val("onlyDefined") ? 1 : 0
-        c["tryBox"].Value := Gesture_IsTryMode() ? 1 : 0
+        c["tryBox"].Value := GestureEngine.IsTryMode() ? 1 : 0
     } catch {
     }
 }
@@ -980,11 +980,11 @@ GestureCfg_OnSave(*) {
             catch {
             }
         }
-        Gesture_LoadConfig()
+        GestureEngine.LoadConfig()
         try Tpl_LoadAll()
         catch {
         }
-        Gesture_BindTrigger()
+        GestureHook.Bind(g_Gesture["trigger"])
         GestureMgr_SetStatus(T("gesture.cfg_saved"))
     } catch {
         GestureMgr_SetStatus(T("gesture.tpl_save_failed"))
@@ -1032,7 +1032,7 @@ GestureEditDialog(mode, layer, gesture, action, desc := "") {
     de.SetFont("s10", "Microsoft YaHei")
     de.Add("Text", "xm ym", T("gesture.dlg_layer"))
     layers := ["全局"]
-    for i, n in Gesture_ListAppNames()
+    for i, n in GestureEngine.ListAppNames()
         layers.Push(n)
     layerDdl := de.Add("DropDownList", "x+6 w180", layers)
     selIdx := 1
@@ -1051,7 +1051,7 @@ GestureEditDialog(mode, layer, gesture, action, desc := "") {
     de.Add("Button", "x+8 w70", T("gesture.btn_record")).OnEvent("Click", GestureDlg_OnRecord)
     de.Add("Text", "xm y+8", T("gesture.recognizer_label"))
     methodDdl := de.Add("DropDownList", "x+8 w180", [T("gesture.recognizer_direction"), T("gesture.recognizer_template"), T("gesture.recognizer_auto")])
-    method := Gesture_DefinitionMethod(Gesture_BindingName(gesture))
+    method := GestureEngine.DefinitionMethod(GestureRecognizer.BindingName(gesture))
     methodDdl.Choose(method = "template" ? 2 : method = "auto" ? 3 : 1)
     de.Add("Button", "x+8 w110", T("gesture.btn_record_sample")).OnEvent("Click", GestureDlg_OnRecordSample)
     dlgPic := de.Add("Picture", "x+8 yp w100 h80 +Border +0xE")
@@ -1084,10 +1084,10 @@ GestureEditDialog(mode, layer, gesture, action, desc := "") {
 
 GestureDlg_Close(saved) {
     global g_GestureMgr
-    if (Gesture_IsRecording())
-        Gesture_CancelRecord()
-    if (Gesture_IsTplRecording())
-        Gesture_CancelTplRecord()
+    if (GestureEngine.IsRecording())
+        GestureEngine.CancelRecord()
+    if (GestureEngine.IsTplRecording())
+        GestureEngine.CancelTplRecord()
     try {
         if (g_GestureMgr.Has("editGui") && IsObject(g_GestureMgr["editGui"])) {
             g_GestureMgr["editGui"]["gui"].Destroy()
@@ -1207,9 +1207,9 @@ GestureDlg_OnPreview() {
         return
     try {
         txt := dlg["gestureEdit"].Text
-        if (Gesture_DefinitionMethod(Gesture_BindingName(txt)) = "template") {
-            dlg["tx"].Text := Gesture_BindingName(txt)
-            GesturePreview_SetPic(dlg["pic"], GesturePreview_Template(Gesture_BindingName(txt), 100, 80))
+        if (GestureEngine.DefinitionMethod(GestureRecognizer.BindingName(txt)) = "template") {
+            dlg["tx"].Text := GestureRecognizer.BindingName(txt)
+            GesturePreview_SetPic(dlg["pic"], GesturePreview_Template(GestureRecognizer.BindingName(txt), 100, 80))
             return
         }
         info := GesturePreview_ChainInfo(txt)
@@ -1249,19 +1249,19 @@ GestureDlg_OnRecordSample(*) {
     dlg := GestureDlg_CurrentDlg()
     if (dlg = "")
         return
-    name := Gesture_BindingName(dlg["gestureEdit"].Text)
+    name := GestureRecognizer.BindingName(dlg["gestureEdit"].Text)
     if (name = "") {
         dlg["hint"].Text := T("gesture.tpl_need_name")
         return
     }
-    if Gesture_IsReservedDirectionName(name) {
+    if GestureRecognizer.IsReservedDirectionName(name) {
         try dlg["hint"].Text := T("gesture.tpl_reserved_name")
         catch {
         }
         return
     }
     dlg["hint"].Text := T("gesture.tpl_recording")
-    Gesture_ArmTplRecord((enc) => GestureDlg_OnSampleRecorded(enc))
+    GestureEngine.ArmTplRecord((enc) => GestureDlg_OnSampleRecorded(enc))
 }
 
 GestureDlg_OnSampleRecorded(enc) {
@@ -1283,7 +1283,7 @@ GestureDlg_ArmRecord(dlg) {
     try dlg["hint"].Text := T("gesture.recording_hint")
     catch {
     }
-    Gesture_ArmRecord((g) => GestureDlg_OnRecorded(g))
+    GestureEngine.ArmRecord((g) => GestureDlg_OnRecorded(g))
 }
 
 GestureDlg_OnRecorded(g) {
@@ -1325,8 +1325,8 @@ GestureDlg_OnSave(mode) {
         }
         return
     }
-    name := Gesture_BindingName(gesture)
-    if ((method = "template" || method = "auto") && Gesture_IsReservedDirectionName(name)) {
+    name := GestureRecognizer.BindingName(gesture)
+    if ((method = "template" || method = "auto") && GestureRecognizer.IsReservedDirectionName(name)) {
         try dlg["hint"].Text := T("gesture.tpl_reserved_name")
         catch {
         }
@@ -1336,17 +1336,17 @@ GestureDlg_OnSave(mode) {
         dlg["hint"].Text := T("gesture.tpl_need_record")
         return
     }
-    gkey := Gesture_NormalizeFull(gesture)
+    gkey := GestureRecognizer.NormalizeFull(gesture)
     moved := mode = "edit" && (dlg["origLayer"] != layer
-        || Gesture_NormalizeFull(dlg["origGesture"]) != gkey)
-    if ((mode = "new" || moved) && Gesture_LayerHas(layer, gkey)) {
+        || GestureRecognizer.NormalizeFull(dlg["origGesture"]) != gkey)
+    if ((mode = "new" || moved) && GestureEngine.LayerHas(layer, gkey)) {
         if (MsgBox(T("gesture.confirm_overwrite", layer, gkey), T("gesture.overwrite_title"), 36) != "Yes")
             return
     }
     saved := GestureStore_SaveUnified(mode = "edit" ? dlg["origLayer"] : "",
         mode = "edit" ? dlg["origGesture"] : "", layer, gesture, action, desc, method, sample)
     if (saved) {
-        GestureMgr_SetStatus(T("gesture.st_gesture_saved", layer, Gesture_Normalize(gesture), Trim(action)))
+        GestureMgr_SetStatus(T("gesture.st_gesture_saved", layer, GestureRecognizer.Normalize(gesture), Trim(action)))
         GestureDlg_Close(true)
     } else {
         try dlg["hint"].Text := T("gesture.tpl_save_failed")

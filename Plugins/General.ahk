@@ -443,8 +443,8 @@ wm_down() {
 ; 键盘等其他入口无起点时回退 "A". 经 Gesture_ActionWin 统一.
 wm_Win() {
     try {
-        if IsFunc("Gesture_ActionWin")
-            return Gesture_ActionWin()
+        if (IsSet(GestureHook) && HasMethod(GestureHook, "ActionWin"))
+            return GestureHook.ActionWin()
     }
     return "A"
 }

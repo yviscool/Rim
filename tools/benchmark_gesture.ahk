@@ -182,15 +182,15 @@ Benchmark_Main() {
             canon := (up = "U" || up = "R" || up = "D" || up = "L") ? "LETTER_" . up : up
             method := item.HasOwnProp("method") ? item.method : "auto"
             if (method = "direction") {
-                Gesture_DefinitionEnsure(name, "direction")
+                GestureEngine.DefinitionEnsure(name, "direction")
             } else if (method = "template") {
-                Gesture_DefinitionEnsure(name, "template")
+                GestureEngine.DefinitionEnsure(name, "template")
                 if (canon != up)
-                    Gesture_DefinitionEnsure(canon, "template")
+                    GestureEngine.DefinitionEnsure(canon, "template")
             } else {
-                Gesture_DefinitionEnsure(name, "auto")
-                Gesture_DefinitionEnsure(up, "auto")
-                Gesture_DefinitionEnsure(canon, "template")
+                GestureEngine.DefinitionEnsure(name, "auto")
+                GestureEngine.DefinitionEnsure(up, "auto")
+                GestureEngine.DefinitionEnsure(canon, "template")
             }
             g_GestureMap[name] := "test_action"
             g_GestureMap[up] := "test_action"
@@ -205,9 +205,9 @@ Benchmark_Main() {
             canon := (up = "U" || up = "R" || up = "D" || up = "L") ? "LETTER_" . up : up
             pts := item.pts
 
-            dirStr := Gesture_DirectionChain(pts, 6)
-            candidates := Gesture_CollectCandidates(dirStr, pts)
-            decision := Gesture_SelectCandidate(candidates, "explorer.exe", "CabinetWClass", "Test")
+            dirStr := GestureRecognizer.DirectionChain(pts, 6)
+            candidates := GestureEngine.CollectCandidates(dirStr, pts)
+            decision := GestureEngine.SelectCandidate(candidates, "explorer.exe", "CabinetWClass", "Test")
             FileAppend("Evaluated " . sIdx . "/" . total . " (" . item.desc . ") -> " . (IsObject(decision.selected) ? decision.selected.name : "REJECT") . "`n", logPath)
 
             selectedName := IsObject(decision.selected) ? decision.selected.name : ""

@@ -209,7 +209,7 @@ GesturePkg_IsPkgSection(name) {
 ; ---- 导出: 返回 true/false ----
 GesturePkg_Export(path) {
     global g_Conf
-    if (Trim(path) = "" || !IsObject(g_Conf))
+    if (Trim(path) = "" || !IsSet(g_Conf) || !IsObject(g_Conf))
         return false
     try {
         out := StrReplace(T("gesture.pkg_header"), "`n", "`r`n")
@@ -277,7 +277,7 @@ GesturePkg_Import(path, overwrite := false) {
             }
         }
     }
-    Gesture_ReloadLayers()
+    GestureEngine.ReloadLayers()
     try Tpl_LoadAll()
     catch {
     }
@@ -308,7 +308,7 @@ GestureStore_LayerSection(layer) {
 
 GestureStore_SetGesture(layer, gesture, action) {
     global g_Conf, g_ConfFile
-    gesture := Gesture_Normalize(gesture)
+    gesture := GestureRecognizer.Normalize(gesture)
     action := Trim(action)
     if (gesture = "" || action = "")
         return false
@@ -318,36 +318,36 @@ GestureStore_SetGesture(layer, gesture, action) {
     try g_Conf.Set(sec, GestureConf_KeyExact(sec, gesture), action)
     catch {
     }
-    Gesture_ReloadLayers()
+    GestureEngine.ReloadLayers()
     return true
 }
 
 GestureStore_SetDefinition(name, method) {
     global g_Conf, g_ConfFile
-    name := Gesture_Normalize(name)
+    name := GestureRecognizer.Normalize(name)
     method := StrLower(Trim(method))
     if (name = "" || (method != "direction" && method != "template" && method != "auto"))
         return false
-    if (method = "template" && Gesture_IsReservedDirectionName(name))
+    if (method = "template" && GestureRecognizer.IsReservedDirectionName(name))
         return false
     if (!GestureIni_Upsert(g_ConfFile, "GestureDefinitions", name, method))
         return false
     try g_Conf.Set("GestureDefinitions", GestureConf_KeyExact("GestureDefinitions", name), method)
     catch {
     }
-    Gesture_ReloadLayers()
+    GestureEngine.ReloadLayers()
     return true
 }
 
 GestureStore_DelDefinition(name) {
     global g_Conf, g_ConfFile
-    name := Gesture_Normalize(name)
+    name := GestureRecognizer.Normalize(name)
     if (!GestureIni_Delete(g_ConfFile, "GestureDefinitions", name))
         return false
     try g_Conf.DeleteKey("GestureDefinitions", GestureConf_KeyExact("GestureDefinitions", name))
     catch {
     }
-    Gesture_ReloadLayers()
+    GestureEngine.ReloadLayers()
     return true
 }
 
@@ -369,9 +369,9 @@ GestureStore_SaveUnified(oldLayer, oldGesture, layer, gesture, action, desc, met
     before := GestureIni_ReadText(g_ConfFile)
     if (before = "")
         return false
-    name := Gesture_BindingName(gesture)
+    name := GestureRecognizer.BindingName(gesture)
     moved := oldGesture != "" && (oldLayer != layer
-        || Gesture_NormalizeFull(oldGesture) != Gesture_NormalizeFull(gesture))
+        || GestureRecognizer.NormalizeFull(oldGesture) != GestureRecognizer.NormalizeFull(gesture))
     ok := moved ? GestureStore_MoveGesture(oldLayer, oldGesture, layer, gesture, action, desc)
         : GestureStore_SaveGesture(layer, gesture, action, desc)
     if (ok && sample != "") {
@@ -392,11 +392,11 @@ GestureStore_MoveGesture(oldLayer, oldGesture, layer, gesture, action, desc) {
     before := GestureIni_ReadText(g_ConfFile)
     if (before = "")
         return false
-    oldKey := Gesture_NormalizeFull(oldGesture)
-    newKey := Gesture_NormalizeFull(gesture)
+    oldKey := GestureRecognizer.NormalizeFull(oldGesture)
+    newKey := GestureRecognizer.NormalizeFull(gesture)
     if (oldLayer = layer && oldKey = newKey)
         return GestureStore_SaveGesture(layer, gesture, action, desc)
-    oldOff := Gesture_ChainOff(oldLayer, oldKey)
+    oldOff := GestureEngine.ChainOff(oldLayer, oldKey)
     ok := GestureStore_SetGesture(layer, gesture, action)
         && GestureStore_SetGestureDesc(layer, gesture, desc)
         && GestureStore_DelGesture(oldLayer, oldGesture)
@@ -415,7 +415,7 @@ GestureStore_Restore(text) {
     catch {
         return false
     }
-    Gesture_ReloadLayers()
+    GestureEngine.ReloadLayers()
     try Tpl_LoadAll()
     catch {
     }
@@ -424,7 +424,7 @@ GestureStore_Restore(text) {
 
 GestureStore_DelGesture(layer, gesture) {
     global g_Conf, g_ConfFile
-    gesture := Gesture_Normalize(gesture)
+    gesture := GestureRecognizer.Normalize(gesture)
     sec := GestureStore_LayerSection(layer)
     if (!GestureIni_Delete(g_ConfFile, sec, gesture))
         return false
@@ -435,14 +435,14 @@ GestureStore_DelGesture(layer, gesture) {
     try GestureStore_DelGestureDesc(layer, gesture)
     catch {
     }
-    Gesture_ReloadLayers()
+    GestureEngine.ReloadLayers()
     return true
 }
 
 ; ---- 手势作用说明 (纯 UI 展示, 与引擎无关) ----
 ; 存 [GestureDesc] 段, 键沿用禁用集的 layer:gesture 格式; 空说明即删键, ini 保持干净
 GestureDescId(layer, gesture) {
-    return layer . ":" . Gesture_Normalize(gesture)
+    return layer . ":" . GestureRecognizer.Normalize(gesture)
 }
 
 GestureStore_SetGestureDesc(layer, gesture, desc) {
@@ -509,7 +509,7 @@ GestureStore_SetAppMatch(appName, exe, cls, title := "", titleRx := "", noglobal
         catch {
         }
     }
-    Gesture_ReloadLayers()
+    GestureEngine.ReloadLayers()
     return true
 }
 
@@ -521,10 +521,10 @@ GestureStore_SetTemplate(name, points) {
 ; ---- 模板多样本保存: samples 为点串数组, 以 |||| 连接 ----
 GestureStore_SetTemplateSamples(name, samples) {
     global g_Conf, g_ConfFile
-    name := Gesture_Normalize(name)
+    name := GestureRecognizer.Normalize(name)
     if (name = "" || !IsObject(samples) || samples.Length = 0)
         return false
-    if Gesture_IsReservedDirectionName(name)
+    if GestureRecognizer.IsReservedDirectionName(name)
         return false
     if InStr(name, "=") || InStr(name, "|") || InStr(name, ":")
         return false
@@ -548,7 +548,7 @@ GestureStore_SetTemplateSamples(name, samples) {
     try Tpl_LoadAll()
     catch {
     }
-    Gesture_ReloadLayers()
+    GestureEngine.ReloadLayers()
     return true
 }
 
@@ -565,7 +565,7 @@ GestureStore_DelTemplate(name) {
     try Tpl_LoadAll()
     catch {
     }
-    Gesture_ReloadLayers()
+    GestureEngine.ReloadLayers()
     return true
 }
 
@@ -594,7 +594,7 @@ GestureStore_SetDisabled(id, off) {
             g_Conf.DeleteKey("GestureDisabled", id)
     } catch {
     }
-    Gesture_ReloadLayers()
+    GestureEngine.ReloadLayers()
     return true
 }
 
@@ -611,7 +611,7 @@ GestureStore_AddBlacklist(pattern) {
         g_Conf.AddKey("GestureBlacklist", pattern, "")
     } catch {
     }
-    Gesture_ReloadLayers()
+    GestureEngine.ReloadLayers()
     return true
 }
 
@@ -623,6 +623,6 @@ GestureStore_DelBlacklist(pattern) {
     try g_Conf.DeleteKey("GestureBlacklist", pattern)
     catch {
     }
-    Gesture_ReloadLayers()
+    GestureEngine.ReloadLayers()
     return true
 }

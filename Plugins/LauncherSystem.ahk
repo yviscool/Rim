@@ -6,6 +6,19 @@
 ; Every v1 Label: is now a same-named function; GoSub -> direct call.
 ; Results go through DisplayResult; confirmations use MsgBox gates (as original).
 
+class LauncherSystemPlugin extends RimPlugin {
+    static Name => "LauncherSystem"
+    static Title => "System Management Utilities"
+    static Description => "系统管理功能 (剪贴板、音量、进程管理、电源与关机)"
+
+    static RegisterCommands() {
+        RegisterPlugin_LauncherSystem()
+    }
+}
+
+if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
+    RimPluginManager.Register(LauncherSystemPlugin)
+
 RegisterPlugin_LauncherSystem() {
     ; --- Original commands (names preserved from v1 @() registrations) ---
     RegisterCommand("Clip", "function", "Clip", T("cmd.LauncherSystem.Clip"))

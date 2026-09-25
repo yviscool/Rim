@@ -3,6 +3,55 @@
 ; === TotalCommander Plugin - TC深度集成 ===
 ; 移植自 VimDesktop 的 TC 插件（完整版）
 
+class TotalCommanderPlugin extends RimPlugin {
+    static Name => "TotalCommander"
+    static Title => "Total Commander Integration"
+    static Description => "Total Commander 深度整合 (双栏文件管理、Vim 模式、标记系统、原生菜单联动)"
+
+    static RegisterContext() {
+        try RimContext.RegisterProvider("totalcommander", TC_ContextProvider)
+    }
+
+    static RegisterCommands() {
+        try {
+            RimCommand.Register("tc.open", "Open Total Commander", (*) => TC_Open(), Map(
+                "Category", "Tool",
+                "Description", "启动或激活 Total Commander",
+                "Keywords", "tc totalcommander filemanager"
+            ))
+            RimCommand.Register("tc.reopen", "Restart Total Commander", (*) => TC_ReOpen(), Map(
+                "Category", "Tool",
+                "Description", "重启 Total Commander 进程",
+                "Keywords", "tc restart reload"
+            ))
+        }
+    }
+
+    static RegisterGestures() {
+        if (!IsSet(GestureRegistry) || !IsObject(GestureRegistry))
+            return
+        GestureRegistry.Register("U", (*) => TC_SendPos(2002), "ahk_class TTOTAL_CMD", {
+            description: "TC: 打开父目录 (cm_GoToParent)",
+            pluginName: "TotalCommander"
+        })
+        GestureRegistry.Register("D_R", (*) => TC_SendPos(3001), "ahk_class TTOTAL_CMD", {
+            description: "TC: 新建标签页 (cm_OpenNewTab)",
+            pluginName: "TotalCommander"
+        })
+        GestureRegistry.Register("D_L", (*) => TC_SendPos(3007), "ahk_class TTOTAL_CMD", {
+            description: "TC: 关闭当前标签页 (cm_CloseCurrentTab)",
+            pluginName: "TotalCommander"
+        })
+    }
+
+    static RegisterKeymaps(engine) {
+        RegisterPlugin_TotalCommander()
+    }
+}
+
+if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
+    RimPluginManager.Register(TotalCommanderPlugin)
+
 ; TC 全局变量
 TCPath := ""
 TCINI := ""
@@ -23,6 +72,27 @@ TC_SendPos(Number) {
     global g_TCLastCmd
     g_TCLastCmd := Number
     PostMessage(1075, Number, 0, , "ahk_class TTOTAL_CMD")
+}
+
+; 统一处理以 cm_ 开头的动作 (由 Rim.vim.RegisterPrefixActionHandler 挂载)
+TC_HandleCmAction(funcName) {
+    if (SubStr(funcName, 1, 1) = "<" && SubStr(funcName, -1) = ">")
+        funcName := SubStr(funcName, 2, StrLen(funcName) - 2)
+    cmNum := TC_GetCommandNumber(funcName)
+    if (cmNum > 0) {
+        TC_SendPos(cmNum)
+        return true
+    }
+    return false
+}
+
+; 校验 cm_ 动作是否合法 (由 Rim.vim.RegisterActionValidator 挂载)
+TC_ValidateCmAction(action) {
+    if RegExMatch(action, "^<cm_(.+)>$", &_cm) {
+        num := TC_GetCommandNumber("cm_" _cm[1])
+        return num > 0
+    }
+    return true
 }
 
 ; === TC 命令编号映射 ===
@@ -569,6 +639,45 @@ TC_BeforeActionDo(actionName, win) {
     return true
 }
 
+; === TC 窗口级按键拦截/预过滤 (从核心引擎解耦) ===
+; 1) 原生/XAML弹出菜单开着: 全键提前透传 (F/S 等是多键前缀, 走不到 BeforeActionDo,
+;    会被 KeyTemp 吞掉致菜单键盘全死; 对齐原版"菜单开着就透传")
+; 2) 自家 TCMenu Gui 菜单开着但还没抢到焦点: 直接路由到菜单, 不经 Send
+TC_PreKeyFilter(vimKey, win) {
+    global g_TCLastCmd
+    tcMenuOpen := WinExist("ahk_class #32768") || WinExist("ahk_class Xaml_WindowedPopupClass")
+    if (tcMenuOpen && g_TCLastCmd != 572) {
+        Send(Rim.vim.ConvertFromVim(vimKey, true))
+        win.KeyTemp := ""
+        win.Count := 0
+        win.HideMore()
+        return true
+    }
+
+    try {
+        if WinExist("TCMenu ahk_class AutoHotkeyGUI") {
+            routed := false
+            try routed := TC_MenuRouteKey(vimKey)
+            if (routed) {
+                win.KeyTemp := ""
+                win.Count := 0
+                win.HideMore()
+                return true
+            }
+            ; 路由不消费 (数字/符号等非菜单键): 仍激活菜单再透传, 避免键落错窗
+            if !WinActive("TCMenu ahk_class AutoHotkeyGUI") {
+                try WinActivate("TCMenu ahk_class AutoHotkeyGUI")
+            }
+            Send(Rim.vim.ConvertFromVim(vimKey, true))
+            win.KeyTemp := ""
+            win.Count := 0
+            win.HideMore()
+            return true
+        }
+    }
+    return false
+}
+
 RegisterPlugin_TotalCommander() {
     ; 检测 TC 路径
     DetectTCPath()
@@ -1107,6 +1216,10 @@ RegisterPlugin_TotalCommander() {
 
     ; 设置 BeforeActionDo 回调 (仅 TTOTAL_CMD 窗, 对齐原版; 全局注册会误伤其它窗口)
     Rim.vim.SetBeforeActionDoForWin("TTOTAL_CMD", TC_BeforeActionDo)
+    Rim.vim.SetPreKeyFilterForWin("TTOTAL_CMD", TC_PreKeyFilter)
+    Rim.vim.RegisterPrefixActionHandler("cm_", TC_HandleCmAction)
+    Rim.vim.RegisterActionValidator("cm_", TC_ValidateCmAction)
+    Rim.vim.RegisterPrefixActionHandler("tccmd|", (action) => (TC_Run(SubStr(action, 7)), true))
 
     ; === 基础动作 ===
     RegisterAction("<TC_NormalMode>", T("act.TotalCommander.TC_NormalMode"))
@@ -1460,6 +1573,28 @@ RegisterPlugin_TotalCommander() {
     ; 原先每弹一次绑 36 个热键, 钩子抖动窗口内 arriving 的快速第二键可能丢失,
     ; 且弹出路径变长. 弹/关不再绑/解 (TC_MenuBindKeys/UnbindKeys 保留备用)
     TC_MenuBindKeys()
+
+    ; 注册上下文提供者
+    try {
+        RimContext.RegisterProvider("totalcommander", TC_ContextProvider)
+    }
+}
+
+TC_ContextProvider(ctx) {
+    try {
+        dir := TC_GetCurrentDir()
+        if (dir != "")
+            ctx.CurrentDir := dir
+    } catch {
+    }
+    try {
+        file := TC_GetSelectedFile()
+        if (file != "") {
+            ctx.SelectedFile := file
+            ctx.SelectedFiles := [file]
+        }
+    } catch {
+    }
 }
 
 ; === TC 路径检测 ===

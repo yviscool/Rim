@@ -1,4 +1,4 @@
-﻿#Requires AutoHotkey v2.0
+#Requires AutoHotkey v2.0
 #Warn All, Off
 
 ; === Hotkeys - 热键绑定 (从 RunZ Core/Hotkeys.ahk 移植) ===
@@ -560,4 +560,98 @@ StartCommandLine(*) {
     global g_FirstChar, g_CurrentInput
     g_FirstChar := 97
     SearchCommand(g_CurrentInput)
+}
+
+; === 统一绑定启动器热键 (窗口级 + 全局级 + ini 定制) ===
+BindLauncherHotkeys() {
+    global g_WindowName, g_DisplayRows, g_FirstChar, g_Conf
+
+    HotIfWinActive(g_WindowName)
+
+    BindKey("Esc", SI_Esc)
+    BindKey("!F4", ExitRunZ)
+    BindKey("Tab", SI_Tab)
+    BindKey("F1", Help)
+    BindKey("+F1", KeyHelp)
+    BindKey("F2", EditConfig)
+    BindKey("F3", EditAutoConfig)
+    BindKey("^q", RestartRunZ)
+    BindKey("^l", ClearInputLabel)
+    BindKey("^u", ClearInputLabel)
+    BindKey("^d", OpenCurrentFileDir)
+    BindKey("^x", DeleteCurrentFile)
+    BindKey("^s", ShowCurrentFile)
+    BindKey("^y", DisplayCopyAll)
+    BindKey("^r", ReindexFiles)
+    BindKey("^h", DisplayHistoryCommands)
+    BindKey("^n", IncreaseRank)
+    BindKey("^=", IncreaseRank)
+    BindKey("^p", DecreaseRank)
+    BindKey("^-", DecreaseRank)
+    BindKey("^f", NextPage)
+    BindKey("^b", PrevPage)
+    BindKey("^i", HomeKey)
+    BindKey("^o", EndKey)
+    BindKey("^j", NextCommand)
+    BindKey("^k", PrevCommand)
+    BindKey("Down", NextCommand)
+    BindKey("Up", PrevCommand)
+    BindKey("Right", SI_Right)
+    BindKey("^Right", SI_AcceptWordKey)
+    BindKey("Backspace", SI_Backspace)
+    BindKey("^Backspace", SI_CtrlBackspace)
+    BindKey("Delete", SI_DeleteKey)
+    BindKey("!Up", SI_SubstrUp)
+    BindKey("!Down", SI_SubstrDown)
+    BindKey("~LButton", ClickFunction)
+    BindKey("RButton", OpenContextMenu)
+    BindKey("AppsKey", OpenContextMenu)
+    BindKey("^Enter", SaveResultAsArg)
+
+    ; Alt+字母 快速执行 / Alt+数字直达 (0=第10项)
+    Loop g_DisplayRows {
+        key := Chr(g_FirstChar + A_Index - 1)
+        BindKey("!" key, RunSelectedCommand)
+    }
+    Loop 10 {
+        digit := Mod(A_Index, 10)
+        if (A_Index <= g_DisplayRows)
+            BindKey("!" . digit, SI_RunByIndex)
+    }
+
+    ; 用户自定义热键 (<...> 经工厂绑闭包, 避免循环变量共享)
+    if (IsObject(g_Conf) && g_Conf.HasSection("Hotkey")) {
+        for key, label in g_Conf["Hotkey"] {
+            if (label != "Default") {
+                try {
+                    if (SubStr(label, 1, 1) = "<") {
+                        BindKey(key, MakeVimCb(label))
+                    } else {
+                        BindKey(key, MakeCb(label))
+                    }
+                }
+            } else {
+                try Hotkey(key, "Off")
+            }
+        }
+    }
+
+    HotIfWinActive()
+
+    ; 全局热键 (<...> 经工厂绑闭包, 避免循环变量共享)
+    if (IsObject(g_Conf) && g_Conf.HasSection("GlobalHotkey")) {
+        for key, label in g_Conf["GlobalHotkey"] {
+            if (label != "Default") {
+                try {
+                    if (SubStr(label, 1, 1) = "<") {
+                        BindKey(key, MakeVimCb(label), "On")
+                    } else {
+                        BindKey(key, MakeCb(label), "On")
+                    }
+                }
+            } else {
+                try Hotkey(key, "Off")
+            }
+        }
+    }
 }

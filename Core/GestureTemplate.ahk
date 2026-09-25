@@ -351,24 +351,24 @@ Tpl_BBox(pts) {
 ; 理想笔顺合成仅作第二样本兜底 (笔顺差异容错, 如 Right-Down 在 SP 即有 2 样本).
 Tpl_BuiltinDefs() {
     return Map(
-        "e", ["function|Gesture_NoOp", [[55,55],[35,45],[25,55],[30,70],[50,75],[70,65],[75,50],[60,45],[45,50]]],
+        "e", ["function|GestureEngine.NoOp", [[55,55],[35,45],[25,55],[30,70],[50,75],[70,65],[75,50],[60,45],[45,50]]],
         "G", ["run|https://www.google.com", [[75,30],[55,15],[30,20],[15,40],[15,65],[30,85],[55,90],[75,80],[70,60],[50,60]]],
         "U", ["key|^z", [[20,15],[20,70],[35,88],[60,88],[78,68],[80,15]]],
         "R", ["key|^y", [[25,10],[25,90],[25,10],[60,12],[72,30],[60,48],[25,50],[75,90]]],
-        "D", ["function|Gesture_IgnoreNext", [[30,10],[30,90],[30,10],[60,10],[80,30],[85,50],[80,70],[60,90],[30,90]]],
+        "D", ["function|GestureEngine.IgnoreNext", [[30,10],[30,90],[30,10],[60,10],[80,30],[85,50],[80,70],[60,90],[30,90]]],
         "P", ["<SP_PlayPause>", [[30,10],[30,90],[30,45],[65,40],[72,25],[60,12],[30,10]]],
         "L", ["key|{Media_Prev}", [[30,10],[30,80],[75,80]]],
         "N", ["<SP_Next>", [[25,85],[25,15],[75,85],[75,15]]],
         "S", ["run|D:\software\SublimeText\sublime_text.exe", [[70,20],[45,12],[25,25],[30,45],[55,50],[72,60],[60,80],[35,88]]],
         "M", ["<SP_Mute>", [[20,85],[20,15],[50,60],[80,15],[80,85]]],
-        "Z", ["function|Gesture_NoOp", [[20,20],[80,20],[20,80],[80,80]]],
-        "B", ["function|Gesture_NoOp", [[30,10],[30,90],[30,10],[60,12],[72,28],[60,48],[30,50],[65,52],[75,70],[62,88],[30,90]]],
-        "J", ["function|Gesture_NoOp", [[65,10],[60,70],[40,88],[22,78]]],
-        "h", ["function|Gesture_NoOp", [[30,10],[30,90],[30,55],[55,50],[65,65],[65,90]]],
+        "Z", ["function|GestureEngine.NoOp", [[20,20],[80,20],[20,80],[80,80]]],
+        "B", ["function|GestureEngine.NoOp", [[30,10],[30,90],[30,10],[60,12],[72,28],[60,48],[30,50],[65,52],[75,70],[62,88],[30,90]]],
+        "J", ["function|GestureEngine.NoOp", [[65,10],[60,70],[40,88],[22,78]]],
+        "h", ["function|GestureEngine.NoOp", [[30,10],[30,90],[30,55],[55,50],[65,65],[65,90]]],
         "X", ["key|^x", [[20,15],[80,85],[80,15],[20,85]]],
-        "3", ["function|Gesture_NoOp", [[25,20],[55,12],[70,30],[50,45],[65,55],[70,70],[50,88],[25,82]]],
-        "V", ["function|Gesture_NoOp", [[10,10],[50,88],[90,10]]],
-        "InvV", ["function|Gesture_NoOp", [[10,88],[50,10],[90,88]]]
+        "3", ["function|GestureEngine.NoOp", [[25,20],[55,12],[70,30],[50,45],[65,55],[70,70],[50,88],[25,82]]],
+        "V", ["function|GestureEngine.NoOp", [[10,10],[50,88],[90,10]]],
+        "InvV", ["function|GestureEngine.NoOp", [[10,88],[50,10],[90,88]]]
     )
 }
 
@@ -431,7 +431,7 @@ Tpl_LoadAll() {
     global g_Templates, g_TplThreshold, g_Conf
     g_Templates := Map()
     try {
-        if IsObject(g_Conf) && g_Conf.HasSection("Gesture") {
+        if (IsSet(g_Conf) && IsObject(g_Conf) && g_Conf.HasSection("Gesture")) {
             th := g_Conf.Get("Gesture", "TemplateThreshold", "")
             if (th != "" && th + 0 > 0)
                 g_TplThreshold := th + 0
@@ -459,7 +459,7 @@ Tpl_LoadAll() {
     }
     ; ini 覆盖（仅保存样本，动作统一在 Gestures / GestureApp 中绑定）: name=s1||||s2 ...
     try {
-        if IsObject(g_Conf) && g_Conf.HasSection("GestureTemplates") {
+        if (IsSet(g_Conf) && IsObject(g_Conf) && g_Conf.HasSection("GestureTemplates")) {
             for _k, _v in g_Conf["GestureTemplates"] {
                 _k := Trim(_k)
                 if (_k = "" || SubStr(_k, 1, 1) = ";")
@@ -521,7 +521,7 @@ Tpl_Candidates(rawPts, minSize := 0) {
     candFeat := Tpl_BuildFeature(rawPts)
     half := 0.5 * Sqrt(g_TplSize * g_TplSize * 2)
     for name, tmpl in g_Templates {
-        if (Gesture_TplOff(name))
+        if (GestureEngine.TplOff(name))
             continue
         bestScore := 0.0
         bestSample := 0

@@ -6,6 +6,12 @@
 ; 注意: 只做解析验证, 不执行任何注册/界面逻辑 (顶层可执行代码须保持无副作用).
 #Include ..\Core\I18n.ahk
 #Include ..\Core\SmartInput.ahk
+#Include ..\Core\Context.ahk
+#Include ..\Core\Plugin.ahk
+#Include ..\Core\Command.ahk
+#Include ..\Core\Window.ahk
+#Include ..\Core\Workspace.ahk
+#Include ..\Core\Execution.ahk
 #Include ..\Core\Engine.ahk
 #Include ..\Core\Gesture.ahk
 #Include ..\Core\GestureIni.ahk

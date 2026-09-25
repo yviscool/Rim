@@ -1,4 +1,4 @@
-﻿#Requires AutoHotkey v2.0
+#Requires AutoHotkey v2.0
 #Warn All, Off
 
 ; === Config - 配置管理 (从 RunZ Core/Config.ahk 移植) ===
@@ -63,17 +63,24 @@ LoadHistoryCommands() {
 
 ; 更新 SendTo 快捷方式 (引号防空格路径, 删除防缺失)
 UpdateSendTo(create := true, overwrite := false) {
-    lnkFilePath := StrReplace(A_StartMenu, "\Start Menu", "\SendTo\") "RunZ.lnk"
+    sendToDir := StrReplace(A_StartMenu, "\Start Menu", "\SendTo\")
+    lnkFilePath := sendToDir . "Rim.lnk"
+    oldLnk := sendToDir . "RunZ.lnk"
+    try FileDelete(oldLnk)
+
     if (!create) {
         try FileDelete(lnkFilePath)
         return
     }
     if (!overwrite && FileExist(lnkFilePath))
         return
-    FileCreateShortcut(A_ScriptDir "\RunZ.exe", A_ScriptDir "\Core\SendToRunZ.lnk"
-        , , '"' A_ScriptDir '\Core\RunZCmdTool.ahk"', "SendTo RunZ", A_ScriptDir "\RunZ.ico")
-    FileCopy(A_ScriptDir "\Core\SendToRunZ.lnk"
-        , StrReplace(A_StartMenu, "\Start Menu", "\SendTo\") "RunZ.lnk", 1)
+
+    target := A_IsCompiled ? A_ScriptFullPath : A_AhkPath
+    args := A_IsCompiled ? "" : '"' . A_ScriptFullPath . '"'
+    icoPath := A_ScriptDir . "\Assets\Rim.ico"
+    try {
+        FileCreateShortcut(target, lnkFilePath, A_ScriptDir, args, "Rim", FileExist(icoPath) ? icoPath : "")
+    }
 }
 
 ; 更新启动快捷方式

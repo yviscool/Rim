@@ -9,7 +9,6 @@ class VimEngine {
     ActionList := Map()
     ExcludeWinList := Map()
     ActionFromPlugin := Map()
-    VIMD_CMD_LIST := Map()
     winGlobal := ""
     debugMode := false
     lastAction := ""
@@ -19,6 +18,8 @@ class VimEngine {
     ; 回调函数
     BeforeActionDoFunc := ""
     AfterActionDoFunc := ""
+    ActionPrefixHandlers := Map()
+    ActionValidators := Map()
 
     __New() {
         ; 创建全局窗口对象
@@ -32,6 +33,23 @@ class VimEngine {
 
     SetAfterActionDo(func) {
         this.AfterActionDoFunc := func
+    }
+
+    RegisterPrefixActionHandler(prefix, handler) {
+        this.ActionPrefixHandlers[prefix] := handler
+    }
+
+    RegisterActionValidator(prefix, validator) {
+        this.ActionValidators[prefix] := validator
+    }
+
+    IsValidAction(action) {
+        if RegExMatch(action, "^<([a-zA-Z0-9]+)_(.+)>$", &_m) {
+            prefix := _m[1] . "_"
+            if this.ActionValidators.Has(prefix)
+                return this.ActionValidators[prefix](action)
+        }
+        return true
     }
 
     ; === 插件管理 ===
@@ -100,6 +118,7 @@ class VimEngine {
         dst.MaxCount := src.MaxCount
         dst.BeforeActionDoFunc := src.BeforeActionDoFunc
         dst.AfterActionDoFunc := src.AfterActionDoFunc
+        dst.PreKeyFilterFunc := src.PreKeyFilterFunc
 
         ; 复制模式
         for modeName, modeObj in src.modeList {
@@ -160,6 +179,12 @@ class VimEngine {
         win := this.GetWin(winName)
         if IsObject(win)
             win.AfterActionDoFunc := func
+    }
+
+    SetPreKeyFilterForWin(winName, func) {
+        win := this.GetWin(winName)
+        if IsObject(win)
+            win.PreKeyFilterFunc := func
     }
 
     ExcludeWin(name, exclude := true) {
@@ -386,17 +411,8 @@ class VimEngine {
     }
 
     ; 诊断: 当前活动窗口的 vim 状态 (供用户在目标窗口执行后贴回)
-    VimDiag() {
+    VimDiag(target := "A") {
         out := ""
-        ; 优先探 TC 窗 (问题域), 不存在才探活动窗: 避免焦点切走失真
-        target := ""
-        try {
-            if WinExist("ahk_class TTOTAL_CMD")
-                target := "ahk_class TTOTAL_CMD"
-        } catch {
-        }
-        if (target = "")
-            target := "A"
         out .= "target=" target "`n"
         try {
             out .= "class=" WinGetClass(target) "`n"
@@ -442,39 +458,6 @@ class VimEngine {
             }
         } catch as _e3 {
             out .= "diag failed: " . _e3.Message . "`n"
-        }
-        try {
-            twin := this.GetWin("TTOTAL_CMD")
-            if IsObject(twin) {
-                out .= "TCwin mode=" twin.currentMode . " keytemp=[" twin.KeyTemp . "] count=" twin.Count "`n"
-                out .= "TCwin keys=" twin.KeyList.Count "`n"
-                tmode := twin.modeList.Has(twin.currentMode) ? twin.modeList[twin.currentMode] : ""
-                if IsObject(tmode) {
-                    out .= "TCmaps=" tmode.keymapList.Count . " prefixes=" tmode.keymoreList.Count "`n"
-                    out .= "TC-has-j=" (tmode.keymapList.Has("j") ? tmode.keymapList["j"] : "NONE") "`n"
-                } else {
-                    out .= "TC no mode object`n"
-                }
-                try {
-                    fc2 := FocusedClassNN("ahk_class TTOTAL_CMD")
-                    out .= "TC-focused=" fc2 "`n"
-                } catch as _e6 {
-                    out .= "TC focused probe failed`n"
-                }
-                try {
-                    bf2 := twin.BeforeActionDoFunc ? twin.BeforeActionDoFunc : this.BeforeActionDoFunc
-                    if IsObject(bf2)
-                        out .= "TC-before-j=" (bf2("<down>", twin) ? "passthrough" : "run-action") . "`n"
-                    else
-                        out .= "TC-before-j=nil-callback`n"
-                } catch as _e7 {
-                    out .= "TC before probe failed: " . _e7.Message . "`n"
-                }
-            } else {
-                out .= "no TTOTAL_CMD win object`n"
-            }
-        } catch as _e8 {
-            out .= "TC diag failed: " . _e8.Message . "`n"
         }
         try {
             FileAppend(out, A_ScriptDir . "\Rim.error.log")
@@ -537,52 +520,11 @@ class VimEngine {
             return
         }
 
-        ; 菜单开着: 全键提前透传 (F/S 等是多键前缀, 走不到下面的 BeforeActionDo,
-        ; 会被 KeyTemp 吞掉致菜单键盘全死; 对齐原版"菜单开着就透传", 仅 TTOTAL_CMD)
-        if (winName = "TTOTAL_CMD") {
-            global g_TCLastCmd
-            tcMenuOpen := WinExist("ahk_class #32768") || WinExist("ahk_class Xaml_WindowedPopupClass")
-            if (tcMenuOpen && g_TCLastCmd != 572) {
-                Send(this.ConvertFromVim(vimKey, true))
-                win.KeyTemp := ""
-                win.Count := 0
-                win.HideMore()
-                return
-            }
-            ; 我们的 Gui 菜单开着但还没抢到焦点 (打开瞬间竞态): 直接路由到菜单,
-            ; 不经 Send —— $ 前缀热键收不到 Send 来的键, 且 WinActivate+Sleep 会把
-            ; i 后快速跟的 f 送进 TC 变成 KeyTemp 前缀 (fa/ff 的 f), 导致 if 必须停顿.
-            ; 免回车 (i 菜单唯一首字母直接执行) 靠 TC_MenuLetterJump, 与焦点无关.
+        ; 窗口级按键拦截/预过滤 (插件按需接管, 避免核心引擎耦合具体应用)
+        if (win.PreKeyFilterFunc) {
             try {
-                if WinExist("TCMenu ahk_class AutoHotkeyGUI") {
-                    routed := false
-                    try routed := TC_MenuRouteKey(vimKey)
-                    catch as _rte {
-                        try FileAppend(A_Now . " IFDBG route-ERR key=" vimKey " msg=" _rte.Message "`n", A_ScriptDir "\Rim.error.log")
-                        catch {
-                        }
-                    }
-                    try FileAppend(A_Now . " IFDBG keyhandler key=" vimKey " menu=1 routed=" (routed ? 1 : 0) "`n", A_ScriptDir "\Rim.error.log")
-                    catch {
-                    }
-                    if (routed) {
-                        win.KeyTemp := ""
-                        win.Count := 0
-                        win.HideMore()
-                        return
-                    }
-                    ; 路由不消费 (数字/符号等非菜单键): 仍激活菜单再透传, 避免键落错窗
-                    if !WinActive("TCMenu ahk_class AutoHotkeyGUI") {
-                        try WinActivate("TCMenu ahk_class AutoHotkeyGUI")
-                        catch {
-                        }
-                    }
-                    Send(this.ConvertFromVim(vimKey, true))
-                    win.KeyTemp := ""
-                    win.Count := 0
-                    win.HideMore()
+                if win.PreKeyFilterFunc(vimKey, win)
                     return
-                }
             }
         }
 
@@ -765,6 +707,16 @@ class VimEngine {
 
     ; === 键名转换 ===
     Convert2VIM(key) {
+        static cache := Map()
+        if cache.Has(key)
+            return cache[key]
+
+        res := this._Convert2VIM(key)
+        cache[key] := res
+        return res
+    }
+
+    _Convert2VIM(key) {
         ; AHK 格式 -> Vim 格式
         if RegExMatch(key, "^[A-Z]$")
             return "<S-" StrUpper(key) ">"
@@ -816,8 +768,18 @@ class VimEngine {
     }
 
     ConvertFromVim(key, ToSend := false) {
+        static cacheSend := Map(), cacheNoSend := Map()
+        c := ToSend ? cacheSend : cacheNoSend
+        if c.Has(key)
+            return c[key]
+
+        res := this._ConvertFromVim(key, ToSend)
+        c[key] := res
+        return res
+    }
+
+    _ConvertFromVim(key, ToSend := false) {
         ; Vim 格式 -> AHK 格式
-        this.CheckCapsLock(key)
         if RegExMatch(key, "^<.*>$") {
             key := SubStr(key, 2, StrLen(key) - 2)
             if RegExMatch(key, "i)^((F1)|(F2)|(F3)|(F4)|(F5)|(F6)|(F7)|(F8)|(F9)|(F10)|(F11)|(F12))$")
@@ -900,9 +862,6 @@ class VimEngine {
     ; === 超时处理 (补齐回调与 lastAction) ===
     TimeOut(win) {
         if (win.KeyTemp != "") {
-            try FileAppend(A_Now . " IFDBG timeout win=" win.Name " keytemp=" win.KeyTemp "`n", A_ScriptDir "\Rim.error.log")
-            catch {
-            }
             ; 检查当前窗口当前模式是否有匹配
             modeObj := win.modeList.Has(win.currentMode) ? win.modeList[win.currentMode] : ""
             if IsObject(modeObj) && modeObj.keymapList.Has(win.KeyTemp) {
@@ -960,6 +919,7 @@ class WinObj {
     KeyList := Map()
     BeforeActionDoFunc := ""
     AfterActionDoFunc := ""
+    PreKeyFilterFunc := ""
     Comment := ""  ; 帮助文档
     ShowInfo := true  ; 是否显示按键提示 (ini enable_show_info)
 
@@ -1075,29 +1035,12 @@ class Action {
     }
 
     Do(count := 1) {
-        switch this.Type {
-            case 0:  ; 函数调用 - 去掉 <> 再调用 (直调, 缺失走 OnError 网)
-                funcName := ActionToFuncName(this.Name)
-
-                ; 检查是否是 TC cm_ 命令
-                if RegExMatch(funcName, "^cm_(.+)$", &cmMatch) {
-                    ; 映射 cm_ 命令到 SendPos 编号
-                    cmNum := TC_GetCommandNumber(funcName)
-                    if (cmNum > 0) {
-                        TC_SendPos(cmNum)
-                        return
-                    }
-                }
-
-                %funcName%()
-            case 1:  ; Function (直调, 缺失走 OnError 网)
-                f := this.Function
-                %f%()
-            case 2:  ; CmdLine
-                Run this.CmdLine
-            case 3:  ; HotString
-                Send this.HotString
+        if (this.Function != "") {
+            f := this.Function
+            try %f%()
+            return
         }
+        ExecuteAction(this.Name)
     }
 }
 
@@ -1147,6 +1090,10 @@ VimKeyTrampoline(*) {
 ; <...> 单元整体大写化 (对原版不敏感语义: ini 写 <c-b>/<la-r>/<enter>,
 ; 运行时 A_ThisHotkey 来的是 <C-B>/<LA-R>/<Enter>, 两边必须归一, 否则 Ctrl 整排失灵)
 NormalizeVimKey(key) {
+    static cache := Map()
+    if cache.Has(key)
+        return cache[key]
+
     out := ""
     rest := key
     Loop {
@@ -1169,5 +1116,6 @@ NormalizeVimKey(key) {
             rest := SubStr(rest, 2)
         }
     }
+    cache[key] := out
     return out
 }

@@ -1,4 +1,4 @@
-﻿#Requires AutoHotkey v2.0
+#Requires AutoHotkey v2.0
 #Warn All, Off
 
 ; === Execution - 命令执行 (从 RunZ Core/Execution.ahk 移植) ===
@@ -62,26 +62,7 @@ RunCommand(originCmd) {
         cmdDesc := splitedOriginCmd.Length >= 3 ? splitedOriginCmd[3] : ""
     }
 
-    if (cmdType = "file" || cmdType = "run") {
-        if (InStr(cmd, ".lnk")) {
-            try {
-                FileGetShortcut(cmd, &filePath)
-                if (!FileExist(filePath)) {
-                    filePath := StrReplace(filePath, "C:\Program Files (x86)", "C:\Program Files")
-                    if (FileExist(filePath))
-                        cmd := filePath
-                }
-            }
-        }
-
-        SplitPath(cmd, , &fileDir)
-
-        if (Arg = "")
-            Run(cmd, fileDir)
-        else
-            Run(cmd ' "' Arg '"', fileDir)
-    }
-    else if (cmdType = "function") {
+    if (cmdType = "function") {
         ; 历史条目会把旧 Arg 追加在末尾: legacy 为第 4 段, 四段式为第 5 段
         if (cmdKey != "") {
             if (splitedOriginCmd.Length >= 5)
@@ -89,22 +70,10 @@ RunCommand(originCmd) {
         } else if (splitedOriginCmd.Length >= 4)
             Arg := splitedOriginCmd[4]
 
-        ; 回退别名解析后直调 (本构建无 IsFunc; 缺失走 OnError 网记日志继续)
-        cmd := ResolveFuncAlias(cmd)
-        %cmd%()
+        ExecuteAction("function|" cmd, Arg)
     }
-    else if (cmdType = "cmd") {
-        RunWithCmd(cmd)
-    }
-    else if (cmdType = "url") {
-        ; {query} 占位: Arg > 剪切板, 编码后替换 (搜索引擎模板)
-        if InStr(cmd, "{query}") {
-            q := Trim(Arg != "" ? Arg : A_Clipboard)
-            cmd := StrReplace(cmd, "{query}", UrlEncode(q))
-        }
-        if (!InStr(cmd, "http"))
-            cmd := "http://" . cmd
-        Run(cmd)
+    else {
+        ExecuteAction(cmdType "|" cmd, Arg)
     }
 
     ; 保存历史 (对齐原版: 仅 fresh 命令拼 Arg, 重放历史不再叠加)
@@ -173,13 +142,152 @@ OpenPath(filePath) {
     global g_Conf
     if (!FileExist(filePath))
         return
-    if (FileExist(g_Conf["Config"]["TCPath"])) {
-        TCPath := g_Conf["Config"]["TCPath"]
-        Run(TCPath ' /O /A /L="' filePath '"')
-    } else {
-        SplitPath(filePath, , &fileDir)
-        Run('explorer "' fileDir '"')
+    if (IsObject(g_Conf) && g_Conf.HasSection("Config")) {
+        sec := g_Conf["Config"]
+        if (sec.Has("TCPath") && sec["TCPath"] != "" && FileExist(sec["TCPath"])) {
+            Run(sec["TCPath"] ' /O /A /L="' filePath '"')
+            return
+        }
     }
+    SplitPath(filePath, , &fileDir)
+    Run('explorer "' fileDir '"')
+}
+
+; === 统一动作/命令执行器 (Unified Action & Command Dispatcher) ===
+ExecuteAction(action := "", actionArg := "") {
+    global g_VimEngine
+    if (action = "") {
+        if (IsSet(g_VimEngine) && IsObject(g_VimEngine))
+            action := g_VimEngine.lastAction
+    }
+    action := Trim(action)
+    if (action = "")
+        return
+
+    cleanAction := action
+    if (SubStr(action, 1, 1) = "<" && SubStr(action, -1) = ">")
+        cleanAction := SubStr(action, 2, StrLen(action) - 2)
+
+    ; 1. 优先检查插件注册的前缀动作分发器 (如 tccmd|, cm_ 等, 兼容 <cm_...>)
+    if (IsSet(g_VimEngine) && IsObject(g_VimEngine)) {
+        for prefix, handler in g_VimEngine.ActionPrefixHandlers {
+            pLen := StrLen(prefix)
+            if (SubStr(cleanAction, 1, pLen) = prefix) {
+                if handler(cleanAction)
+                    return
+            } else if (SubStr(action, 1, pLen) = prefix) {
+                if handler(action)
+                    return
+            }
+        }
+    }
+
+    ; 2. 核心动作类型派发
+    if (SubStr(action, 1, 4) = "run|" || SubStr(action, 1, 5) = "file|") {
+        target := SubStr(action, SubStr(action, 1, 4) = "run|" ? 5 : 6)
+        if (InStr(target, ".lnk")) {
+            try {
+                FileGetShortcut(target, &filePath)
+                if (!FileExist(filePath)) {
+                    filePath := StrReplace(filePath, "C:\Program Files (x86)", "C:\Program Files")
+                    if (FileExist(filePath))
+                        target := filePath
+                }
+            }
+        }
+        SplitPath(target, , &fileDir)
+        try {
+            if (fileDir != "" && DirExist(fileDir)) {
+                if (actionArg = "")
+                    Run(target, fileDir)
+                else
+                    Run(target ' "' actionArg '"', fileDir)
+            } else {
+                if (actionArg = "")
+                    Run(target)
+                else
+                    Run(target ' "' actionArg '"')
+            }
+        } catch as e {
+            try FileAppend(A_Now . " RUN_FAILED: " . target . " err=" . e.Message . "`n", A_ScriptDir . "\Rim.error.log")
+        }
+    }
+    else if (SubStr(action, 1, 4) = "key|") {
+        Send(SubStr(action, 5))
+    }
+    else if (SubStr(action, 1, 7) = "wshkey|") {
+        SendLevel 1
+        Send(SubStr(action, 8))
+        SendLevel 0
+    }
+    else if (SubStr(action, 1, 4) = "dir|") {
+        OpenPath(SubStr(action, 5))
+    }
+    else if (SubStr(action, 1, 4) = "cmd|") {
+        RunWithCmd(SubStr(action, 5))
+    }
+    else if (SubStr(action, 1, 8) = "command|") {
+        if (IsSet(RimCommand) && IsObject(RimCommand))
+            RimCommand.Execute(SubStr(action, 9), actionArg)
+    }
+    else if (SubStr(action, 1, 4) = "url|") {
+        url := SubStr(action, 5)
+        if InStr(url, "{query}") {
+            q := Trim(actionArg != "" ? actionArg : A_Clipboard)
+            url := StrReplace(url, "{query}", UrlEncode(q))
+        }
+        if (!InStr(url, "http"))
+            url := "http://" . url
+        Run(url)
+    }
+    else if (SubStr(action, 1, 9) = "function|") {
+        global Arg
+        rest := SubStr(action, 10)
+        parts := StrSplit(rest, "|")
+        fn := Trim(parts[1])
+        fnArg := parts.Length >= 2 ? Trim(parts[2]) : actionArg
+        if (fnArg != "")
+            Arg := fnArg
+        fn := ResolveFuncAlias(fn)
+        if (fnArg != "") {
+            try {
+                %fn%(fnArg)
+                return
+            } catch {
+            }
+        }
+        try %fn%()
+        catch as e {
+            try FileAppend(A_Now . " EXEC_FAILED: " . fn . " err=" . e.Message . "`n", A_ScriptDir . "\Rim.error.log")
+        }
+    }
+    else {
+        ; 检查是否为已注册的 RimCommand
+        if (IsSet(RimCommand) && IsObject(RimCommand) && RimCommand.Registry.Has(action)) {
+            RimCommand.Execute(action, actionArg)
+            return
+        }
+
+        ; <ActionName> 或普通函数名: 转函数名后直调
+        fn := ActionToFuncName(action)
+        fn := ResolveFuncAlias(fn)
+        if (actionArg != "") {
+            try {
+                %fn%(actionArg)
+                return
+            } catch {
+            }
+        }
+        try %fn%()
+        catch as e {
+            try FileAppend(A_Now . " EXEC_FAILED: " . fn . " err=" . e.Message . "`n", A_ScriptDir . "\Rim.error.log")
+        }
+    }
+}
+
+; VIMD_CMD 兼容接口: 委托至 ExecuteAction
+VIMD_CMD(action := "") {
+    ExecuteAction(action)
 }
 
 ; 显示当前参数 (原版 Core 插件 ShowArg)

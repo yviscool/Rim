@@ -1,4 +1,4 @@
-﻿#Requires AutoHotkey v2.0
+#Requires AutoHotkey v2.0
 #SingleInstance Force
 #Warn All, Off
 
@@ -188,6 +188,11 @@ global g_CommandArea := "Edit4"
 #Include Core\Files.ahk
 #Include Core\Search.ahk
 #Include Core\GUI.ahk
+#Include Core\Context.ahk
+#Include Core\Plugin.ahk
+#Include Core\Command.ahk
+#Include Core\Window.ahk
+#Include Core\Workspace.ahk
 #Include Core\Execution.ahk
 #Include Core\Engine.ahk
 #Include Core\Utils.ahk
@@ -241,6 +246,14 @@ Loop Files, pluginDir "\*.ahk" {
 ; ==================== 托盘菜单 (重建兜底: 前面已建过一次, 这里幂等重建; 语言切换即时生效亦走此函数, 见 Core/Tray.ahk) ====================
 BuildTrayMenu()
 
+; ==================== 统一插件生命周期初始化 ====================
+RimPluginManager.InitAll()
+RimPluginManager.RegisterAllContexts()
+
+; ==================== 语义指令与工作空间注册 ====================
+InitUniversalCommands()
+InitWorkspaceCommands()
+
 ; ==================== 加载文件 ====================
 if (FileExist(g_SearchFileList))
     LoadFiles()
@@ -251,165 +264,11 @@ else
     }
 
 ; ==================== 创建 GUI (AHK v2) ====================
-; 置顶与否只看配置 (对齐原版: 默认不置顶, 二维码等子窗口 Show 才能到前面)
-_topOpt := (g_Conf["Config"]["WindowAlwaysOnTop"] = "1") ? " +AlwaysOnTop" : ""
-g_MainGui := Gui("+ToolWindow" _topOpt (g_SkinConf["HideTitle"] = "1" ? " -Caption" : ""), g_WindowName)
-g_MainGui.BackColor := g_SkinConf["BackgroundColor"]
-
-if (g_SkinConf["BackgroundPicture"] != "" && FileExist(A_ScriptDir "\Conf\Skins\" g_SkinConf["BackgroundPicture"]))
-    g_MainGui.Add("Picture", "x0 y0", A_ScriptDir "\Conf\Skins\" g_SkinConf["BackgroundPicture"])
-
-border := 10
-if (g_SkinConf["BorderSize"] + 0 >= 0)
-    border := g_SkinConf["BorderSize"] + 0
-windowHeight := border * 3 + g_SkinConf["EditHeight"] + 0 + g_SkinConf["DisplayAreaHeight"] + 0
-
-g_MainGui.SetFont("C" g_SkinConf["FontColor"] " S" g_SkinConf["FontSize"], g_SkinConf["FontName"])
-; 输入框底色 (对齐原版 Gui,Color 的 Edit 色; try 兜底未知色值)
-ApplyEditColor(ctrl) {
-    global g_SkinConf
-    try {
-        if (g_SkinConf.Has("EditColor") && g_SkinConf["EditColor"] != "")
-            ctrl.Opt("+Background" . g_SkinConf["EditColor"])
-    }
-}
-g_InputEdit := g_MainGui.Add("Edit", "x" border " y" border " -WantReturn"
-    . " w" g_SkinConf["WidgetWidth"] " h" g_SkinConf["EditHeight"])
-ApplyEditColor(g_InputEdit)
-g_InputEdit.OnEvent("Change", ProcessInputCommand)
-g_MainGui.Add("Edit", "y+0 w0 h0 ReadOnly -WantReturn")
-btn := g_MainGui.Add("Button", "y+0 w0 h0 Default")
-btn.OnEvent("Click", RunCurrentCommand)
-g_DisplayEdit := g_MainGui.Add("Edit", "y+" border " -VScroll ReadOnly -WantReturn"
-    . " w" g_SkinConf["WidgetWidth"] " h" g_SkinConf["DisplayAreaHeight"])
-ApplyEditColor(g_DisplayEdit)
-
-g_CommandEdit := ""
-if (g_SkinConf["ShowCurrentCommand"] = "1") {
-    g_CommandEdit := g_MainGui.Add("Edit", "y+" border " ReadOnly"
-        . " w" g_SkinConf["WidgetWidth"] " h" g_SkinConf["EditHeight"])
-    ApplyEditColor(g_CommandEdit)
-    windowHeight += border + g_SkinConf["EditHeight"] + 0
-}
-
-windowY := ""
-if (g_SkinConf["ShowInputBoxOnlyIfEmpty"] = "1") {
-    windowHeight := border * 2 + g_SkinConf["EditHeight"] + 0
-    screenHeight := SysGet(79)
-    windowY := "y" (screenHeight - border * 2 - g_SkinConf["EditHeight"] + 0 - g_SkinConf["DisplayAreaHeight"] + 0) / 2
-}
-
-cmdlineArg := A_Args.Length >= 1 ? A_Args[1] : ""
-showCmd := (cmdlineArg = "--hide") ? "Hide" : ""
-
-g_MainGui.Show(windowY " w" border * 2 + g_SkinConf["WidgetWidth"] + 0
-    . " h" windowHeight " " showCmd)
-
-; 初始化显示内容
-_searchResult := SearchCommand("", true)
-g_DisplayEdit.Value := AlignText(_searchResult)
-
-if (g_SkinConf["RoundCorner"] + 0 > 0)
-    WinSetRegion("0-0 w" border * 2 + g_SkinConf["WidgetWidth"] + 0 " h" windowHeight
-        . " r" g_SkinConf["RoundCorner"] + 0 "-" g_SkinConf["RoundCorner"] + 0, g_WindowName)
-
-; ==================== 窗口设置 ====================
-if (g_Conf["Config"]["SwitchToEngIME"])
-    SwitchToEngIME()
-
-if (g_Conf["Config"]["ExitIfInactivate"])
-    OnMessage(0x06, WM_ACTIVATE)
-
-OnMessage(0x0200, WM_MOUSEMOVE)
-
+InitMainGui()
 BootMark("STARTUP gui-shown")
 
 ; ==================== 绑定热键 (经 BindKey 统一 $ 前缀, 防 Send 回环) ====================
-HotIfWinActive(g_WindowName)
-
-BindKey("Esc", SI_Esc)
-BindKey("!F4", ExitRunZ)
-BindKey("Tab", SI_Tab)
-BindKey("F1", Help)
-BindKey("+F1", KeyHelp)
-BindKey("F2", EditConfig)
-BindKey("F3", EditAutoConfig)
-BindKey("^q", RestartRunZ)
-BindKey("^l", ClearInputLabel)
-BindKey("^u", ClearInputLabel)
-BindKey("^d", OpenCurrentFileDir)
-BindKey("^x", DeleteCurrentFile)
-BindKey("^s", ShowCurrentFile)
-BindKey("^y", DisplayCopyAll)
-BindKey("^r", ReindexFiles)
-BindKey("^h", DisplayHistoryCommands)
-BindKey("^n", IncreaseRank)
-BindKey("^=", IncreaseRank)
-BindKey("^p", DecreaseRank)
-BindKey("^-", DecreaseRank)
-BindKey("^f", NextPage)
-BindKey("^b", PrevPage)
-BindKey("^i", HomeKey)
-BindKey("^o", EndKey)
-BindKey("^j", NextCommand)
-BindKey("^k", PrevCommand)
-BindKey("Down", NextCommand)
-BindKey("Up", PrevCommand)
-BindKey("Right", SI_Right)
-BindKey("^Right", SI_AcceptWordKey)
-BindKey("Backspace", SI_Backspace)
-BindKey("^Backspace", SI_CtrlBackspace)
-BindKey("Delete", SI_DeleteKey)
-BindKey("!Up", SI_SubstrUp)
-BindKey("!Down", SI_SubstrDown)
-BindKey("~LButton", ClickFunction)
-BindKey("RButton", OpenContextMenu)
-BindKey("AppsKey", OpenContextMenu)
-BindKey("^Enter", SaveResultAsArg)
-
-; Alt+字母 快速执行 (保留, 与 Alt+数字并存) / Alt+数字直达 (0=第10项)
-; (已删除 Tab+字母执行 / Shift+字母定位: Tab 还给补全, Up/Down 只翻列表, 历史翻找走 Alt+Up/Down)
-Loop g_DisplayRows {
-    key := Chr(g_FirstChar + A_Index - 1)
-    BindKey("!" key, RunSelectedCommand)
-}
-Loop 10 {
-    digit := Mod(A_Index, 10)
-    if (A_Index <= g_DisplayRows)
-        BindKey("!" . digit, SI_RunByIndex)
-}
-
-; 用户自定义热键 (<...> 经工厂绑闭包, 避免循环变量共享)
-for key, label in g_Conf["Hotkey"] {
-    if (label != "Default") {
-        try {
-            if (SubStr(label, 1, 1) = "<") {
-                BindKey(key, MakeVimCb(label))
-            } else {
-                BindKey(key, MakeCb(label))
-            }
-        }
-    } else {
-        try Hotkey(key, "Off")
-    }
-}
-
-HotIfWinActive()
-
-; 全局热键 (<...> 经工厂绑闭包, 避免循环变量共享)
-for key, label in g_Conf["GlobalHotkey"] {
-    if (label != "Default") {
-        try {
-            if (SubStr(label, 1, 1) = "<") {
-                BindKey(key, MakeVimCb(label), "On")
-            } else {
-                BindKey(key, MakeCb(label), "On")
-            }
-        }
-    } else {
-        try Hotkey(key, "Off")
-    }
-}
+BindLauncherHotkeys()
 
 ; ==================== 恢复状态 ====================
 if (g_Conf["Config"]["SaveInputText"] && g_AutoConf["Auto"]["InputText"] != "")
@@ -431,43 +290,23 @@ Rim.vim := g_VimEngine
 Rim.config := g_Conf
 ; 自家窗口旁路: 输入框打字不进 vim 分发
 g_VimEngine.SelfWinTitle := g_WindowName
-global g_TCPluginOn := false
-VimPluginOn(name) {
-    global g_Conf
-    return g_Conf.Get("Plugins", name, "1") != "0"
-}
-    ; General 基础层: 无类名/进程限制, 先注册再按 ini 细化
-    ; (本构建无 IsFunc, 以下函数皆随 #Include 存在, 直调 + OnError 网兜底;
-    ;  不用 try 包整段, 避免单个失败吞掉后续注册)
-    if (VimPluginOn("General"))
-        RegisterPlugin_General()
-    if (VimPluginOn("Explorer"))
-        RegisterPlugin_Explorer()
-    if (VimPluginOn("TCCompare"))
-        RegisterPlugin_TCCompare()
-    if (VimPluginOn("WinMerge"))
-        RegisterPlugin_WinMerge()
-    if (VimPluginOn("BeyondCompare4"))
-        RegisterPlugin_BeyondCompare4()
-    if (VimPluginOn("Foobar2000"))
-        RegisterPlugin_Foobar2000()
-    if (VimPluginOn("TotalCommander")) {
-        RegisterPlugin_TotalCommander()
-        g_TCPluginOn := true
-    }
-    if (VimPluginOn("TCDialog"))
-        RegisterPlugin_TCDialog()
-    if (VimPluginOn("VimDConfig"))
-        RegisterPlugin_VimDConfig()
-    VimdCheckHotKey()
+global g_TCPluginOn := RimPluginManager.IsEnabled("TotalCommander")
+
+VimPluginOn(name) => RimPluginManager.IsEnabled(name)
+
+; 插件按键模式注入 (现代插件优先，向下兼容历史插件)
+RimPluginManager.RegisterAllKeymaps(g_VimEngine)
+RimPluginManager.LoadLegacyVimPlugins(g_Plugins)
+VimdCheckHotKey()
 
     ; ==================== 鼠标手势 (StrokePlus 重构 P1) ====================
     ; 右键按住拖拽=手势, 短点=普通右键; 映射见 [Gesture]/[Gestures]
-    if (VimPluginOn("StrokePlus"))
+    RimPluginManager.RegisterAllGestures()
+    if (RimPluginManager.IsEnabled("StrokePlus"))
         RegisterPlugin_StrokePlus()
-    if (VimPluginOn("StatsBall"))
+    if (RimPluginManager.IsEnabled("StatsBall"))
         RegisterPlugin_StatsBall()
-    GestureInit()
+    GestureEngine.Init()
 
 ; ==================== 文件监控 ====================
 SetTimer(WatchUserFileList, 3000)
@@ -637,65 +476,17 @@ VimdCheckHotKey() {
                     mode := _m[2]
                 }
                 g_VimEngine.SetMode(mode, sectionName)
-                ; 未知 cm_ 编号直接跳过映射 (保留原键透传; 否则运行时调不存在的函数, 按键变砖。
-                ; 如 ini 里 cm_DirBranch 等无编号条目。插件硬编码的 cm_ 都有编号, 不受影响)
-                if RegExMatch(_v, "^<cm_(.+)>$", &_cm) {
-                    _cmNum := 1
-                    try _cmNum := TC_GetCommandNumber("cm_" _cm[1])
-                    catch {
-                    }
-                    if (!_cmNum)
-                        continue
-                }
+                ; 动作合法性校验 (插件通过 RegisterActionValidator 注册验证规则, 无效动作跳过保留原键透传)
+                if (!g_VimEngine.IsValidAction(_v))
+                    continue
+
                 ; 中文注释保护: 插件已注册中文的不再用动作名覆盖 (g 面板中文就靠它)
                 if !g_VimEngine.ActionList.Has(_v)
                     g_VimEngine.SetAction(_v, _v)
-                if (SubStr(_v, 1, 4) = "run|" || SubStr(_v, 1, 4) = "key|" || SubStr(_v, 1, 4) = "dir|"
-                    || SubStr(_v, 1, 6) = "tccmd|" || SubStr(_v, 1, 7) = "wshkey|" || SubStr(_v, 1, 9) = "function|") {
-                    g_VimEngine.VIMD_CMD_LIST[_v] := _v
-                    g_VimEngine.MapKey(_k, _v, sectionName, mode)
-                } else {
-                    g_VimEngine.MapKey(_k, _v, sectionName, mode)
-                }
+                g_VimEngine.MapKey(_k, _v, sectionName, mode)
             }
         }
     }
     ; 引擎绑定改了 HotIf 上下文, 复位避免污染后续 launcher 热键
     HotIfWinActive()
-}
-
-; VIMD_CMD 派发: run|/key|/dir|/tccmd|/wshkey|/function|
-VIMD_CMD(action := "") {
-    global g_VimEngine
-    if (action = "")
-        action := g_VimEngine.lastAction
-    if (action = "")
-        return
-    if (SubStr(action, 1, 4) = "run|")
-        Run(SubStr(action, 5))
-    else if (SubStr(action, 1, 4) = "key|")
-        Send(SubStr(action, 5))
-    else if (SubStr(action, 1, 4) = "dir|")
-        OpenPath(SubStr(action, 5))
-    else if (SubStr(action, 1, 6) = "tccmd|")
-        TC_Run(SubStr(action, 7))
-    else if (SubStr(action, 1, 7) = "wshkey|") {
-        SendLevel 1
-        Send(SubStr(action, 8))
-        SendLevel 0
-    } else if (SubStr(action, 1, 9) = "function|") {
-        ; 无 IsFunc 可用: 直调 + OnError 网兜底 (缺失即记日志跳过)
-        rest := SubStr(action, 10)
-        parts := StrSplit(rest, "|")
-        fn := Trim(parts[1])
-        arg := parts.Length >= 2 ? Trim(parts[2]) : ""
-        if (arg != "")
-            %fn%(arg)
-        else
-            %fn%()
-    } else {
-        ; <Gen_xxx>/<TC_xxx> 等 Action 名: 转函数名调用 (直调, 缺失走 OnError 网)
-        fn := ActionToFuncName(action)
-        %fn%()
-    }
 }

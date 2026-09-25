@@ -1,4 +1,4 @@
-﻿#Requires AutoHotkey v2.0
+#Requires AutoHotkey v2.0
 #Warn All, Off
 
 ; === GUI - 显示和对齐 (从 RunZ Core/GUI.ahk 移植) ===
@@ -377,4 +377,82 @@ AlignText(text) {
     }
 
     return result
+}
+
+; 输入框底色 (对齐原版 Gui,Color 的 Edit 色; try 兜底未知色值)
+ApplyEditColor(ctrl) {
+    global g_SkinConf
+    try {
+        if (g_SkinConf.Has("EditColor") && g_SkinConf["EditColor"] != "")
+            ctrl.Opt("+Background" . g_SkinConf["EditColor"])
+    }
+}
+
+; === 初始化并构建启动器主 GUI ===
+InitMainGui() {
+    global g_Conf, g_SkinConf, g_WindowName, g_MainGui
+    global g_InputEdit, g_DisplayEdit, g_CommandEdit
+
+    _topOpt := (g_Conf["Config"]["WindowAlwaysOnTop"] = "1") ? " +AlwaysOnTop" : ""
+    g_MainGui := Gui("+ToolWindow" _topOpt (g_SkinConf["HideTitle"] = "1" ? " -Caption" : ""), g_WindowName)
+    g_MainGui.BackColor := g_SkinConf["BackgroundColor"]
+
+    if (g_SkinConf["BackgroundPicture"] != "" && FileExist(A_ScriptDir "\Conf\Skins\" g_SkinConf["BackgroundPicture"]))
+        g_MainGui.Add("Picture", "x0 y0", A_ScriptDir "\Conf\Skins\" g_SkinConf["BackgroundPicture"])
+
+    border := 10
+    if (g_SkinConf["BorderSize"] + 0 >= 0)
+        border := g_SkinConf["BorderSize"] + 0
+    windowHeight := border * 3 + g_SkinConf["EditHeight"] + 0 + g_SkinConf["DisplayAreaHeight"] + 0
+
+    g_MainGui.SetFont("C" g_SkinConf["FontColor"] " S" g_SkinConf["FontSize"], g_SkinConf["FontName"])
+
+    g_InputEdit := g_MainGui.Add("Edit", "x" border " y" border " -WantReturn"
+        . " w" g_SkinConf["WidgetWidth"] " h" g_SkinConf["EditHeight"])
+    ApplyEditColor(g_InputEdit)
+    g_InputEdit.OnEvent("Change", ProcessInputCommand)
+    g_MainGui.Add("Edit", "y+0 w0 h0 ReadOnly -WantReturn")
+    btn := g_MainGui.Add("Button", "y+0 w0 h0 Default")
+    btn.OnEvent("Click", RunCurrentCommand)
+    g_DisplayEdit := g_MainGui.Add("Edit", "y+" border " -VScroll ReadOnly -WantReturn"
+        . " w" g_SkinConf["WidgetWidth"] " h" g_SkinConf["DisplayAreaHeight"])
+    ApplyEditColor(g_DisplayEdit)
+
+    g_CommandEdit := ""
+    if (g_SkinConf["ShowCurrentCommand"] = "1") {
+        g_CommandEdit := g_MainGui.Add("Edit", "y+" border " ReadOnly"
+            . " w" g_SkinConf["WidgetWidth"] " h" g_SkinConf["EditHeight"])
+        ApplyEditColor(g_CommandEdit)
+        windowHeight += border + g_SkinConf["EditHeight"] + 0
+    }
+
+    windowY := ""
+    if (g_SkinConf["ShowInputBoxOnlyIfEmpty"] = "1") {
+        windowHeight := border * 2 + g_SkinConf["EditHeight"] + 0
+        screenHeight := SysGet(79)
+        windowY := "y" (screenHeight - border * 2 - g_SkinConf["EditHeight"] + 0 - g_SkinConf["DisplayAreaHeight"] + 0) / 2
+    }
+
+    cmdlineArg := A_Args.Length >= 1 ? A_Args[1] : ""
+    showCmd := (cmdlineArg = "--hide") ? "Hide" : ""
+
+    g_MainGui.Show(windowY " w" border * 2 + g_SkinConf["WidgetWidth"] + 0
+        . " h" windowHeight " " showCmd)
+
+    ; 初始化显示内容
+    _searchResult := SearchCommand("", true)
+    g_DisplayEdit.Value := AlignText(_searchResult)
+
+    if (g_SkinConf["RoundCorner"] + 0 > 0)
+        WinSetRegion("0-0 w" border * 2 + g_SkinConf["WidgetWidth"] + 0 " h" windowHeight
+            . " r" g_SkinConf["RoundCorner"] + 0 "-" g_SkinConf["RoundCorner"] + 0, g_WindowName)
+
+    ; 窗口消息与设置
+    if (g_Conf["Config"]["SwitchToEngIME"])
+        SwitchToEngIME()
+
+    if (g_Conf["Config"]["ExitIfInactivate"])
+        OnMessage(0x06, WM_ACTIVATE)
+
+    OnMessage(0x0200, WM_MOUSEMOVE)
 }
