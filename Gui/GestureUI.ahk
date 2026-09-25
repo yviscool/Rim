@@ -127,6 +127,16 @@ ShowGestureManager(*) {
     cfgTrailW.OnEvent("Change", (*) => GestureCfg_ShowVal("TrailW"))
     mg.Add("Text", "x+6 w470", T("gesture.set_trailw_hint"))
 
+    mg.Add("Text", "xs y+6 w110", T("gesture.set_poll"))
+    cfgPoll := mg.Add("Slider", "x+6 w150 Range5-50", 10)
+    cfgPollTx := mg.Add("Text", "x+6 w30", "10")
+    cfgPoll.OnEvent("Change", (*) => GestureCfg_ShowVal("Poll"))
+    mg.Add("Text", "x+6 w470", T("gesture.set_poll_hint"))
+
+    mg.Add("Text", "xs y+6 w110", T("gesture.set_trailcolor"))
+    cfgTrailColor := mg.Add("Edit", "x+6 w90", "")
+    mg.Add("Text", "x+8 w560", T("gesture.set_trailcolor_hint"))
+
     mg.Add("Text", "xs y+6 w110", T("gesture.set_ignorekey"))
     cfgIgnoreKey := mg.Add("Edit", "x+6 w90", "")
     mg.Add("Text", "x+8 w560", T("gesture.set_ignore_hint"))
@@ -137,6 +147,9 @@ ShowGestureManager(*) {
 
     cfgOnlyDef := mg.Add("CheckBox", "xs y+6", T("gesture.set_onlydef"))
     mg.Add("Text", "x+8 yp+2 w550", T("gesture.set_onlydef_hint"))
+
+    cfgVol := mg.Add("CheckBox", "xs y+6", T("gesture.set_vol"))
+    mg.Add("Text", "x+8 yp+2 w550", T("gesture.set_vol_hint"))
 
     cfgTry := mg.Add("CheckBox", "xs y+6", T("gesture.set_try"))
     cfgTry.OnEvent("Click", (*) => GestureEngine.SetTryMode(cfgTry.Value ? true : false))
@@ -176,8 +189,10 @@ ShowGestureManager(*) {
         , "cancelDelay", cfgCancelDelay
         , "tplTh", cfgTplTh, "tplThTx", cfgTplThTx
         , "trailW", cfgTrailW, "trailWTx", cfgTrailWTx
+        , "poll", cfgPoll, "pollTx", cfgPollTx
+        , "trailColor", cfgTrailColor
         , "ignoreKey", cfgIgnoreKey, "osd", cfgOSD, "trail", cfgTrail, "onlyDef", cfgOnlyDef
-        , "tryBox", cfgTry)
+        , "vol", cfgVol, "tryBox", cfgTry)
     GestureCfg_Load()
     g_GestureMgr["status"] := status
     g_GestureMgr["editGui"] := ""
@@ -926,6 +941,10 @@ GestureCfg_Load() {
         c["tplThTx"].Text := "" . th
         c["trailW"].Value := GestureCfg_Val("trailWidth") + 0
         c["trailWTx"].Text := "" . (GestureCfg_Val("trailWidth") + 0)
+        c["poll"].Value := GestureCfg_Val("poll") + 0
+        c["pollTx"].Text := "" . (GestureCfg_Val("poll") + 0)
+        c["trailColor"].Text := GestureCfg_Val("trailColor")
+        c["vol"].Value := GestureCfg_Val("volLatch") ? 1 : 0
         c["ignoreKey"].Text := GestureCfg_Val("ignoreKey")
         c["osd"].Value := GestureCfg_Val("showOSD") ? 1 : 0
         c["trail"].Value := GestureCfg_Val("trail") ? 1 : 0
@@ -947,6 +966,8 @@ GestureCfg_ShowVal(which) {
             c["tplThTx"].Text := "" . c["tplTh"].Value
         else if (which = "TrailW")
             c["trailWTx"].Text := "" . c["trailW"].Value
+        else if (which = "Poll")
+            c["pollTx"].Text := "" . c["poll"].Value
     } catch {
     }
 }
@@ -959,6 +980,9 @@ GestureCfg_OnSave(*) {
         trigVal := (c["trigger"].Value >= 1 && c["trigger"].Value <= 4) ? trigKeys[c["trigger"].Value] : "RButton"
         nmKeys := ["swallow", "passthrough", "sound"]
         nmVal := (c["noMatch"].Value >= 1 && c["noMatch"].Value <= 3) ? nmKeys[c["noMatch"].Value] : "swallow"
+        tc := Trim(c["trailColor"].Text)
+        if (tc = "")
+            tc := GestureCfg_Val("trailColor")
         vals := Map("Enable", c["enable"].Value ? "1" : "0"
             , "Trigger", trigVal
             , "NoMatch", nmVal
@@ -967,6 +991,9 @@ GestureCfg_OnSave(*) {
             , "CancelDelay", "" . Min(10000, Max(0, c["cancelDelay"].Value + 0))
             , "TemplateThreshold", "" . c["tplTh"].Value
             , "TrailWidth", "" . c["trailW"].Value
+            , "Poll", "" . Min(50, Max(5, c["poll"].Value + 0))
+            , "TrailColor", tc
+            , "VolLatch", c["vol"].Value ? "1" : "0"
             , "IgnoreKey", Trim(c["ignoreKey"].Text)
             , "ShowOSD", c["osd"].Value ? "1" : "0"
             , "Trail", c["trail"].Value ? "1" : "0"

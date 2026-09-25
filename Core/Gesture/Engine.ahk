@@ -131,8 +131,11 @@ class GestureEngine {
             try SoundBeep(750, 120)
         }
 
-        try ToolTip(T("gesture.unknown", gesture))
-        SetTimer(GestureEngine.fnHideTip, -900)
+        ; OSD 关闭时保持静默 (试笔模式除外, 那是显式诊断流程)
+        if (g_Gesture["showOSD"] || g_Gesture["tryMode"]) {
+            try ToolTip(T("gesture.unknown", gesture))
+            SetTimer(GestureEngine.fnHideTip, -900)
+        }
     }
 
     ; ---- 统一候选解析: 收集各层候选并评判胜出者 ----
@@ -389,18 +392,27 @@ class GestureEngine {
         }
 
         ; 组合: 触发键 + 左键 + 滚轮 -> 调音量.
-        ; 两种进法: ① 按住左键的同时滚 (经典); ② 点一下左键锁存音量模式后松开左键再滚
-        ; (Hook.OnLeftDown/OnPoll 置 volMode, 本次右键会话内有效, 松开左键仍可连滚).
-        volLatched := false
-        try volLatched := gestureDown && g_Gesture["volMode"]
-        if ((held && leftHeld && (which = "WheelUp" || which = "WheelDown")) ||
-            (volLatched && (which = "WheelUp" || which = "WheelDown"))) {
-            if (volLatched)
-                g_Gesture["volUsed"] := 1
-            else if (gestureDown) {
+        ; 两种进法: ① 按住左键的同时滚 (经典, 常开);
+        ; ② 点一下左键锁存音量模式后松开左键再滚 (需 VolLatch=1,
+        ;    Hook.OnLeftDown/OnPoll 置 volMode, 本次右键会话内有效, 松开左键仍可连滚).
+        if (held && leftHeld && (which = "WheelUp" || which = "WheelDown")) {
+            if (gestureDown && g_Gesture["volLatch"]) {
                 g_Gesture["volMode"] := 1
                 g_Gesture["volUsed"] := 1
             }
+            if (g_Gesture["tryMode"]) {
+                try ToolTip(T("gesture.try_wheel", which . "+LButton",
+                    which = "WheelUp" ? "<SP_VolUp>" : "<SP_VolDown>", "组合"))
+                SetTimer(GestureEngine.fnHideTip, -2000)
+            } else {
+                try Send(which = "WheelUp" ? "{Volume_Up}" : "{Volume_Down}")
+            }
+            return
+        }
+        volLatched := false
+        try volLatched := gestureDown && g_Gesture["volLatch"] && g_Gesture["volMode"]
+        if (volLatched && (which = "WheelUp" || which = "WheelDown")) {
+            g_Gesture["volUsed"] := 1
             if (g_Gesture["tryMode"]) {
                 try ToolTip(T("gesture.try_wheel", which . "+LButton",
                     which = "WheelUp" ? "<SP_VolUp>" : "<SP_VolDown>", "组合"))
@@ -460,9 +472,11 @@ class GestureEngine {
         try Send("{" . which . "}")
     }
 
-    ; ---- OSD 呈现 ----
+    ; ---- OSD 呈现 (本体自守卫: 调用方一般已 gate, 这里兜底) ----
     static OSD() {
         global g_Gesture
+        if (!g_Gesture["showOSD"] && !g_Gesture["tryMode"])
+            return
         g := g_Gesture["gesture"]
         txt := T("gesture.osd_gesture", (g = "" ? "..." : g))
         if (g_Gesture["recording"])
@@ -540,7 +554,7 @@ class GestureEngine {
             wasActive := (g_Gesture["comboKind"] = kind && GestureEngine.ComboActive())
             g_Gesture["comboUntil"] := A_TickCount + 1500
             g_Gesture["comboKind"] := kind
-            if (!wasActive) {
+            if (!wasActive && (g_Gesture["showOSD"] || g_Gesture["tryMode"])) {
                 tip := g_Gesture["tryMode"] ? T("gesture.arm_zoom") : T("gesture.zoom_ready")
                 try ToolTip(tip)
                 SetTimer(GestureEngine.fnHideTip, -1500)
@@ -717,7 +731,10 @@ class GestureEngine {
                     g_Gesture["enable"] := (sec["Enable"] = "1") ? 1 : 0
                 if sec.Has("Threshold") && (sec["Threshold"] + 0 > 0)
                     g_Gesture["threshold"] := sec["Threshold"] + 0
-                if sec.Has("TplThreshold") && (sec["TplThreshold"] + 0 > 0)
+                ; 形状阈值主鍵 TemplateThreshold (设置页写入), TplThreshold 作旧别名兼容
+                if sec.Has("TemplateThreshold") && (sec["TemplateThreshold"] + 0 > 0)
+                    g_Gesture["tplThreshold"] := sec["TemplateThreshold"] + 0
+                else if sec.Has("TplThreshold") && (sec["TplThreshold"] + 0 > 0)
                     g_Gesture["tplThreshold"] := sec["TplThreshold"] + 0
                 if sec.Has("Segment") && (sec["Segment"] + 0 > 0)
                     g_Gesture["segment"] := sec["Segment"] + 0
@@ -739,6 +756,9 @@ class GestureEngine {
                 }
                 if sec.Has("IgnoreKey")
                     g_Gesture["ignoreKey"] := Trim(sec["IgnoreKey"])
+                ; 右键按住时点左键锁存音量模式 (0=关闭, 左键直通恢复旧行为)
+                if sec.Has("VolLatch")
+                    g_Gesture["volLatch"] := (sec["VolLatch"] = "1") ? 1 : 0
                 if sec.Has("OnlyDefinedApps")
                     g_Gesture["onlyDefined"] := (sec["OnlyDefinedApps"] = "1") ? 1 : 0
                 if sec.Has("Trail")
@@ -902,8 +922,10 @@ class GestureEngine {
     static IgnoreNext() {
         global g_Gesture
         g_Gesture["ignoreNext"] := 1
-        try ToolTip(T("gesture.next_ignored"))
-        SetTimer(GestureEngine.fnHideTip, -900)
+        if (g_Gesture["showOSD"] || g_Gesture["tryMode"]) {
+            try ToolTip(T("gesture.next_ignored"))
+            SetTimer(GestureEngine.fnHideTip, -900)
+        }
     }
 
     static NoOp() {

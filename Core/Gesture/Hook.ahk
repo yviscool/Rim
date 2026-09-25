@@ -143,8 +143,9 @@ class GestureHook {
         pollInterval := g_Gesture["poll"] > 0 ? g_Gesture["poll"] : 10
         SetTimer(GestureHook_PollTimer, pollInterval)
         ; 右键会话内吞掉左键单击: 点一下左键即锁存音量模式 (R 仍按住时滚轮调音量),
-        ; 避免这次左键点透到下层窗口. 会话结束 (R 松开) 时解绑.
-        GestureHook.ArmLeftSwallow()
+        ; 避免这次左键点透到下层窗口. 会话结束 (R 松开) 时解绑. VolLatch=0 时不启用.
+        if (g_Gesture["volLatch"])
+            GestureHook.ArmLeftSwallow()
     }
 
     ; ---- 左键吞掉 (仅右键会话内有效) ----
@@ -169,7 +170,7 @@ class GestureHook {
     ; 右键按住时点一下左键: 锁存音量模式, 本次单击不透传
     static OnLeftDown(*) {
         global g_Gesture
-        if (!g_Gesture["down"])
+        if (!g_Gesture["down"] || !g_Gesture["volLatch"])
             return
         g_Gesture["leftCombo"] := 1
         if (!g_Gesture["volMode"]) {
@@ -221,7 +222,7 @@ class GestureHook {
         try {
             if GetKeyState("LButton", "P") {
                 g_Gesture["leftCombo"] := 1
-                if (!g_Gesture["volMode"]) {
+                if (!g_Gesture["volMode"] && g_Gesture["volLatch"]) {
                     g_Gesture["volMode"] := 1
                     try GestureTrail_Hide()
                     catch {

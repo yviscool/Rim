@@ -48,6 +48,7 @@ Register_GestureDefaults() {
         "ShowOSD", "1",
         "NoMatch", "swallow",
         "IgnoreKey", "",
+        "VolLatch", "1",
         "OnlyDefinedApps", "0",
         "Trail", "1",
         "TrailColor", "45ABFF",

@@ -48,6 +48,7 @@ global g_Gesture := Map(
     "startContext", "",
     "forwardDown", 0,
     "leftCombo", 0,
+    "volLatch", 1,
     "volMode", 0,
     "volUsed", 0,
     "candidate", "",

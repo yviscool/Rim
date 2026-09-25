@@ -20,7 +20,7 @@ Rim combines three desktop workflows: a searchable command launcher, modal keybo
 
 - **Launcher:** find and run indexed files, configured commands, and fallback actions. Search results can use saved history and ranking. The file index is built from configured search directories and file filters.
 - **Application-aware keyboard controls:** define modes, key sequences, counts, and actions per window or process. Included mappings cover Windows Explorer, Total Commander, editors, and supported desktop applications.
-- **Mouse gestures:** draw with the configured mouse button, map direction sequences or gesture templates to actions, and customize application-specific rules and exclusions.
+- **Mouse gestures:** draw with the configured mouse button, map direction sequences or gesture templates to actions, and customize application-specific rules and exclusions. Holding the trigger also enables wheel shortcuts: cycle taskbar windows, or L-click once for volume mode — see [Wheel gestures](docs/gesture-wheel.md).
 - **Desktop monitor:** an optional floating radar displays CPU, memory, and network activity, with configurable refresh and alert settings.
 - **Configuration UI:** manage launcher, hotkey, plugin, Total Commander, gesture, and related settings from the tray menu.
 - **Built-in integrations:** launcher and system commands, Explorer navigation, Total Commander commands, Vim-style editing, media controls, QR-code utilities, text conversion, and integrations for selected third-party applications. Some actions require the corresponding application to be installed.
@@ -80,7 +80,7 @@ Prebuilt portable packages are published on the [Releases page](https://github.c
 - `Conf/rim.ini` stores launcher settings, global hotkeys, application mappings, gestures, plugins, and monitor options.
 - `Conf/Skins/` contains launcher skins.
 - The tray configuration center provides a UI for common settings. Changes that affect startup or low-level bindings may require a restart.
-- Gesture definitions can be global or scoped to an application. The default trigger, thresholds, application rules, templates, and exclusions are in `Conf/rim.ini`.
+- Gesture definitions can be global or scoped to an application. The default trigger, thresholds, application rules, templates, and exclusions are in `Conf/rim.ini`. Wheel gestures (taskbar cycling, volume latch), tip switches, and hold-still cancel are covered in [Wheel gestures](docs/gesture-wheel.md).
 - Language selection is under `[Config] Language`. Use `auto`, `en`, or `zh-CN` for the fully maintained languages.
 
 ## Project Layout
@@ -114,6 +114,8 @@ To add an integration, place it in `Plugins/`, register its actions or commands 
 
 - [Documentation index](docs/README.md)
 - [简体中文文档](docs/README.zh-CN.md)
+- [Wheel gestures: cycle taskbar windows / adjust volume](docs/gesture-wheel.md)
+- [滚轮手势：切任务栏窗口 / 调系统音量](docs/gesture-wheel.zh-CN.md)
 - [License](LICENSE)
 
 ## Credits
