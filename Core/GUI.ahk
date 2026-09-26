@@ -234,6 +234,7 @@ DisplaySearchResult(result) {
         commandToShow := StrReplace(commandToShow, "file | ", TypeLabel("file"))
         commandToShow := StrReplace(commandToShow, "function | ", TypeLabel("function"))
         commandToShow := StrReplace(commandToShow, "cmd | ", TypeLabel("cmd"))
+        commandToShow := StrReplace(commandToShow, "command | ", TypeLabel("command"))
         commandToShow := StrReplace(commandToShow, "url | ", TypeLabel("url"))
         try g_CommandEdit.Value := commandToShow
     }
@@ -356,12 +357,26 @@ AlignText(text) {
             continue
         }
 
+        ; 列头自适应: 按第一个 " | " (5 列之后, 跳过 "a>| "/"a | " 行首) 切分,
+        ; 不再假设类型字段定宽 (原先 col3Pos=10 只对 4 字母类型/2 汉字成立,
+        ; "command"/"function" 等长类型会被错位吞掉描述列); HideCol2 模式保持旧数学
+        _headEnd := 0
+        if (!hasCol2) {
+            _headEnd := InStr(A_LoopField, " | ", false, 5)
+        }
         if (hasCol2)
             result .= SubStr(A_LoopField, 1, 4)
+        else if (_headEnd > 0)
+            result .= SubStr(A_LoopField, 1, _headEnd + 2)
         else
             result .= SubStr(A_LoopField, 1, col3Pos - 1)
 
-        _rest := SubStr(A_LoopField, col3Pos)
+        if (hasCol2)
+            _rest := SubStr(A_LoopField, 5)
+        else if (_headEnd > 0)
+            _rest := SubStr(A_LoopField, _headEnd + 3)
+        else
+            _rest := SubStr(A_LoopField, col3Pos)
         if (_rest = "")
             _rest := " "
         splitedLine := StrSplit(_rest, " | ")

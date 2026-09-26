@@ -27,7 +27,7 @@ OnMessage(0x200, Relay_OnMessage)
 g_Gesture["trigger"] := "RButton"
 g_Gesture["points"] := [{x: 145, y: 145}, {x: 175, y: 145}, {x: 205, y: 160}]
 MouseMove(205, 160, 0)
-ok := Gesture_RelayStroke(true)
+ok := GestureHook.RelayStroke(true)
 Sleep(150)
 
 downAt := 0, moveAt := 0, upAt := 0
@@ -43,18 +43,27 @@ complete := ok && downAt > 0 && moveAt > downAt && upAt > moveAt
 
 relayEvents := []
 MouseMove(205, 160, 0)
-held := Gesture_RelayStroke(false)
+held := GestureHook.RelayStroke(false)
 Sleep(100)
 releasedEarly := false
 for _, msg in relayEvents
     if (msg = 0x205)
         releasedEarly := true
 SendEvent("{RButton Up}")
-Sleep(100)
 releasedAfter := false
-for _, msg in relayEvents
-    if (msg = 0x205)
-        releasedAfter := true
+; 松开事件经消息泵投递, headless 下 100ms 未必到, 轮询等 2s (只测"最终到达", 不测时延)
+waitTick := A_TickCount
+while (A_TickCount - waitTick < 2000) {
+    for _, msg in relayEvents {
+        if (msg = 0x205) {
+            releasedAfter := true
+            break
+        }
+    }
+    if (releasedAfter)
+        break
+    Sleep(50)
+}
 
 relayEvents := []
 g_Gesture["down"] := 1
@@ -69,7 +78,7 @@ g_Gesture["startY"] := 145
 g_Gesture["startContext"] := ""
 g_Templates := Map()
 MouseMove(205, 160, 0)
-Gesture_UpCore()
+GestureHook.OnUpCore()
 Sleep(100)
 endSampled := g_Gesture["points"].Length > 1
 endRelayed := false

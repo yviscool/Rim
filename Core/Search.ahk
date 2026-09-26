@@ -9,7 +9,7 @@ SearchCommand(command := "", firstRun := false) {
     global g_CurrentCommandList, g_FallbackCommands, g_FirstChar, g_DisplayRows
     global g_ExcludedCommands, g_Commands, g_EnableTCMatch, g_SkinConf
     global g_UseResultFilter, g_UseRealtimeExec, g_InputEdit, g_DisplayEdit
-    global g_WindowName, g_UseFallbackCommands, g_Arg, g_Conf, g_FuncAlias, g_RowActive
+    global g_WindowName, g_UseFallbackCommands, g_Arg, g_Conf, g_RowActive
 
     g_UseDisplay := false
     g_RowActive := false
@@ -48,9 +48,9 @@ SearchCommand(command := "", firstRun := false) {
             return
         }
     }
-    ; 空格 → 原版行为: 已有当前命令时冻结显示直接返回, 空格后文字只作参数
-    ; (只有结果过滤/实时执行模式才会消费空格后的文字)
-    else if (InStr(command, " ") && g_CurrentCommand != "") {
+    ; 空格 → 原版行为: 已有当前命令"且空格前就是它"时冻结显示输参;
+    ; 头对不上 (IME 尾空格/切词/回退行残留选中) 则当全新查询, 不再卡死旧结果
+    else if (InStr(command, " ") && g_CurrentCommand != "" && ShouldFreezeInput(command)) {
         g_PipeArg := ""
 
         if (g_UseResultFilter) {
@@ -152,6 +152,7 @@ SearchCommand(command := "", firstRun := false) {
     }
 
     ; 精确命中置顶 (稳定分区: 精确桶在前, 桶内保持权重+注册序)
+    ; 非精确桶内再按 frecency 降序, 前缀子桶优先, 同分保持注册序;
     ; 回车永远跑首行, ghost 也向首行对齐 (见 SI_FindGhost), 三者一致才不会误执行
     g_CurrentCommandList := []
     order := g_FirstChar
@@ -159,8 +160,38 @@ SearchCommand(command := "", firstRun := false) {
         if (mi["exact"] && !SearchRenderItem(mi, &result, &order, firstRun))
             break
     }
+    qlow := StrLower(command)
+    nonExact := []
+    seq := 0
     for _mi, mi in matchItems {
-        if (!mi["exact"] && !SearchRenderItem(mi, &result, &order, firstRun))
+        if (mi["exact"])
+            continue
+        seq++
+        tgt := ""
+        try tgt := StrLower(SearchTargetKey(mi["element"]))
+        catch {
+        }
+        isPre := (qlow != "" && SubStr(tgt, 1, StrLen(qlow)) = qlow) ? 1 : 0
+        sc := 0.0
+        try sc := RankScoreOfElement(mi["element"])
+        catch {
+        }
+        nonExact.Push(Map("mi", mi, "seq", seq, "score", sc, "pre", isPre))
+    }
+    ordered := []
+    for _, it in nonExact {
+        pos := ordered.Length + 1
+        Loop ordered.Length {
+            o := ordered[A_Index]
+            if (it["pre"] > o["pre"] || (it["pre"] = o["pre"] && it["score"] > o["score"])) {
+                pos := A_Index
+                break
+            }
+        }
+        ordered.InsertAt(pos, it)
+    }
+    for _, it in ordered {
+        if (!SearchRenderItem(it["mi"], &result, &order, firstRun))
             break
     }
 
@@ -193,12 +224,14 @@ SearchCommand(command := "", firstRun := false) {
         result := StrReplace(result, "file | ")
         result := StrReplace(result, "function | ")
         result := StrReplace(result, "cmd | ")
+        result := StrReplace(result, "command | ")
         result := StrReplace(result, "url | ")
         result := StrReplace(result, "run | ")
     } else {
         result := StrReplace(result, "file | ", TypeLabel("file"))
         result := StrReplace(result, "function | ", TypeLabel("function"))
         result := StrReplace(result, "cmd | ", TypeLabel("cmd"))
+        result := StrReplace(result, "command | ", TypeLabel("command"))
         result := StrReplace(result, "url | ", TypeLabel("url"))
         result := StrReplace(result, "run | ", TypeLabel("run"))
     }
@@ -207,27 +240,47 @@ SearchCommand(command := "", firstRun := false) {
     return result
 }
 
+; 冻结判定: 空格前是当前选中命令本身才冻结输参 (新旧池形都认: 别名/文件名/四段key/三段cmd)
+ShouldFreezeInput(command) {
+    global g_CurrentCommand
+    if (g_CurrentCommand = "")
+        return false
+    headCore := ""
+    try headCore := StrLower(SI_HeadPure(command))
+    catch {
+        return true
+    }
+    if (headCore = "")
+        return true
+    try {
+        if (StrLower(SI_CoreOfPure(g_CurrentCommand)) = headCore)
+            return true
+    } catch {
+    }
+    try {
+        pp := CmdLine_Parse(g_CurrentCommand)
+        if (pp["isFour"]) {
+            if (StrLower(pp["key"]) = headCore)
+                return true
+        } else if (pp["len"] >= 2) {
+            if (StrLower(pp["cmd"]) = headCore)
+                return true
+        }
+    } catch {
+    }
+    return false
+}
+
 ; 执行目标归一 (搜索展示去重用): 同目标只留首个命中行
 ;   四段式 key|type|cmd|desc → type|cmd
-;   function 三段式 → g_FuncAlias 解析后的真实函数名 (别名与原名同键)
-;   其余 (file/cmd/run/url 三段式) → type|content
+;   其余 (file/cmd/run/url/function 三段式) → type|content
 ; 注意: 折叠只发生在展示侧, 匹配侧不动 —— 搜别名关键词
 ; (如 top/cancelTimer) 仍能命中别名行并展示它, 只是不再刷屏
 SearchTargetKey(element) {
-    global g_FuncAlias
     parsed := CmdLine_Parse(element)
     parts := parsed["parts"]
     if (parsed["isFour"])
         return parts[2] . "|" . parts[3]
-    if (parts.Length >= 2 && parts[1] = "function") {
-        real := parts[2]
-        try {
-            if (IsObject(g_FuncAlias) && g_FuncAlias.Has(parts[2]))
-                real := g_FuncAlias[parts[2]]
-        } catch {
-        }
-        return "function|" . real
-    }
     if (parts.Length >= 2)
         return parts[1] . "|" . parts[2]
     return element

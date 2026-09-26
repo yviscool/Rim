@@ -171,24 +171,6 @@ Tpl_Normalize(pts) {
     return r
 }
 
-; Unmarked user samples were saved by the earlier rotation-invariant matcher.
-Tpl_PrepareLegacy(rawPts) {
-    global g_TplNPT, g_TplSize
-    npt := (IsSet(g_TplNPT) && g_TplNPT) ? g_TplNPT : 64
-    sz := (IsSet(g_TplSize) && g_TplSize) ? g_TplSize : 64
-    r := Tpl_Resample(rawPts, npt)
-    c := Tpl_Centroid(r)
-    theta := Tpl_Atan2(c[2] - r[1].y, c[1] - r[1].x)
-    r := Tpl_RotateBy(r, -theta)
-    bb := Tpl_BBox(r)
-    w := bb[3] - bb[1], h := bb[4] - bb[2]
-    old := []
-    for i, p in r
-        old.Push(Tpl_Pt(w > 0 ? (p.x - bb[1]) * sz / w : 0,
-            h > 0 ? (p.y - bb[2]) * sz / h : 0))
-    return Tpl_Decode(Tpl_Encode(Tpl_ScaleShiftBack(Tpl_TranslateToOrigin(old))))
-}
-
 ; ---- 平均点距 ----
 Tpl_PathDistance(a, b) {
     d := 0.0

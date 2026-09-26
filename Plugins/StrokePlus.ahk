@@ -9,7 +9,20 @@
 ;   2) 注册手势动作的 Action 说明(供 KeyHelp/帮助体系检索)
 ;   3) 提供几个手势专属小动作(前进/后退/上下页/音量)
 
-RegisterPlugin_StrokePlus() {
+class StrokePlusPlugin extends RimPlugin {
+    static Name => "StrokePlus"
+    static Title => "StrokePlus Gesture Defaults"
+    static Description => "手势开箱默认值 + 动作说明"
+
+    static RegisterKeymaps(engine) {
+        StrokePlus_Keymaps(engine)
+    }
+}
+
+if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
+    RimPluginManager.Register(StrokePlusPlugin)
+
+StrokePlus_Keymaps(engine) {
     ; 幂等: vim 通道 + Rim.ahk 直调各一次，重复进入直接返回
     static registered := false
     if (registered)
@@ -17,26 +30,26 @@ RegisterPlugin_StrokePlus() {
     registered := true
     global g_Conf, g_ConfFile
     ; 动作说明注册(与 General 插件风格一致, 经 ActionToFuncName 转函数调用)
-    RegisterAction("<SP_Back>", T("act.StrokePlus.SP_Back"))
-    RegisterAction("<SP_Forward>", T("act.StrokePlus.SP_Forward"))
-    RegisterAction("<SP_Up>", T("act.StrokePlus.SP_Up"))
-    RegisterAction("<SP_Down>", T("act.StrokePlus.SP_Down"))
-    RegisterAction("<SP_Home>", T("act.StrokePlus.SP_Home"))
-    RegisterAction("<SP_End>", T("act.StrokePlus.SP_End"))
-    RegisterAction("<SP_VolUp>", T("act.StrokePlus.SP_VolUp"))
-    RegisterAction("<SP_VolDown>", T("act.StrokePlus.SP_VolDown"))
-    RegisterAction("<SP_Mute>", T("act.StrokePlus.SP_Mute"))
-    RegisterAction("<SP_CloseTab>", T("act.StrokePlus.SP_CloseTab"))
-    RegisterAction("<SP_ReopenTab>", T("act.StrokePlus.SP_ReopenTab"))
-    RegisterAction("<SP_NewTab>", T("act.StrokePlus.SP_NewTab"))
-    RegisterAction("<SP_Copy>", T("act.StrokePlus.SP_Copy"))
-    RegisterAction("<SP_Paste>", T("act.StrokePlus.SP_Paste"))
-    RegisterAction("<SP_Cut>", T("act.StrokePlus.SP_Cut"))
-    RegisterAction("<SP_PlayPause>", T("act.StrokePlus.SP_PlayPause"))
-    RegisterAction("<SP_Next>", T("act.StrokePlus.SP_Next"))
-    RegisterAction("<SP_Prev>", T("act.StrokePlus.SP_Prev"))
-    RegisterAction("<SP_TaskNext>", T("act.StrokePlus.SP_TaskNext"))
-    RegisterAction("<SP_TaskPrev>", T("act.StrokePlus.SP_TaskPrev"))
+    engine.SetAction("<SP_Back>", T("act.StrokePlus.SP_Back"))
+    engine.SetAction("<SP_Forward>", T("act.StrokePlus.SP_Forward"))
+    engine.SetAction("<SP_Up>", T("act.StrokePlus.SP_Up"))
+    engine.SetAction("<SP_Down>", T("act.StrokePlus.SP_Down"))
+    engine.SetAction("<SP_Home>", T("act.StrokePlus.SP_Home"))
+    engine.SetAction("<SP_End>", T("act.StrokePlus.SP_End"))
+    engine.SetAction("<SP_VolUp>", T("act.StrokePlus.SP_VolUp"))
+    engine.SetAction("<SP_VolDown>", T("act.StrokePlus.SP_VolDown"))
+    engine.SetAction("<SP_Mute>", T("act.StrokePlus.SP_Mute"))
+    engine.SetAction("<SP_CloseTab>", T("act.StrokePlus.SP_CloseTab"))
+    engine.SetAction("<SP_ReopenTab>", T("act.StrokePlus.SP_ReopenTab"))
+    engine.SetAction("<SP_NewTab>", T("act.StrokePlus.SP_NewTab"))
+    engine.SetAction("<SP_Copy>", T("act.StrokePlus.SP_Copy"))
+    engine.SetAction("<SP_Paste>", T("act.StrokePlus.SP_Paste"))
+    engine.SetAction("<SP_Cut>", T("act.StrokePlus.SP_Cut"))
+    engine.SetAction("<SP_PlayPause>", T("act.StrokePlus.SP_PlayPause"))
+    engine.SetAction("<SP_Next>", T("act.StrokePlus.SP_Next"))
+    engine.SetAction("<SP_Prev>", T("act.StrokePlus.SP_Prev"))
+    engine.SetAction("<SP_TaskNext>", T("act.StrokePlus.SP_TaskNext"))
+    engine.SetAction("<SP_TaskPrev>", T("act.StrokePlus.SP_TaskPrev"))
     Register_GestureDefaults()
 }
 

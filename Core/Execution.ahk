@@ -101,10 +101,10 @@ RunCommand(originCmd) {
     }
 
     ; 间隔执行 (闭包对象; 本构建 SetTimer 忌字符串名/Func())
+    ; legacy function 命令 (ShutdownTimer 倒计时/Calc 实时) 经同一 function| 入口重进, 与单次语义一致
     if (g_ExecInterval > 0 && cmdType = "function") {
-        fn := ResolveFuncAlias(cmd)
-        g_LastExecCb := MakeCb(fn)
-        g_LastExecLabel := fn
+        g_LastExecCb := (*) => ExecuteAction("function|" . cmd, GetRunArg())
+        g_LastExecLabel := cmd
         try SetTimer(g_LastExecCb, g_ExecInterval)
     }
 
@@ -112,13 +112,43 @@ RunCommand(originCmd) {
     FullPipeArg := ""
 }
 
-; 命令名 → 函数名解析
-; 现插件注册均为名实合一 (name==content), 别名表仅作兼容兜底; 缺失走 OnError 网
-ResolveFuncAlias(cmd) {
-    global g_FuncAlias
-    if (g_FuncAlias.Has(cmd))
-        return g_FuncAlias[cmd]
-    return cmd
+; legacy function 命令执行体 (语义与旧分支逐行一致: effective-arg 优先显式参数, 否则 g_Arg;
+; 直接调真实函数, 不重进协议, 无递归)
+LegacyDirectCall(content, callArg := "") {
+    global g_Arg
+    rest := content
+    parts := StrSplit(rest, "|")
+    fn := Trim(parts[1])
+    fnArg := parts.Length >= 2 ? Trim(parts[2]) : callArg
+    if (fnArg = "")
+        fnArg := g_Arg
+    if (fnArg != "")
+        g_Arg := fnArg
+    if (fnArg != "") {
+        try {
+            %fn%(fnArg)
+            return true
+        } catch {
+        }
+    }
+    try {
+        %fn%()
+        return true
+    } catch as e {
+        try RimLog("EXEC_FAILED", fn, e)
+        catch {
+        }
+        return false
+    }
+}
+
+GetRunArg() {
+    global g_Arg
+    return g_Arg
+}
+
+MakeLegacyCmd(content) {
+    return (callArg := "") => LegacyDirectCall(content, callArg)
 }
 
 ; 通过 cmd 运行
@@ -268,10 +298,14 @@ ExecuteAction_Body(action := "", actionArg := "") {
         rest := SubStr(action, 10)
         parts := StrSplit(rest, "|")
         fn := Trim(parts[1])
+        ; 桥接命令优先走 Registry (id = 显示名, 冲突时 legacy. 显示名); 找不到才直调 (手写行兜底)
+        if (ExecuteCommandId(fn, parts.Length >= 2 ? Trim(parts[2]) : actionArg))
+            return
+        if (ExecuteCommandId("legacy." . fn, parts.Length >= 2 ? Trim(parts[2]) : actionArg))
+            return
         fnArg := parts.Length >= 2 ? Trim(parts[2]) : actionArg
         if (fnArg != "")
             g_Arg := fnArg
-        fn := ResolveFuncAlias(fn)
         if (fnArg != "") {
             try {
                 %fn%(fnArg)
@@ -293,7 +327,6 @@ ExecuteAction_Body(action := "", actionArg := "") {
 
         ; <ActionName> 或普通函数名: 转函数名后直调
         fn := ActionToFuncName(action)
-        fn := ResolveFuncAlias(fn)
         if (actionArg != "") {
             try {
                 %fn%(actionArg)

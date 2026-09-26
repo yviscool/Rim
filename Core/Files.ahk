@@ -186,45 +186,43 @@ LoadFiles(loadRank := true) {
     g_ExcludedCommands := ""
     g_ExcludedCommandsObj := Map()
 
-    ; 加载排名: 先收集排序, 待新鲜索引建成后再合并
+    ; 加载排名: 先收集按 frecency 排序, 待新鲜索引建成后再合并
     ; (已从配置/插件中删除的旧条目不再复活, 避免 calc/google 类遮挡重现)
     rankElements := []
     if (loadRank) {
-        rankString := ""
+        hl := RankHalfLife()
+        scored := []
         for command, rank in g_AutoConf["Rank"] {
-            if (StrLen(command) > 0) {
-                ; v2 字符串与数字比较会抛错, 先判整 (原版 v1 自动转 0 进排除)
-                if (IsInteger(rank) && rank >= 1)
-                    rankString .= rank "`t" command "`n"
-                else {
-                    g_ExcludedCommands .= command "`n"
-                    g_ExcludedCommandsObj[command] := true
+            if (StrLen(command) = 0)
+                continue
+            parsed := RankParseValue(rank)
+            if (parsed["visits"] >= 1) {
+                scored.Push(Map("key", command, "score", RankScoreOf(parsed["visits"], parsed["date"], hl)))
+            } else {
+                g_ExcludedCommands .= command "`n"
+                g_ExcludedCommandsObj[command] := true
+            }
+        }
+        ; 稳定降序 (插入排序, rank 条目通常几十个; 同分保持 ini 顺序)
+        ordered := []
+        for _, it in scored {
+            pos := ordered.Length + 1
+            Loop ordered.Length {
+                if (it["score"] > ordered[A_Index]["score"]) {
+                    pos := A_Index
+                    break
                 }
             }
+            ordered.InsertAt(pos, it)
         }
-
-        if (rankString != "") {
-            rankString := Sort(rankString, "R N")
-            Loop Parse, rankString, "`n" {
-                if (A_LoopField = "")
-                    continue
-                _parts := StrSplit(A_LoopField, "`t")
-                if (_parts.Length < 2)
-                    continue
-                ; Rank 键原样回放, 不做格式改写 (保证 ChangeRank 键稳定)
-                rankElements.Push(_parts[2])
-            }
+        for _, it in ordered {
+            ; Rank 键原样回放, 不做格式改写 (保证 ChangeRank 键稳定)
+            rankElements.Push(it["key"])
         }
     }
 
-    ; 加载配置中的命令: 兼容 [Command](原版) 与 [Commands](现版)
-    ; value 形如 type|cmd|desc, 统一成 "key | type | cmd | desc" 四段式
+    ; 加载配置中的命令 ([Commands] 现版; value 形如 type|cmd|desc, 统一成 "key | type | cmd | desc" 四段式)
     cmdSection := g_Conf.HasSection("Commands") ? g_Conf["Commands"] : Map()
-    if (g_Conf.HasSection("Command")) {
-        for _k, _v in g_Conf["Command"]
-            if !cmdSection.Has(_k)
-                cmdSection[_k] := _v
-    }
     for key, value in cmdSection {
         if (value != "")
             AddCommand(key . " | " . RegExReplace(value, "\s*\|\s*", " | "))
@@ -232,10 +230,9 @@ LoadFiles(loadRank := true) {
             AddCommand(key)
     }
 
-    ; 加载插件命令: 由 RimPluginManager 统一驱动 (兼容 Modern Plugin 与 Legacy Command Plugin)
+    ; 加载插件命令: 全插件经 Hybrid RegisterCommands 直注 (无 legacy 分发)
     if (IsSet(RimPluginManager) && IsObject(RimPluginManager)) {
         RimPluginManager.RegisterAllCommands()
-        RimPluginManager.LoadLegacyCommandPlugins(g_Plugins)
     }
 
     ; 加载语义指令 (RimCommand) 与工作空间指令到全局启动池
@@ -277,8 +274,8 @@ LoadFiles(loadRank := true) {
                 AddCommand(_line)
         }
 
-    ; 加载控制面板函数 (优先 Conf 目录，兼容 Core 历史位置)
-    cplFile := FileExist(A_ScriptDir "\Conf\ControlPanelFunctions.txt") ? (A_ScriptDir "\Conf\ControlPanelFunctions.txt") : (A_ScriptDir "\Core\ControlPanelFunctions.txt")
+    ; 加载控制面板函数 (仅 Conf 目录)
+    cplFile := A_ScriptDir "\Conf\ControlPanelFunctions.txt"
     if (g_Conf.Get("Config", "LoadControlPanelFunctions", "0") = "1" && FileExist(cplFile))
         for _line in ReadFileLines(cplFile) {
             if (Trim(_line) != "")
@@ -311,50 +308,186 @@ LoadFiles(loadRank := true) {
                 AddCommand(_el)
         }
     }
+
+    ; 池审计 (只记不删): 不可执行形状 (连 RunCommand 都直接返回) 进 error.log, 另全量快照 Rim.pool.log 供取证;
+    ; command 开头裸行 (如 "command | X" 无描述) 重点标出 —— 正常注册只产三段带 label 行
+    try {
+        _bad := 0
+        _bareCmd := []
+        _dump := ""
+        for _el in g_Commands {
+            _dump .= _el . "`n"
+            _pp := StrSplit(_el, " | ")
+            if (_pp.Length < 2) {
+                _bad++
+                continue
+            }
+            if (_pp[1] = "command" && _pp.Length < 3)
+                _bareCmd.Push(_el)
+        }
+        try FileAppend(_dump, A_ScriptDir . "\Rim.pool.log")
+        catch {
+        }
+        if (_bad > 0 || _bareCmd.Length > 0) {
+            _msg := "POOL_AUDIT malformed=" . _bad . " bare-command=" . _bareCmd.Length . " total=" . g_Commands.Length
+            for _, _b in _bareCmd
+                _msg .= " [" . SubStr(_b, 1, 60) . "]"
+            try RimLog("WARN", _msg)
+            catch {
+            }
+        }
+    } catch {
+    }
 }
 
-; 注册函数命令的辅助函数 (RunZ 的 @ 函数, v2双兼容; 本构建无 IsFunc, 直接收录)
-RegCmd(label, info, fallback := false, key := "") {
-    AddCommand("function | " . label . " | " . info)
-    if (key != "") {
-        try BindKey(key, MakeCb(label))
-    }
-    if (fallback) {
-        global g_FallbackCommands
-        g_FallbackCommands.Push("function | " . label . " | " . info)
-    }
-}
-
-; 注: v1 的 @() 在 v2 中是非法的函数名, 已由 RegCmd() 替代
-; 老式 UserFunctionsAuto.txt 如含 "@(...)" 调用, 请批量替换为 "RegCmd(...)"
+; 注: v1 的 @() 在 v2 中是非法的函数名, 已无替代 (RegCmd 已删, 自定义函数走 [Commands] function|Fn|desc)
 
 ; 调整命令权重
+; === Frecency (频次×时效): score = min(visits,25) * 0.5^(days/半衰期) ===
+; 存储 [Rank] key = visits|YYYYMMDD (旧裸整数读作 visits|未知日期, 按今天计, 迁移无断层);
+; 半衰期默认 14 天, [Config] RankHalfLife 可调; 精确桶永远优先, 此处只排非精确桶与加载合并
+RankKeyOfElement(element) {
+    splitedCmd := StrSplit(element, " | ")
+    if (splitedCmd.Length >= 5)
+        return splitedCmd[1] " | " splitedCmd[2] " | " splitedCmd[3] " | " splitedCmd[4]
+    else if (splitedCmd.Length >= 4 && splitedCmd[1] = "function")
+        return splitedCmd[1] " | " splitedCmd[2] " | " splitedCmd[3]
+    return element
+}
+
+RankParseValue(val) {
+    s := Trim(String(val))
+    if (s = "")
+        return Map("visits", 0, "date", "")
+    if InStr(s, "|") {
+        parts := StrSplit(s, "|")
+        v := 0
+        try {
+            if IsInteger(Trim(parts[1]))
+                v := Integer(Trim(parts[1]))
+        } catch {
+        }
+        d := parts.Length >= 2 ? Trim(parts[2]) : ""
+        return Map("visits", v, "date", d)
+    }
+    ; 旧裸整数 (首版 frecency 前写入): 次数保留, 日期按极旧计, 下次 ChangeRank 即转正新格式
+    if IsInteger(s) {
+        v := 0
+        try v := Integer(s)
+        catch {
+        }
+        return Map("visits", v, "date", "")
+    }
+    return Map("visits", 0, "date", "")
+}
+
+RankHalfLife() {
+    hl := 14
+    try {
+        global g_Conf
+        if (IsSet(g_Conf) && IsObject(g_Conf) && g_Conf.HasSection("Config")) {
+            raw := Trim(g_Conf.Get("Config", "RankHalfLife", "14"))
+            if (IsInteger(raw) && Integer(raw) > 0)
+                hl := Integer(raw)
+        }
+    } catch {
+    }
+    return hl
+}
+
+RankScoreOf(visits, dateStr, halfLife := 14) {
+    v := 0.0
+    try v := visits + 0.0
+    catch {
+        return 0.0
+    }
+    if (v <= 0)
+        return 0.0
+    if (v > 25)
+        v := 25.0
+    ; 未知日期 (旧裸整数) 按极旧计: 权重≈0, 只靠 "用过" 压 "没用过" (merge/load 仍优先于零分池);
+    ; 一旦再用即盖当天戳回血. 升级时会有一次重排, 之后全凭实力
+    days := 36500
+    if (dateStr != "") {
+        days := 0
+        try days := DateDiff(dateStr . "000000", A_Now, "Days")
+        catch {
+            days := 0
+        }
+        if (days < 0)
+            days := 0
+    }
+    hl := 14.0
+    try {
+        hl := halfLife + 0.0
+    } catch {
+    }
+    if (hl <= 0)
+        hl := 14.0
+    if (days > hl * 60)
+        return 0.0
+    w := 0.5 ** (days / hl)
+    if (w <= 0)
+        return 0.0
+    return v * w
+}
+
+RankScoreOfElement(element) {
+    key := RankKeyOfElement(element)
+    val := "0"
+    try {
+        global g_AutoConf
+        if (IsSet(g_AutoConf) && IsObject(g_AutoConf))
+            val := g_AutoConf.GetValue("Rank", key, "0")
+    } catch {
+        return 0.0
+    }
+    parsed := RankParseValue(val)
+    hl := 14
+    try hl := RankHalfLife()
+    catch {
+    }
+    return RankScoreOf(parsed["visits"], parsed["date"], hl)
+}
+
 ChangeRank(cmd, show := false, inc := 1) {
     global g_AutoConf, g_ExcludedCommands, g_ExcludedCommandsObj
 
-    splitedCmd := StrSplit(cmd, " | ")
-    if (splitedCmd.Length >= 5)
-        cmd := splitedCmd[1] " | " splitedCmd[2] " | " splitedCmd[3] " | " splitedCmd[4]
-    else if (splitedCmd.Length >= 4 && splitedCmd[1] = "function")
-        cmd := splitedCmd[1] " | " splitedCmd[2] " | " splitedCmd[3]
+    cmd := RankKeyOfElement(cmd)
 
-    cmdRank := g_AutoConf.GetValue("Rank", cmd)
-    if cmdRank is integer {
-        g_AutoConf.DeleteKey("Rank", cmd)
-        cmdRank += inc
-    } else {
-        cmdRank := inc
-    }
+    parsed := RankParseValue(g_AutoConf.GetValue("Rank", cmd, "0"))
+    cmdRank := parsed["visits"] + inc
+    if (cmdRank > 999)
+        cmdRank := 999
+    if (cmdRank < -99)
+        cmdRank := -99
+    today := SubStr(A_Now, 1, 8)
 
     if (cmdRank != 0 && cmd != "") {
         if (cmdRank < 0) {
             cmdRank := -1
             g_ExcludedCommands .= cmd "`n"
             g_ExcludedCommandsObj[cmd] := true
+            try g_AutoConf.AddKey("Rank", cmd, "-1")
+            catch {
+            }
+        } else {
+            try g_AutoConf.AddKey("Rank", cmd, cmdRank . "|" . today)
+            catch {
+            }
         }
-        g_AutoConf.AddKey("Rank", cmd, cmdRank)
     } else {
         cmdRank := 0
+    }
+
+    ; 落盘节流: 权重只写内存会丢 (此前仅退出时 SaveAutoConf 才落盘, 崩溃即丢);
+    ; 高频执行也不怕, 30 秒最多写一次小文件
+    static lastRankSave := 0
+    if (A_TickCount - lastRankSave > 30000) {
+        lastRankSave := A_TickCount
+        try g_AutoConf.Save()
+        catch {
+        }
     }
 
     if (show)

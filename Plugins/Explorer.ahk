@@ -15,12 +15,12 @@ class ExplorerPlugin extends RimPlugin {
 
     static RegisterCommands() {
         try {
-            RimCommand.Register("explorer.open_tc", "Open Explorer Dir in TC", (*) => Exp_OpenInTC(), Map(
+            RimCommand.Register("explorer.open_tc", T("cmdtitle.explorer.open_tc"), (*) => Exp_OpenInTC(), Map(
                 "Category", "File",
                 "Description", "在 Total Commander 中打开当前资源管理器路径",
                 "ContextFilter", (ctx) => ctx.AppId = "explorer"
             ))
-            RimCommand.Register("explorer.copy_path", "Copy Current Explorer Path", (*) => Exp_CopyPath(), Map(
+            RimCommand.Register("explorer.copy_path", T("cmdtitle.explorer.copy_path"), (*) => Exp_CopyPath(), Map(
                 "Category", "File",
                 "Description", "复制当前资源管理器中的文件夹路径",
                 "ContextFilter", (ctx) => ctx.AppId = "explorer"
@@ -46,85 +46,85 @@ class ExplorerPlugin extends RimPlugin {
     }
 
     static RegisterKeymaps(engine) {
-        RegisterPlugin_Explorer()
+        Explorer_Keymaps(engine)
     }
 }
 
 if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
     RimPluginManager.Register(ExplorerPlugin)
 
-RegisterPlugin_Explorer() {
+Explorer_Keymaps(engine) {
     ; 窗名与 ini [CabinetWClass] 对齐 (原 custom ini 即如此), 避免孤儿窗
-    RegisterWin("CabinetWClass", "CabinetWClass", "explorer.exe")
+    engine.SetWin("CabinetWClass", "CabinetWClass", "explorer.exe")
     g_VimEngine.SetBeforeActionDoForWin("CabinetWClass", Explorer_ForceInsertMode)
 
     ; 注册动作
-    RegisterAction("<Exp_Back>", T("act.Explorer.Exp_Back"))
-    RegisterAction("<Exp_Forward>", T("act.Explorer.Exp_Forward"))
-    RegisterAction("<Exp_Up>", T("act.Explorer.Exp_Up"))
-    RegisterAction("<Exp_Refresh>", T("act.Explorer.Exp_Refresh"))
-    RegisterAction("<Exp_Rename>", T("act.Explorer.Exp_Rename"))
-    RegisterAction("<Exp_Delete>", T("act.Explorer.Exp_Delete"))
-    RegisterAction("<Exp_NewFolder>", T("act.Explorer.Exp_NewFolder"))
-    RegisterAction("<Exp_ToggleView>", T("act.Explorer.Exp_ToggleView"))
-    RegisterAction("<Exp_ToggleTree>", T("act.Explorer.Exp_ToggleTree"))
-    RegisterAction("<Exp_CopyPath>", T("act.Explorer.Exp_CopyPath"))
-    RegisterAction("<Exp_OpenInTC>", T("act.Explorer.Exp_OpenInTC"))
-    RegisterAction("<Exp_OpenInTCX>", T("act.Explorer.Exp_OpenInTCX"))
-    RegisterAction("<Exp_OpenInTCNewTab>", T("act.Explorer.Exp_OpenInTCNewTab"))
-    RegisterAction("<Exp_GoHome>", T("act.Explorer.Exp_GoHome"))
-    RegisterAction("<Exp_GoEnd>", T("act.Explorer.Exp_GoEnd"))
-    RegisterAction("<Exp_FocusTree>", T("act.Explorer.Exp_FocusTree"))
-    RegisterAction("<Exp_FocusFiles>", T("act.Explorer.Exp_FocusFiles"))
-    RegisterAction("<Exp_TreeBack>", T("act.Explorer.Exp_TreeBack"))
-    RegisterAction("<Exp_TreeForward>", T("act.Explorer.Exp_TreeForward"))
-    RegisterAction("<Exp_TreeUp>", T("act.Explorer.Exp_TreeUp"))
-    RegisterAction("<Exp_TreeDown>", T("act.Explorer.Exp_TreeDown"))
+    engine.SetAction("<Exp_Back>", T("act.Explorer.Exp_Back"))
+    engine.SetAction("<Exp_Forward>", T("act.Explorer.Exp_Forward"))
+    engine.SetAction("<Exp_Up>", T("act.Explorer.Exp_Up"))
+    engine.SetAction("<Exp_Refresh>", T("act.Explorer.Exp_Refresh"))
+    engine.SetAction("<Exp_Rename>", T("act.Explorer.Exp_Rename"))
+    engine.SetAction("<Exp_Delete>", T("act.Explorer.Exp_Delete"))
+    engine.SetAction("<Exp_NewFolder>", T("act.Explorer.Exp_NewFolder"))
+    engine.SetAction("<Exp_ToggleView>", T("act.Explorer.Exp_ToggleView"))
+    engine.SetAction("<Exp_ToggleTree>", T("act.Explorer.Exp_ToggleTree"))
+    engine.SetAction("<Exp_CopyPath>", T("act.Explorer.Exp_CopyPath"))
+    engine.SetAction("<Exp_OpenInTC>", T("act.Explorer.Exp_OpenInTC"))
+    engine.SetAction("<Exp_OpenInTCX>", T("act.Explorer.Exp_OpenInTCX"))
+    engine.SetAction("<Exp_OpenInTCNewTab>", T("act.Explorer.Exp_OpenInTCNewTab"))
+    engine.SetAction("<Exp_GoHome>", T("act.Explorer.Exp_GoHome"))
+    engine.SetAction("<Exp_GoEnd>", T("act.Explorer.Exp_GoEnd"))
+    engine.SetAction("<Exp_FocusTree>", T("act.Explorer.Exp_FocusTree"))
+    engine.SetAction("<Exp_FocusFiles>", T("act.Explorer.Exp_FocusFiles"))
+    engine.SetAction("<Exp_TreeBack>", T("act.Explorer.Exp_TreeBack"))
+    engine.SetAction("<Exp_TreeForward>", T("act.Explorer.Exp_TreeForward"))
+    engine.SetAction("<Exp_TreeUp>", T("act.Explorer.Exp_TreeUp"))
+    engine.SetAction("<Exp_TreeDown>", T("act.Explorer.Exp_TreeDown"))
 
     ; 设置 insert 模式映射 (所有键传递)
-    MapKey("<enter>", "<enter>", "CabinetWClass", "insert")
-    MapKey("<bs>", "<bs>", "CabinetWClass", "insert")
-    MapKey("<tab>", "<tab>", "CabinetWClass", "insert")
-    MapKey("<space>", "<space>", "CabinetWClass", "insert")
-    MapKey("<del>", "<del>", "CabinetWClass", "insert")
+    engine.MapKey("<enter>", "<enter>", "CabinetWClass", "insert")
+    engine.MapKey("<bs>", "<bs>", "CabinetWClass", "insert")
+    engine.MapKey("<tab>", "<tab>", "CabinetWClass", "insert")
+    engine.MapKey("<space>", "<space>", "CabinetWClass", "insert")
+    engine.MapKey("<del>", "<del>", "CabinetWClass", "insert")
 
     ; 设置 normal 模式映射
     ; 导航
-    MapKey("h", "<Exp_Back>", "CabinetWClass", "normal")
-    MapKey("l", "<Exp_Forward>", "CabinetWClass", "normal")
-    MapKey("H", "<Exp_Up>", "CabinetWClass", "normal")
-    MapKey("<C-h>", "<Exp_TreeBack>", "CabinetWClass", "normal")
-    MapKey("<C-l>", "<Exp_TreeForward>", "CabinetWClass", "normal")
-    MapKey("<C-j>", "<Exp_TreeDown>", "CabinetWClass", "normal")
-    MapKey("<C-k>", "<Exp_TreeUp>", "CabinetWClass", "normal")
+    engine.MapKey("h", "<Exp_Back>", "CabinetWClass", "normal")
+    engine.MapKey("l", "<Exp_Forward>", "CabinetWClass", "normal")
+    engine.MapKey("H", "<Exp_Up>", "CabinetWClass", "normal")
+    engine.MapKey("<C-h>", "<Exp_TreeBack>", "CabinetWClass", "normal")
+    engine.MapKey("<C-l>", "<Exp_TreeForward>", "CabinetWClass", "normal")
+    engine.MapKey("<C-j>", "<Exp_TreeDown>", "CabinetWClass", "normal")
+    engine.MapKey("<C-k>", "<Exp_TreeUp>", "CabinetWClass", "normal")
 
     ; 文件操作
-    MapKey("r", "<Exp_Rename>", "CabinetWClass", "normal")
-    MapKey("d", "<Exp_Delete>", "CabinetWClass", "normal")
-    MapKey("n", "<Exp_NewFolder>", "CabinetWClass", "normal")
-    MapKey("R", "<Exp_Refresh>", "CabinetWClass", "normal")
+    engine.MapKey("r", "<Exp_Rename>", "CabinetWClass", "normal")
+    engine.MapKey("d", "<Exp_Delete>", "CabinetWClass", "normal")
+    engine.MapKey("n", "<Exp_NewFolder>", "CabinetWClass", "normal")
+    engine.MapKey("R", "<Exp_Refresh>", "CabinetWClass", "normal")
 
     ; 视图
-    MapKey("t", "<Exp_ToggleView>", "CabinetWClass", "normal")
-    MapKey("m", "<Exp_ToggleTree>", "CabinetWClass", "normal")
-    MapKey("y", "<Exp_CopyPath>", "CabinetWClass", "normal")
+    engine.MapKey("t", "<Exp_ToggleView>", "CabinetWClass", "normal")
+    engine.MapKey("m", "<Exp_ToggleTree>", "CabinetWClass", "normal")
+    engine.MapKey("y", "<Exp_CopyPath>", "CabinetWClass", "normal")
 
     ; 跳转
-    MapKey("gg", "<Exp_GoHome>", "CabinetWClass", "normal")
-    MapKey("G", "<Exp_GoEnd>", "CabinetWClass", "normal")
+    engine.MapKey("gg", "<Exp_GoHome>", "CabinetWClass", "normal")
+    engine.MapKey("G", "<Exp_GoEnd>", "CabinetWClass", "normal")
 
     ; 焦点控制
-    MapKey("<C-w>h", "<Exp_FocusTree>", "CabinetWClass", "normal")
-    MapKey("<C-w>l", "<Exp_FocusFiles>", "CabinetWClass", "normal")
+    engine.MapKey("<C-w>h", "<Exp_FocusTree>", "CabinetWClass", "normal")
+    engine.MapKey("<C-w>l", "<Exp_FocusFiles>", "CabinetWClass", "normal")
 
     ; TC 集成
-    MapKey("<S-f>", "<Exp_OpenInTC>", "CabinetWClass", "normal")
-    MapKey("<S-F>", "<Exp_OpenInTCX>", "CabinetWClass", "normal")
-    MapKey("<C-t>", "<Exp_OpenInTCNewTab>", "CabinetWClass", "normal")
+    engine.MapKey("<S-f>", "<Exp_OpenInTC>", "CabinetWClass", "normal")
+    engine.MapKey("<S-F>", "<Exp_OpenInTCX>", "CabinetWClass", "normal")
+    engine.MapKey("<C-t>", "<Exp_OpenInTCNewTab>", "CabinetWClass", "normal")
 
     ; 模式切换
-    MapKey("i", "<Gen_InsertMode>", "CabinetWClass", "normal")
-    MapKey("<Esc>", "<Gen_NormalMode>", "CabinetWClass", "insert")
+    engine.MapKey("i", "<Gen_InsertMode>", "CabinetWClass", "normal")
+    engine.MapKey("<Esc>", "<Gen_NormalMode>", "CabinetWClass", "insert")
 
     ; 注册上下文提供者
     try {

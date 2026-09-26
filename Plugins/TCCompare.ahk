@@ -4,64 +4,77 @@
 ; 完整移植自 VimDesktop 的 TCCompare 插件
 ; 支持 insert/normal 模式系统
 
-RegisterPlugin_TCCompare() {
-    RegisterWin("TCCompare", "TConvertForm", "TOTALCMD.EXE")
+class TCComparePlugin extends RimPlugin {
+    static Name => "TCCompare"
+    static Title => "TC Compare"
+    static Description => "Total Commander 文件比较窗口 Vim 映射"
+
+    static RegisterKeymaps(engine) {
+        TCCompare_Keymaps(engine)
+    }
+}
+
+if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
+    RimPluginManager.Register(TCComparePlugin)
+
+TCCompare_Keymaps(engine) {
+    engine.SetWin("TCCompare", "TConvertForm", "TOTALCMD.EXE")
 
     ; 注册动作
-    RegisterAction("<TCC_Edit>", T("act.TCCompare.TCC_Edit"))
-    RegisterAction("<TCC_Recompare>", T("act.TCCompare.TCC_Recompare"))
-    RegisterAction("<TCC_ToggleBinary>", T("act.TCCompare.TCC_ToggleBinary"))
-    RegisterAction("<TCC_ToggleEncoding>", T("act.TCCompare.TCC_ToggleEncoding"))
-    RegisterAction("<TCC_NextDiff>", T("act.TCCompare.TCC_NextDiff"))
-    RegisterAction("<TCC_PrevDiff>", T("act.TCCompare.TCC_PrevDiff"))
-    RegisterAction("<TCC_Home>", T("act.TCCompare.TCC_Home"))
-    RegisterAction("<TCC_End>", T("act.TCCompare.TCC_End"))
-    RegisterAction("<TCC_Search>", T("act.TCCompare.TCC_Search"))
-    RegisterAction("<TCC_CopyToLeft>", T("act.TCCompare.TCC_CopyToLeft"))
-    RegisterAction("<TCC_CopyToRight>", T("act.TCCompare.TCC_CopyToRight"))
-    RegisterAction("<TCC_Save>", T("act.TCCompare.TCC_Save"))
-    RegisterAction("<TCC_Refresh>", T("act.TCCompare.TCC_Refresh"))
-    RegisterAction("<TCC_Compare>", T("act.TCCompare.TCC_Compare"))
-    RegisterAction("<TCC_BinaryMode>", T("act.TCCompare.TCC_BinaryMode"))
-    RegisterAction("<TCC_ChangeCodepage>", T("act.TCCompare.TCC_ChangeCodepage"))
+    engine.SetAction("<TCC_Edit>", T("act.TCCompare.TCC_Edit"))
+    engine.SetAction("<TCC_Recompare>", T("act.TCCompare.TCC_Recompare"))
+    engine.SetAction("<TCC_ToggleBinary>", T("act.TCCompare.TCC_ToggleBinary"))
+    engine.SetAction("<TCC_ToggleEncoding>", T("act.TCCompare.TCC_ToggleEncoding"))
+    engine.SetAction("<TCC_NextDiff>", T("act.TCCompare.TCC_NextDiff"))
+    engine.SetAction("<TCC_PrevDiff>", T("act.TCCompare.TCC_PrevDiff"))
+    engine.SetAction("<TCC_Home>", T("act.TCCompare.TCC_Home"))
+    engine.SetAction("<TCC_End>", T("act.TCCompare.TCC_End"))
+    engine.SetAction("<TCC_Search>", T("act.TCCompare.TCC_Search"))
+    engine.SetAction("<TCC_CopyToLeft>", T("act.TCCompare.TCC_CopyToLeft"))
+    engine.SetAction("<TCC_CopyToRight>", T("act.TCCompare.TCC_CopyToRight"))
+    engine.SetAction("<TCC_Save>", T("act.TCCompare.TCC_Save"))
+    engine.SetAction("<TCC_Refresh>", T("act.TCCompare.TCC_Refresh"))
+    engine.SetAction("<TCC_Compare>", T("act.TCCompare.TCC_Compare"))
+    engine.SetAction("<TCC_BinaryMode>", T("act.TCCompare.TCC_BinaryMode"))
+    engine.SetAction("<TCC_ChangeCodepage>", T("act.TCCompare.TCC_ChangeCodepage"))
 
     ; insert 模式映射
-    MapKey("<enter>", "<enter>", "TCCompare", "insert")
-    MapKey("<bs>", "<bs>", "TCCompare", "insert")
-    MapKey("<tab>", "<tab>", "TCCompare", "insert")
-    MapKey("<space>", "<space>", "TCCompare", "insert")
-    MapKey("<del>", "<del>", "TCCompare", "insert")
+    engine.MapKey("<enter>", "<enter>", "TCCompare", "insert")
+    engine.MapKey("<bs>", "<bs>", "TCCompare", "insert")
+    engine.MapKey("<tab>", "<tab>", "TCCompare", "insert")
+    engine.MapKey("<space>", "<space>", "TCCompare", "insert")
+    engine.MapKey("<del>", "<del>", "TCCompare", "insert")
 
     ; normal 模式映射
     ; 编辑操作
-    MapKey("m", "<TCC_Edit>", "TCCompare", "normal")
-    MapKey("c", "<TCC_Recompare>", "TCCompare", "normal")
-    MapKey("C", "<TCC_Compare>", "TCCompare", "normal")
-    MapKey("s", "<TCC_Save>", "TCCompare", "normal")
+    engine.MapKey("m", "<TCC_Edit>", "TCCompare", "normal")
+    engine.MapKey("c", "<TCC_Recompare>", "TCCompare", "normal")
+    engine.MapKey("C", "<TCC_Compare>", "TCCompare", "normal")
+    engine.MapKey("s", "<TCC_Save>", "TCCompare", "normal")
 
     ; 比较模式
-    MapKey("b", "<TCC_ToggleBinary>", "TCCompare", "normal")
-    MapKey("B", "<TCC_BinaryMode>", "TCCompare", "normal")
-    MapKey("-", "<TCC_ToggleEncoding>", "TCCompare", "normal")
-    MapKey("+", "<TCC_ChangeCodepage>", "TCCompare", "normal")
+    engine.MapKey("b", "<TCC_ToggleBinary>", "TCCompare", "normal")
+    engine.MapKey("B", "<TCC_BinaryMode>", "TCCompare", "normal")
+    engine.MapKey("-", "<TCC_ToggleEncoding>", "TCCompare", "normal")
+    engine.MapKey("+", "<TCC_ChangeCodepage>", "TCCompare", "normal")
 
     ; 导航
-    MapKey("j", "<TCC_NextDiff>", "TCCompare", "normal")
-    MapKey("k", "<TCC_PrevDiff>", "TCCompare", "normal")
-    MapKey("gg", "<TCC_Home>", "TCCompare", "normal")
-    MapKey("G", "<TCC_End>", "TCCompare", "normal")
-    MapKey("/", "<TCC_Search>", "TCCompare", "normal")
+    engine.MapKey("j", "<TCC_NextDiff>", "TCCompare", "normal")
+    engine.MapKey("k", "<TCC_PrevDiff>", "TCCompare", "normal")
+    engine.MapKey("gg", "<TCC_Home>", "TCCompare", "normal")
+    engine.MapKey("G", "<TCC_End>", "TCCompare", "normal")
+    engine.MapKey("/", "<TCC_Search>", "TCCompare", "normal")
 
     ; 复制操作
-    MapKey("<", "<TCC_CopyToLeft>", "TCCompare", "normal")
-    MapKey(">", "<TCC_CopyToRight>", "TCCompare", "normal")
+    engine.MapKey("<", "<TCC_CopyToLeft>", "TCCompare", "normal")
+    engine.MapKey(">", "<TCC_CopyToRight>", "TCCompare", "normal")
 
     ; 刷新
-    MapKey("R", "<TCC_Refresh>", "TCCompare", "normal")
+    engine.MapKey("R", "<TCC_Refresh>", "TCCompare", "normal")
 
     ; 模式切换
-    MapKey("i", "<Gen_InsertMode>", "TCCompare", "normal")
-    MapKey("<Esc>", "<Gen_NormalMode>", "TCCompare", "insert")
+    engine.MapKey("i", "<Gen_InsertMode>", "TCCompare", "normal")
+    engine.MapKey("<Esc>", "<Gen_NormalMode>", "TCCompare", "insert")
 }
 
 ; === 动作函数 ===

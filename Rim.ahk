@@ -25,7 +25,7 @@ A_MaxHotkeysPerInterval := 200
 ; i18n 抢跑: g_Conf 尚未加载, 先按 OS 语言起 (备份提示/配置失败提示要用)
 I18nBoot()
 ; 构建号 (配置中心帮助页显示, 日志 BUILD 行同源)
-global g_BuildTag := "20260923-TIMER3"
+global g_BuildTag := "20260926-O3BRIDGE"
 
 ; ==================== 兼容层: 供插件引用 Rim.xxx ====================
 class Rim {
@@ -120,9 +120,8 @@ global g_LastExecCb := ""
 global g_PipeArg := ""
 global g_CommandFilter := ""
 global g_Plugins := []
-; 显示名→函数名别名表 (RegisterCommand 注册时填充, RunCommand 解析)
-; 对齐原版: 插件命令形如 function | Calc | 描述, label 即 key
-global g_FuncAlias := Map()
+; g_FuncAlias 别名表已退役 (O 批): function 型经 LauncherCompat 桥接为 RimCommand("legacy.*"),
+; 执行走同一 function| 入口, 无需名实映射
 
 ; ==================== 全局错误网 (本构建无 IsFunc/Func, 运行时错转日志不断线) ====================
 Rim_OnError(e, mode) {
@@ -250,6 +249,39 @@ Loop Files, pluginDir "\*.ahk" {
         g_Plugins.Push(pluginName)
 }
 
+; ==================== 核心符号自检 (防中途加载: 跨文件引用的函数/类缺失则 loud-fail, 不带病进 LoadFiles) ====================
+; 背景: 热更新/保存即重启可能撞上文件写半截的窗口期, 缺符号在深处才炸 (如 MakeLegacyCmd),
+; 堆栈难读; 此处逐个动态解析, 缺谁报谁
+Rim_CheckCoreSymbols() {
+    missing := []
+    for _, sym in ["MakeLegacyCmd", "LegacyDirectCall", "GetRunArg", "CmdLine_Parse",
+        "RimCommand", "RimPluginManager", "GestureEngine", "VIMD_CMD", "LoadFiles",
+        "RegisterCommand", "AddCommand"] {
+        ok := false
+        try {
+            ref := %sym%
+            ok := IsObject(ref) || ref != ""
+        } catch {
+            ok := false
+        }
+        if (!ok)
+            missing.Push(sym)
+    }
+    return missing
+}
+
+_missingSyms := Rim_CheckCoreSymbols()
+if (_missingSyms.Length > 0) {
+    _msg := T("msg.selfcheck_fail")
+    for _, _s in _missingSyms
+        _msg .= "  - " _s "`n"
+    try FileAppend(A_Now . " FATAL selfcheck: " . _missingSyms.Length . " missing`n", A_ScriptDir . "\Rim.error.log")
+    catch {
+    }
+    MsgBox(_msg)
+    ExitApp(1)
+}
+
 ; ==================== 托盘菜单 (重建兜底: 前面已建过一次, 这里幂等重建; 语言切换即时生效亦走此函数, 见 Core/Tray.ahk) ====================
 BuildTrayMenu()
 
@@ -300,15 +332,13 @@ g_VimEngine.SelfWinTitle := g_WindowName
 
 VimPluginOn(name) => RimPluginManager.IsEnabled(name)
 
-; 插件按键模式注入 (现代插件优先，向下兼容历史插件)
+; 插件按键模式注入 (全插件经 Hybrid RegisterKeymaps 直注引擎, 无双轨分发)
 RimPluginManager.RegisterAllKeymaps(g_VimEngine)
-RimPluginManager.LoadLegacyVimPlugins(g_Plugins)
 VimdCheckHotKey()
 
     ; ==================== 鼠标手势 (StrokePlus 重构 P1) ====================
     ; 右键按住拖拽=手势, 短点=普通右键; 映射见 [Gesture]/[Gestures]
     RimPluginManager.RegisterAllGestures()
-    ; StrokePlus/StatsBall 经 LoadLegacyVimPlugins/LoadLegacyCommandPlugins 已注册, 此处不再直调
     GestureEngine.Init()
 
 ; ==================== 文件监控 ====================
@@ -342,26 +372,7 @@ try {
     FileAppend("BUILD " . g_BuildTag . " ready +" . (A_TickCount - g_BootT0) . "ms " . A_Now . "`n", A_ScriptDir . "\Rim.error.log")
 }
 
-; ==================== 兼容层: 供插件 RegisterCommand 调用 ====================
-; 插件通过 RegisterCommand(name, type, content, desc) 注册命令
-; 对齐原版: function 型元素为 "function | <name> | <desc>" (name 可搜索),
-; 真实函数名经 g_FuncAlias[name]=content 记录, RunCommand 时解析
-class LauncherCompat {
-    static AddCommand(name, type, content, description := "") {
-        global g_Commands, g_FuncAlias
-        if (type = "function") {
-            element := "function | " name
-            if (description != "")
-                element .= " | " description
-            g_FuncAlias[name] := content
-        } else {
-            element := type " | " content
-            if (description != "")
-                element .= " | " description
-        }
-        g_Commands.Push(element)
-    }
-}
+; ==================== 兼容层: 供插件 RegisterCommand 调用 (实现见 Core/Command.ahk LauncherCompat) ====================
 
 ShowPluginInfo(*) {
     global g_Plugins
@@ -380,45 +391,9 @@ ToggleSuspend(*) {
     SetTimer(RemoveToolTip, -1000)
 }
 
-; 插件注册函数
+; 插件注册函数 (命令池写入; function 型已无调用方, 误调见 LauncherCompat 抛错)
 RegisterCommand(name, type, content, description := "") {
     LauncherCompat.AddCommand(name, type, content, description)
-}
-
-RegisterAction(name, comment := "") {
-    global g_VimEngine
-    if (IsSet(g_VimEngine) && IsObject(g_VimEngine))
-        g_VimEngine.SetAction(name, comment)
-}
-
-RegisterWin(name, winClass := "", winFile := "") {
-    global g_VimEngine
-    if (IsSet(g_VimEngine) && IsObject(g_VimEngine))
-        g_VimEngine.SetWin(name, winClass, winFile)
-}
-
-RegisterMode(mode, winName := "") {
-    global g_VimEngine
-    if (IsSet(g_VimEngine) && IsObject(g_VimEngine))
-        g_VimEngine.SetMode(mode, winName)
-}
-
-MapKey(key, action, winName := "", mode := "normal") {
-    global g_VimEngine
-    if (IsSet(g_VimEngine) && IsObject(g_VimEngine))
-        g_VimEngine.MapKey(key, action, winName, mode)
-}
-
-MapGlobal(key, action) {
-    global g_VimEngine
-    if (IsSet(g_VimEngine) && IsObject(g_VimEngine))
-        g_VimEngine.MapGlobal(key, action)
-}
-
-ExcludeWindow(name) {
-    global g_VimEngine
-    if (IsSet(g_VimEngine) && IsObject(g_VimEngine))
-        g_VimEngine.ExcludeWin(name)
 }
 
 ; ===== VimDesktop ini→map 编译器 (最小闭环: exclude/global/各窗口段) =====

@@ -277,44 +277,44 @@ class RimWorkspace {
 InitWorkspaceCommands() {
     RimWorkspace.Init()
 
-    RimCommand.Register("workspace.open", "Open Workspace", (arg := "") => RimWorkspace.Open(arg), Map(
+    RimCommand.Register("workspace.open", T("cmdtitle.workspace.open"), (arg := "") => RimWorkspace.Open(arg), Map(
         "Category", "Workspace",
         "Description", T("cmd.workspace.open"),
         "Keywords", "workspace open ws switch restore"
     ))
 
-    RimCommand.Register("workspace.save", "Save Current Workspace", (arg := "") => RimWorkspace.CaptureCurrent(arg != "" ? arg : "snapshot"), Map(
+    RimCommand.Register("workspace.save", T("cmdtitle.workspace.save"), (arg := "") => RimWorkspace.CaptureCurrent(arg != "" ? arg : "snapshot"), Map(
         "Category", "Workspace",
         "Description", T("cmd.workspace.save"),
         "Keywords", "workspace save snapshot"
     ))
 
     ; 窗口布局指令挂载
-    RimCommand.Register("window.tile_left", "Tile Left", (*) => RimWindow.Tile("A", "left"), Map(
+    RimCommand.Register("window.tile_left", T("cmdtitle.window.tile_left"), (*) => RimWindow.Tile("A", "left"), Map(
         "Category", "Window",
         "Description", T("cmd.workspace.tile_left"),
         "Keywords", "window tile left half"
     ))
 
-    RimCommand.Register("window.tile_right", "Tile Right", (*) => RimWindow.Tile("A", "right"), Map(
+    RimCommand.Register("window.tile_right", T("cmdtitle.window.tile_right"), (*) => RimWindow.Tile("A", "right"), Map(
         "Category", "Window",
         "Description", T("cmd.workspace.tile_right"),
         "Keywords", "window tile right half"
     ))
 
-    RimCommand.Register("window.tile_top", "Tile Top", (*) => RimWindow.Tile("A", "top"), Map(
+    RimCommand.Register("window.tile_top", T("cmdtitle.window.tile_top"), (*) => RimWindow.Tile("A", "top"), Map(
         "Category", "Window",
         "Description", T("cmd.workspace.tile_top"),
         "Keywords", "window tile top half"
     ))
 
-    RimCommand.Register("window.tile_bottom", "Tile Bottom", (*) => RimWindow.Tile("A", "bottom"), Map(
+    RimCommand.Register("window.tile_bottom", T("cmdtitle.window.tile_bottom"), (*) => RimWindow.Tile("A", "bottom"), Map(
         "Category", "Window",
         "Description", T("cmd.workspace.tile_bottom"),
         "Keywords", "window tile bottom half"
     ))
 
-    RimCommand.Register("window.next_monitor", "Move to Next Monitor", (*) => RimWindow.MoveToNextMonitor("A"), Map(
+    RimCommand.Register("window.next_monitor", T("cmdtitle.window.next_monitor"), (*) => RimWindow.MoveToNextMonitor("A"), Map(
         "Category", "Window",
         "Description", T("cmd.workspace.next_monitor"),
         "Keywords", "window monitor screen next display"

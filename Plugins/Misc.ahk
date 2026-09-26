@@ -1,17 +1,31 @@
 #Requires AutoHotkey v2.0
 #Warn All, Off
 
-; === Misc Plugin - 杂项工具 ===
-; 移植自 RunZ 的 Misc 插件（翻译/计算器/搜索引擎）
-; 子模块: Misc.Search / Misc.Clip / Misc.Net / Misc.Codec (纯实现); 注册聚合仅此一处
+; === Misc Plugin - 杂项工具 (翻译/计算器/搜索引擎) ===
+; 子模块: Misc.Search / Misc.Clip / Misc.Net / Misc.Codec (纯实现);
+; 全直注: url 行走命令池, 功能行走 RimCommand, 无别名表, 无 legacy 分发
 
 #Include Misc.Search.ahk
 #Include Misc.Clip.ahk
 #Include Misc.Net.ahk
 #Include Misc.Codec.ahk
 
-RegisterPlugin_Misc() {
-    ; 搜索引擎
+class MiscPlugin extends RimPlugin {
+    static Name => "Misc"
+    static Title => "Misc Utilities"
+    static Description => "搜索/翻译/计算器/剪贴板/网络诊断"
+
+    static RegisterCommands() {
+        RegisterMiscUrls()
+        RegisterMiscTools()
+    }
+}
+
+if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
+    RimPluginManager.Register(MiscPlugin)
+
+RegisterMiscUrls() {
+    ; 搜索引擎 (url 直注册, 无执行函数)
     RegisterCommand("Google", "url", "https://www.google.com/search?q={query}", T("cmd.Misc.Google"))
     RegisterCommand("Baidu", "url", "https://www.baidu.com/s?wd={query}", T("cmd.Misc.Baidu"))
     RegisterCommand("Bing", "url", "https://www.bing.com/search?q={query}", T("cmd.Misc.Bing"))
@@ -21,53 +35,34 @@ RegisterPlugin_Misc() {
     RegisterCommand("Bilibili", "url", "https://search.bilibili.com/all?keyword={query}", T("cmd.Misc.Bilibili"))
     RegisterCommand("Taobao", "url", "https://s.taobao.com/search?q={query}", T("cmd.Misc.Taobao"))
     RegisterCommand("JD", "url", "https://search.jd.com/Search?keyword={query}", T("cmd.Misc.JD"))
+}
 
-    ; 翻译
-    RegisterCommand("Translate", "function", "TranslateWord", T("cmd.Misc.Translate"))
-    RegisterCommand("En2Cn", "function", "EnToCn", T("cmd.Misc.En2Cn"))
-    RegisterCommand("Cn2En", "function", "CnToEn", T("cmd.Misc.Cn2En"))
-
-    ; 计算器
-    RegisterCommand("Calc", "function", "CalcExpression", T("cmd.Misc.Calc"))
-    RegisterCommand("Eval", "function", "EvalExpression", T("cmd.Misc.Eval"))
-
-    ; 剪切板工具
-    RegisterCommand("ClipShow", "function", "Misc_ShowClipboard", T("cmd.Misc.ClipShow"))
-    RegisterCommand("ClipClear", "function", "ClearClipboard", T("cmd.Misc.ClipClear"))
-    RegisterCommand("ClipSave", "function", "SaveClipboard", T("cmd.Misc.ClipSave"))
-
-    ; 日期时间
-    RegisterCommand("Date", "function", "InsertDate", T("cmd.Misc.Date"))
-    RegisterCommand("Time", "function", "InsertTime", T("cmd.Misc.Time"))
-    RegisterCommand("DateTime", "function", "InsertDateTime", T("cmd.Misc.DateTime"))
-
-    ; 颜色工具
-    RegisterCommand("ColorPicker", "function", "PickColor", T("cmd.Misc.ColorPicker"))
-    RegisterCommand("ColorInfo", "function", "PickColor", T("cmd.Misc.ColorInfo"))
-
-    ; 原版别名 (SearchOn*/Dictionary/CNY/USD/IP/日历/URL编解码/运行剪切板)
-    RegisterCommand("SearchOnGoogle", "url", "https://www.google.com/search?q={query}", T("cmd.Misc.SearchOnGoogle"))
-    RegisterCommand("SearchOnBaidu", "url", "https://www.baidu.com/s?wd={query}", T("cmd.Misc.Baidu"))
-    RegisterCommand("SearchOnBing", "url", "https://cn.bing.com/search?q={query}", T("cmd.Misc.SearchOnBing"))
-    RegisterCommand("SearchOnZhihu", "url", "https://www.zhihu.com/search?type=content&q={query}", T("cmd.Misc.Zhihu"))
-    RegisterCommand("SearchOnNpm", "url", "https://www.npmjs.com/search?q={query}", T("cmd.Misc.Npm"))
-    RegisterCommand("SearchOnGithub", "url", "https://github.com/search?q={query}", T("cmd.Misc.GitHub"))
-    RegisterCommand("SearchOnBilibili", "url", "https://search.bilibili.com/all?keyword={query}", T("cmd.Misc.Bilibili"))
-    RegisterCommand("SearchOnTaobao", "url", "https://s.taobao.com/search?q={query}", T("cmd.Misc.Taobao"))
-    RegisterCommand("SearchOnJD", "url", "https://search.jd.com/Search?keyword={query}", T("cmd.Misc.JD"))
-    RegisterCommand("Dictionary", "function", "TranslateWord", T("cmd.Misc.Dictionary"))
-    RegisterCommand("CNY2USD", "function", "CNY2USD", T("cmd.Misc.CNY2USD"))
-    RegisterCommand("USD2CNY", "function", "USD2CNY", T("cmd.Misc.USD2CNY"))
-    RegisterCommand("CurrencyRate", "function", "CurrencyRate", T("cmd.Misc.CurrencyRate"))
-    RegisterCommand("ShowIp", "function", "ShowIp", T("cmd.Misc.ShowIp"))
-    RegisterCommand("Wifi", "function", "WifiShow", T("cmd.Misc.Wifi"))
-    RegisterCommand("Dns", "function", "DnsShow", T("cmd.Misc.Dns"))
-    RegisterCommand("Ping", "function", "PingShow", T("cmd.Misc.Ping"))
-    RegisterCommand("PubIp", "function", "PubIpShow", T("cmd.Misc.PubIp"))
-    RegisterCommand("Env", "function", "EnvShow", T("cmd.Misc.Env"))
-    RegisterCommand("Calendar", "function", "Calendar", T("cmd.Misc.Calendar"))
-    RegisterCommand("UrlEncode", "function", "UrlEncodeCmd", T("cmd.Misc.UrlEncode"))
-    RegisterCommand("UrlDecode", "function", "UrlDecodeCmd", T("cmd.Misc.UrlDecode"))
+RegisterMiscTools() {
+    ; 功能命令直注 RimCommand (无别名表; 旧 SearchOn*/Dictionary/CNY 别名已删, 关键词保留可搜)
+    RimCommand.Register("Translate", "Translate", MakeLegacyCmd("TranslateWord"), Map("Category", "Tool", "Description", T("cmd.Misc.Translate"), "Keywords", "Translate dictionary"))
+    RimCommand.Register("En2Cn", "En2Cn", MakeLegacyCmd("EnToCn"), Map("Category", "Tool", "Description", T("cmd.Misc.En2Cn"), "Keywords", "En2Cn"))
+    RimCommand.Register("Cn2En", "Cn2En", MakeLegacyCmd("CnToEn"), Map("Category", "Tool", "Description", T("cmd.Misc.Cn2En"), "Keywords", "Cn2En"))
+    RimCommand.Register("Calc", "Calc", MakeLegacyCmd("CalcExpression"), Map("Category", "Tool", "Description", T("cmd.Misc.Calc"), "Keywords", "Calc"))
+    RimCommand.Register("Eval", "Eval", MakeLegacyCmd("EvalExpression"), Map("Category", "Tool", "Description", T("cmd.Misc.Eval"), "Keywords", "Eval"))
+    RimCommand.Register("ClipShow", "ClipShow", MakeLegacyCmd("Misc_ShowClipboard"), Map("Category", "Tool", "Description", T("cmd.Misc.ClipShow"), "Keywords", "ClipShow"))
+    RimCommand.Register("ClipClear", "ClipClear", MakeLegacyCmd("ClearClipboard"), Map("Category", "Tool", "Description", T("cmd.Misc.ClipClear"), "Keywords", "ClipClear"))
+    RimCommand.Register("ClipSave", "ClipSave", MakeLegacyCmd("SaveClipboard"), Map("Category", "Tool", "Description", T("cmd.Misc.ClipSave"), "Keywords", "ClipSave"))
+    RimCommand.Register("Date", "Date", MakeLegacyCmd("InsertDate"), Map("Category", "Tool", "Description", T("cmd.Misc.Date"), "Keywords", "Date"))
+    RimCommand.Register("Time", "Time", MakeLegacyCmd("InsertTime"), Map("Category", "Tool", "Description", T("cmd.Misc.Time"), "Keywords", "Time"))
+    RimCommand.Register("DateTime", "DateTime", MakeLegacyCmd("InsertDateTime"), Map("Category", "Tool", "Description", T("cmd.Misc.DateTime"), "Keywords", "DateTime"))
+    RimCommand.Register("ColorPicker", "ColorPicker", MakeLegacyCmd("PickColor"), Map("Category", "Tool", "Description", T("cmd.Misc.ColorPicker"), "Keywords", "ColorPicker colorinfo"))
+    RimCommand.Register("CNY2USD", "CNY2USD", MakeLegacyCmd("CNY2USD"), Map("Category", "Tool", "Description", T("cmd.Misc.CNY2USD"), "Keywords", "CNY2USD"))
+    RimCommand.Register("USD2CNY", "USD2CNY", MakeLegacyCmd("USD2CNY"), Map("Category", "Tool", "Description", T("cmd.Misc.USD2CNY"), "Keywords", "USD2CNY"))
+    RimCommand.Register("CurrencyRate", "CurrencyRate", MakeLegacyCmd("CurrencyRate"), Map("Category", "Tool", "Description", T("cmd.Misc.CurrencyRate"), "Keywords", "CurrencyRate"))
+    RimCommand.Register("ShowIp", "ShowIp", MakeLegacyCmd("ShowIp"), Map("Category", "Tool", "Description", T("cmd.Misc.ShowIp"), "Keywords", "ShowIp"))
+    RimCommand.Register("Wifi", "Wifi", MakeLegacyCmd("WifiShow"), Map("Category", "Tool", "Description", T("cmd.Misc.Wifi"), "Keywords", "Wifi"))
+    RimCommand.Register("Dns", "Dns", MakeLegacyCmd("DnsShow"), Map("Category", "Tool", "Description", T("cmd.Misc.Dns"), "Keywords", "Dns"))
+    RimCommand.Register("Ping", "Ping", MakeLegacyCmd("PingShow"), Map("Category", "Tool", "Description", T("cmd.Misc.Ping"), "Keywords", "Ping"))
+    RimCommand.Register("PubIp", "PubIp", MakeLegacyCmd("PubIpShow"), Map("Category", "Tool", "Description", T("cmd.Misc.PubIp"), "Keywords", "PubIp"))
+    RimCommand.Register("Env", "Env", MakeLegacyCmd("EnvShow"), Map("Category", "Tool", "Description", T("cmd.Misc.Env"), "Keywords", "Env"))
+    RimCommand.Register("Calendar", "Calendar", MakeLegacyCmd("Calendar"), Map("Category", "Tool", "Description", T("cmd.Misc.Calendar"), "Keywords", "Calendar"))
+    RimCommand.Register("UrlEncode", "UrlEncode", MakeLegacyCmd("UrlEncodeCmd"), Map("Category", "Tool", "Description", T("cmd.Misc.UrlEncode"), "Keywords", "UrlEncode"))
+    RimCommand.Register("UrlDecode", "UrlDecode", MakeLegacyCmd("UrlDecodeCmd"), Map("Category", "Tool", "Description", T("cmd.Misc.UrlDecode"), "Keywords", "UrlDecode"))
     ; 注: RunClipboard 由 LauncherCore 提供(g_Arg 感知), 此处不重复注册避免同名
 }
 

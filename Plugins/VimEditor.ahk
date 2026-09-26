@@ -3,14 +3,14 @@
 ; AHK v2注意: 函数名不区分大小写, 所有大写键用Key后缀
 
 ; 统一插件入口 (Legacy vim 通道经此调用; 直接调 VimEditorPlugin.Register() 等效)
-RegisterPlugin_VimEditor() {
+VimEditor_Keymaps(engine) {
     VimEditorPlugin.Register()
 }
 
-class VimEditorPlugin {
-    static Name := "VimEditor"
+class VimEditorPlugin extends RimPlugin {
+    static Name => "VimEditor"
     static enabled := true
-    static version := "2.0.0"
+    static PluginVersion := "2.0.0"
 
     static MODE_NORMAL := "normal"
     static MODE_INSERT := "insert"
@@ -313,9 +313,16 @@ class VimEditorPlugin {
     static Register() {
         VimEditorPlugin()
         ; 注册期日志: 探针线束未含 Utils.ahk 时 Log 不存在, try 吞掉 (运行时正常写日志)
-        try Log("VimEditor: 插件已注册 - v" VimEditorPlugin.version " - " VimEditorPlugin.EditorWindows.Count " 种编辑器")
+        try Log("VimEditor: 插件已注册 - v" VimEditorPlugin.PluginVersion " - " VimEditorPlugin.EditorWindows.Count " 种编辑器")
+    }
+
+    static RegisterKeymaps(engine) {
+        VimEditor_Keymaps(engine)
     }
 }
+
+if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
+    RimPluginManager.Register(VimEditorPlugin)
 
 ; ====================================================================
 ; 动作实现 - 模式切换

@@ -2,7 +2,7 @@
 
 ; === Kanji Plugin - 简繁体转换 ===
 ; 移植自 RunZ 的 Kanji 插件 (查 Lib\Kanji\Kanji.txt 字表, 非桩)
-; Hybrid: Modern 壳 (命令通道) + 旧 RegisterPlugin_Kanji() 体
+; 命令经 Hybrid RegisterCommands 直注
 
 class KanjiPlugin extends RimPlugin {
     static Name => "Kanji"
@@ -10,20 +10,13 @@ class KanjiPlugin extends RimPlugin {
     static Description => "简繁体转换"
 
     static RegisterCommands() {
-        RegisterPlugin_Kanji()
+        RimCommand.Register("Kanji2S", "Kanji2S", MakeLegacyCmd("KanjiToSimple"), Map("Category", "Tool", "Description", T("cmd.Kanji.Kanji2S"), "Keywords", "Kanji2S t2s"))
+        RimCommand.Register("Kanji2T", "Kanji2T", MakeLegacyCmd("KanjiToTraditional"), Map("Category", "Tool", "Description", T("cmd.Kanji.Kanji2T"), "Keywords", "Kanji2T s2t"))
     }
 }
 
 if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
     RimPluginManager.Register(KanjiPlugin)
-
-RegisterPlugin_Kanji() {
-    RegisterCommand("Kanji2S", "function", "KanjiToSimple", T("cmd.Kanji.Kanji2S"))
-    RegisterCommand("Kanji2T", "function", "KanjiToTraditional", T("cmd.Kanji.Kanji2T"))
-    ; 原版别名
-    RegisterCommand("T2S", "function", "KanjiToSimple", T("cmd.Kanji.Kanji2S"))
-    RegisterCommand("S2T", "function", "KanjiToTraditional", T("cmd.Kanji.Kanji2T"))
-}
 
 KanjiPipeInput(prompt, title) {
     global g_Arg

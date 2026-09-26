@@ -71,8 +71,8 @@ SI_Check("exact-partial", SI_IsExactHit("function | ShutdownTimer | 定时关机
 SI_Check("exact-empty", SI_IsExactHit("function | ShutdownTimer | x", "") == false)
 
 ; ---- 历史输入态还原 (含参) ----
-SI_Check("histinput-legacyarg", SI_HistoryInputOfPure("function | ShutdownTimer | 定时关机 shutdown timer | 30") == "ShutdownTimer 30")
-SI_Check("histinput-legacyarg2", SI_HistoryInputOfPure("function | CancelShutdown | 取消定时关机 | 30m") == "CancelShutdown 30m")
+SI_Check("histinput-witharg", SI_HistoryInputOfPure("function | ShutdownTimer | 定时关机 shutdown timer | 30") == "ShutdownTimer 30")
+SI_Check("histinput-witharg2", SI_HistoryInputOfPure("function | CancelShutdown | 取消定时关机 | 30m") == "CancelShutdown 30m")
 SI_Check("histinput-noarg", SI_HistoryInputOfPure("function | CancelShutdown | 取消定时关机") == "CancelShutdown")
 SI_Check("histinput-4part", SI_HistoryInputOfPure("qq | file | D:\soft\qq.exe | desc") == "qq")
 SI_Check("histinput-4partarg", SI_HistoryInputOfPure("qq | file | D:\soft\qq.exe | desc | 123") == "qq 123")

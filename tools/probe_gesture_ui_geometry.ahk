@@ -49,8 +49,8 @@ try {
     FileAppend("[Gesture]`nEnable=1`nTrigger=RButton`nCancelDelay=1500`n"
         . "[Gestures]`nR_D=key|^t`n", g_ConfFile, "UTF-8")
     g_Conf := EasyIni(g_ConfFile)
-    Gesture_LoadConfig()
-    Gesture_ReloadLayers()
+    GestureEngine.LoadConfig()
+    GestureEngine.ReloadLayers()
     Tpl_LoadAll()
 
     ShowGestureManager()

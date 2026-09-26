@@ -43,10 +43,10 @@ catch {
 }
 
 ; ---- 1. 归一化命名空间 ----
-Chk("norm-name", Gesture_Normalize("letter_u") = "LETTER_U")
-Chk("norm-chain", Gesture_Normalize("d_r") = "D_R")
-Chk("normfull-mods", Gesture_NormalizeFull("ctrl + d_r") = "CTRL+D_R")
-Chk("normfull-name", Gesture_NormalizeFull("ctrl+letter_u") = "CTRL+LETTER_U")
+Chk("norm-name", GestureRecognizer.Normalize("letter_u") = "LETTER_U")
+Chk("norm-chain", GestureRecognizer.Normalize("d_r") = "D_R")
+Chk("normfull-mods", GestureRecognizer.NormalizeFull("ctrl + d_r") = "CTRL+D_R")
+Chk("normfull-name", GestureRecognizer.NormalizeFull("ctrl+letter_u") = "CTRL+LETTER_U")
 
 ; ---- 2. 内置模板装载 (复刻 Tpl_LoadAll 内置段, 不依赖 g_Conf) ----
 try {
@@ -79,9 +79,9 @@ Chk("tpl-match-U", m[1] = "U" && m[2] >= 75)
 ; ---- 4. 控件级应用匹配 ----
 g_GestureApps := [{name: "Desk", exe: "explorer.exe", cls: "", title: "", titleRx: "",
     ownerCls: "WorkerW|Progman", ctrlCls: "SysListView32", ctrlTitle: "FolderView", noglobal: 0, map: Map()}]
-hit := Gesture_MatchApp("explorer.exe", "Progman", "", "WorkerW|Shell_TrayWnd", "SysListView32", "FolderView")
+hit := GestureEngine.MatchApp("explorer.exe", "Progman", "", "WorkerW|Shell_TrayWnd", "SysListView32", "FolderView")
 Chk("app-ctrl-hit", IsObject(hit) && hit.name = "Desk")
-miss := Gesture_MatchApp("explorer.exe", "Progman", "", "OtherOwner", "OtherCls", "FolderView")
+miss := GestureEngine.MatchApp("explorer.exe", "Progman", "", "OtherOwner", "OtherCls", "FolderView")
 Chk("app-ctrl-miss", !IsObject(miss))
 
 ; ---- 5. TrailColor 生效 ----
@@ -92,12 +92,12 @@ Chk("trail-color-fallback", GestureTrail_Color() = 0xFFFFFF)
 
 ; ---- 6. 起点窗口 ----
 g_Gesture["startHwnd"] := 0
-Chk("actionwin-fallback", Gesture_ActionWin() = "A")
+Chk("actionwin-fallback", GestureHook.ActionWin() = "A")
 g_Gesture["startHwnd"] := 12345
 g_Gesture["startContext"] := {rootHwnd: 12345, exe: "start.exe", cls: "StartClass",
     title: "Start Window", ownerCls: "OwnerClass", ctrlCls: "ControlClass", ctrlTitle: "Start Control"}
-Chk("actionwin-start", Gesture_ActionWin() = "ahk_id 12345")
-Gesture_StartIds(&startExe, &startCls, &startTitle, &startOwner, &startCtrl, &startCtrlTitle)
+Chk("actionwin-start", GestureHook.ActionWin() = "ahk_id 12345")
+GestureHook.StartIds(&startExe, &startCls, &startTitle, &startOwner, &startCtrl, &startCtrlTitle)
 Chk("start-context-snapshot", startExe = "start.exe" && startCls = "StartClass"
     && startTitle = "Start Window" && startOwner = "OwnerClass"
     && startCtrl = "ControlClass" && startCtrlTitle = "Start Control")
@@ -106,10 +106,10 @@ g_Gesture["startContext"] := ""
 
 ; ---- 7. 组合武装 ----
 g_Gesture["comboUntil"] := 0
-Chk("combo-idle", !Gesture_ComboActive())
+Chk("combo-idle", !GestureEngine.ComboActive())
 g_Gesture["comboKind"] := "zoom"
 g_Gesture["comboUntil"] := A_TickCount + 500
-Chk("combo-armed", Gesture_ComboActive())
+Chk("combo-armed", GestureEngine.ComboActive())
 g_Gesture["comboUntil"] := 0
 g_Gesture["comboKind"] := ""
 

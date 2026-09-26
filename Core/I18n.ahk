@@ -219,11 +219,6 @@ I18nLoadLangFile(lang) {
 }
 
 ; ---- 翻译主入口: T("tray.show") / T("msg.hello_user", name) ----
-; I18nTr 为 T 的可读别名 (单字母 T 易被循环变量 t 遮蔽, 见 AGENTS 错误 20); 新代码优先 I18nTr, 旧调用保持兼容
-I18nTr(key, args*) {
-    return T(key, args*)
-}
-
 T(key, args*) {
     global g_I18nStrings, g_I18nFallback
     s := ""

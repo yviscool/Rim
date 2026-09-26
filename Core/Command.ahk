@@ -60,29 +60,36 @@ class RimCommand {
         RimCommand.Categories[cat].Push(cmd)
 
         ; 同时同步注入 Launcher 命令池，使命令面板直接可搜
+        ; 池行用三段式 "command | id | label" (四段式 "id | command | id | label" 会被解析器
+        ; 误判 key=id/type=command 而跑不通, 见 RunCommand; 显示侧取 type|cmd|desc, 执行走 command|id)
         try {
-            desc := cmd.Description
-            label := (title != id ? title : id)
-            if (desc != "")
-                label .= " - " . desc
             if (IsSet(AddCommand))
-                AddCommand(id . " | command | " . id . " | " . label)
+                AddCommand(CmdLine_Format("command", id, RimCommand.MakeLabel(title, id, cmd.Description)))
         } catch {
         }
 
         return cmd
     }
 
-    ; 将所有已注册指令同步注入全局 Launcher 列表
+    ; 池行 label 装配 (单点, Register 与 Populate 共用, 防两处改一只):
+    ; title 与 id 相同 (短名直注) 时只留描述, 不拼 "名 - 描述" 叠床架屋
+    static MakeLabel(title, id, desc) {
+        label := ""
+        if (title != "" && title != id)
+            label := title
+        if (desc != "")
+            label := label != "" ? label . " - " . desc : desc
+        if (label = "")
+            label := id
+        return label
+    }
+
+    ; 将所有已注册指令同步注入全局 Launcher 列表 (三段式, 见 Register 注释)
     static PopulateAllToLauncher() {
         for id, cmd in RimCommand.Registry {
             try {
-                desc := cmd.Description
-                label := (cmd.Title != id ? cmd.Title : id)
-                if (desc != "")
-                    label .= " - " . desc
                 if (IsSet(AddCommand))
-                    AddCommand(id . " | command | " . id . " | " . label)
+                    AddCommand(CmdLine_Format("command", id, RimCommand.MakeLabel(cmd.Title, id, cmd.Description)))
             } catch {
             }
         }
@@ -219,6 +226,21 @@ CmdLine_Format(type, cmd, desc := "", key := "") {
     if (desc != "")
         return type " | " cmd " | " desc
     return type " | " cmd
+}
+
+; ==================== 命令池写入 (非 function 型直写池行; function 型调用方已清零, 误调即抛错) ====================
+class LauncherCompat {
+    static AddCommand(name, type, content, description := "") {
+        global g_Commands
+        if (type = "function") {
+            throw Error("RegisterCommand function-type retired; use RimCommand.Register + MakeLegacyCmd directly: " . name)
+        } else {
+            element := type " | " content
+            if (description != "")
+                element .= " | " description
+            g_Commands.Push(element)
+        }
+    }
 }
 
 ; === 通用指令实现函数 (Universal Command Implementations) ===
@@ -359,22 +381,22 @@ Cmd_SystemSleep(*) {
 
 ; === 初始化内置通用指令 (Universal Commands Initialization) ===
 InitUniversalCommands() {
-    RimCommand.Register("file.copy_path", "Copy Path", Cmd_FileCopyPath, Map("Category", "File", "Description", T("cmd.universal.copy_path"), "Keywords", "copy path fpath"))
-    RimCommand.Register("file.copy_name", "Copy File Name", Cmd_FileCopyName, Map("Category", "File", "Description", T("cmd.universal.copy_name"), "Keywords", "copy filename name"))
-    RimCommand.Register("file.open_dir", "Open Directory", Cmd_FileOpenDir, Map("Category", "File", "Description", T("cmd.universal.open_dir"), "Keywords", "open folder dir explorer"))
-    RimCommand.Register("file.open_terminal", "Open Terminal Here", Cmd_FileOpenTerminal, Map("Category", "File", "Description", T("cmd.universal.open_terminal"), "Keywords", "terminal cmd powershell wt bash"))
-    RimCommand.Register("file.open_in_tc", "Open in Total Commander", Cmd_FileOpenInTC, Map("Category", "File", "Description", T("cmd.universal.open_in_tc"), "Keywords", "tc totalcommander goto"))
-    RimCommand.Register("file.open_in_explorer", "Open in Explorer", Cmd_FileOpenInExplorer, Map("Category", "File", "Description", T("cmd.universal.open_in_explorer"), "Keywords", "explorer folder"))
+    RimCommand.Register("file.copy_path", T("cmdtitle.file.copy_path"), Cmd_FileCopyPath, Map("Category", "File", "Description", T("cmd.universal.copy_path"), "Keywords", "copy path fpath"))
+    RimCommand.Register("file.copy_name", T("cmdtitle.file.copy_name"), Cmd_FileCopyName, Map("Category", "File", "Description", T("cmd.universal.copy_name"), "Keywords", "copy filename name"))
+    RimCommand.Register("file.open_dir", T("cmdtitle.file.open_dir"), Cmd_FileOpenDir, Map("Category", "File", "Description", T("cmd.universal.open_dir"), "Keywords", "open folder dir explorer"))
+    RimCommand.Register("file.open_terminal", T("cmdtitle.file.open_terminal"), Cmd_FileOpenTerminal, Map("Category", "File", "Description", T("cmd.universal.open_terminal"), "Keywords", "terminal cmd powershell wt bash"))
+    RimCommand.Register("file.open_in_tc", T("cmdtitle.file.open_in_tc"), Cmd_FileOpenInTC, Map("Category", "File", "Description", T("cmd.universal.open_in_tc"), "Keywords", "tc totalcommander goto"))
+    RimCommand.Register("file.open_in_explorer", T("cmdtitle.file.open_in_explorer"), Cmd_FileOpenInExplorer, Map("Category", "File", "Description", T("cmd.universal.open_in_explorer"), "Keywords", "explorer folder"))
 
-    RimCommand.Register("window.close", "Close Window", Cmd_WindowClose, Map("Category", "Window", "Description", T("cmd.universal.window_close"), "Keywords", "close exit quit window"))
-    RimCommand.Register("window.maximize", "Maximize Window", Cmd_WindowMaximize, Map("Category", "Window", "Description", T("cmd.universal.window_maximize"), "Keywords", "maximize window zoom"))
-    RimCommand.Register("window.minimize", "Minimize Window", Cmd_WindowMinimize, Map("Category", "Window", "Description", T("cmd.universal.window_minimize"), "Keywords", "minimize hide window"))
-    RimCommand.Register("window.toggle_top", "Toggle Always on Top", Cmd_WindowToggleTop, Map("Category", "Window", "Description", T("cmd.universal.window_toggle_top"), "Keywords", "top pin alwaysontop"))
-    RimCommand.Register("window.center", "Center Window", Cmd_WindowCenter, Map("Category", "Window", "Description", T("cmd.universal.window_center"), "Keywords", "center move window"))
+    RimCommand.Register("window.close", T("cmdtitle.window.close"), Cmd_WindowClose, Map("Category", "Window", "Description", T("cmd.universal.window_close"), "Keywords", "close exit quit window"))
+    RimCommand.Register("window.maximize", T("cmdtitle.window.maximize"), Cmd_WindowMaximize, Map("Category", "Window", "Description", T("cmd.universal.window_maximize"), "Keywords", "maximize window zoom"))
+    RimCommand.Register("window.minimize", T("cmdtitle.window.minimize"), Cmd_WindowMinimize, Map("Category", "Window", "Description", T("cmd.universal.window_minimize"), "Keywords", "minimize hide window"))
+    RimCommand.Register("window.toggle_top", T("cmdtitle.window.toggle_top"), Cmd_WindowToggleTop, Map("Category", "Window", "Description", T("cmd.universal.window_toggle_top"), "Keywords", "top pin alwaysontop"))
+    RimCommand.Register("window.center", T("cmdtitle.window.center"), Cmd_WindowCenter, Map("Category", "Window", "Description", T("cmd.universal.window_center"), "Keywords", "center move window"))
 
-    RimCommand.Register("system.reload_rim", "Restart Rim", Cmd_SystemReload, Map("Category", "System", "Description", T("cmd.universal.reload_rim"), "Keywords", "reload restart rim runz"))
-    RimCommand.Register("system.edit_config", "Edit Configuration", Cmd_SystemEditConfig, Map("Category", "System", "Description", T("cmd.universal.edit_config"), "Keywords", "config setting ini edit"))
-    RimCommand.Register("system.edit_auto_config", "Edit Auto Configuration", Cmd_SystemEditAutoConfig, Map("Category", "System", "Description", T("cmd.universal.edit_auto_config"), "Keywords", "auto config ini"))
-    RimCommand.Register("system.lock", "Lock Workstation", Cmd_SystemLock, Map("Category", "System", "Description", T("cmd.universal.lock"), "Keywords", "lock workstation screen"))
-    RimCommand.Register("system.sleep", "Sleep", Cmd_SystemSleep, Map("Category", "System", "Description", T("cmd.universal.sleep"), "Keywords", "sleep suspend standby"))
+    RimCommand.Register("system.reload_rim", T("cmdtitle.system.reload_rim"), Cmd_SystemReload, Map("Category", "System", "Description", T("cmd.universal.reload_rim"), "Keywords", "reload restart rim runz"))
+    RimCommand.Register("system.edit_config", T("cmdtitle.system.edit_config"), Cmd_SystemEditConfig, Map("Category", "System", "Description", T("cmd.universal.edit_config"), "Keywords", "config setting ini edit"))
+    RimCommand.Register("system.edit_auto_config", T("cmdtitle.system.edit_auto_config"), Cmd_SystemEditAutoConfig, Map("Category", "System", "Description", T("cmd.universal.edit_auto_config"), "Keywords", "auto config ini"))
+    RimCommand.Register("system.lock", T("cmdtitle.system.lock"), Cmd_SystemLock, Map("Category", "System", "Description", T("cmd.universal.lock"), "Keywords", "lock workstation screen"))
+    RimCommand.Register("system.sleep", T("cmdtitle.system.sleep"), Cmd_SystemSleep, Map("Category", "System", "Description", T("cmd.universal.sleep"), "Keywords", "sleep suspend standby"))
 }

@@ -12,15 +12,20 @@
 
 global g_StatsBall := ""
 
-; ---------- 注册 (仅注册命令, 不建窗; 幂等: 命令+vim双通道各调一次) ----------
-RegisterPlugin_StatsBall() {
-    static registered := false
-    if (registered)
-        return
-    registered := true
-    RegisterCommand("StatsBall", "function", "StatsBall_Toggle", T("cmd.StatsBall.StatsBall"))
-    RegisterCommand("StatsBallBoost", "function", "StatsBall_Boost", T("cmd.StatsBall.Boost"))
+; ---------- 注册 (Hybrid: 命令经 RegisterCommands 直注, 不建窗; 幂等由 Registry 保证) ----------
+class StatsBallPlugin extends RimPlugin {
+    static Name => "StatsBall"
+    static Title => "Desktop Radar"
+    static Description => "桌面三段雷达 (CPU/内存/网速)"
+
+    static RegisterCommands() {
+        RimCommand.Register("StatsBall", "StatsBall", MakeLegacyCmd("StatsBall_Toggle"), Map("Category", "Tool", "Description", T("cmd.StatsBall.StatsBall"), "Keywords", "StatsBall"))
+        RimCommand.Register("StatsBallBoost", "StatsBallBoost", MakeLegacyCmd("StatsBall_Boost"), Map("Category", "Tool", "Description", T("cmd.StatsBall.Boost"), "Keywords", "StatsBallBoost"))
+    }
 }
+
+if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
+    RimPluginManager.Register(StatsBallPlugin)
 
 ; ---------- 配置读取 (带默认值, 防 Map 缺键报错) ----------
 StatsBall_Cfg(key, def) {

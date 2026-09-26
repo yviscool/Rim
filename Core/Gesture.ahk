@@ -67,49 +67,6 @@ global g_GestureDisabled := Map()  ; 禁用集: id -> 1
 global g_GestureHookBefore := ""
 global g_GestureHookAfter := ""
 
-; === 旧过程式 API 兼容垫片 (探针/旧插件仍调全局函数, 转调新类方法; 新代码请直调类) ===
-; probe_gesture_*.ahk 曾直调 Gesture_ResolveStroke/ReloadLayers/ChainOff/Normalize,
-; 而实现已收敛为 GestureEngine/GestureRecognizer 静态方法, 此处垫平, 避免全员改调用点
-Gesture_ResolveStroke(gestureStr, pts, exe, cls, title, mods := "", ownerCls := "", ctrlCls := "", ctrlTitle := "") {
-    return GestureEngine.ResolveStroke(gestureStr, pts, exe, cls, title, mods, ownerCls, ctrlCls, ctrlTitle)
-}
-
-Gesture_ReloadLayers() {
-    return GestureEngine.ReloadLayers()
-}
-
-Gesture_LoadConfig() {
-    return GestureEngine.LoadConfig()
-}
-
-Gesture_ChainOff(layer, key) {
-    return GestureEngine.ChainOff(layer, key)
-}
-
-Gesture_Normalize(s) {
-    return GestureRecognizer.Normalize(s)
-}
-
-Gesture_NormalizeFull(s) {
-    return GestureRecognizer.NormalizeFull(s)
-}
-
-Gesture_MatchApp(exe, cls, title := "", ownerCls := "", ctrlCls := "", ctrlTitle := "") {
-    return GestureEngine.MatchApp(exe, cls, title, ownerCls, ctrlCls, ctrlTitle)
-}
-
-Gesture_ActionWin() {
-    return GestureHook.ActionWin()
-}
-
-Gesture_StartIds(&exe, &cls, &title, &ownerCls := "", &ctrlCls := "", &ctrlTitle := "") {
-    return GestureHook.StartIds(&exe, &cls, &title, &ownerCls, &ctrlCls, &ctrlTitle)
-}
-
-Gesture_ComboActive() {
-    return GestureEngine.ComboActive()
-}
-
 ; === 手势节名/层名常量 (改名只改此处; 模板 ini / 引擎 / 持久化三方同源, 禁止各处手写字面量) ===
 GestureSec_Defs() => "GestureDefinitions"
 GestureSec_Gestures() => "Gestures"

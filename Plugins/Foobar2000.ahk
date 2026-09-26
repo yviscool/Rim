@@ -4,70 +4,83 @@
 ; 完整移植自 VimDesktop 的 Foobar2000 插件
 ; 支持 insert/normal 模式系统, 帮助显示, 控件定位
 
-RegisterPlugin_Foobar2000() {
-    RegisterWin("Foobar2000", "BaseWindow_Root2", "foobar2000.exe")
+class Foobar2000Plugin extends RimPlugin {
+    static Name => "Foobar2000"
+    static Title => "Foobar2000"
+    static Description => "Foobar2000 播放控制 Vim 映射"
+
+    static RegisterKeymaps(engine) {
+        Foobar2000_Keymaps(engine)
+    }
+}
+
+if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
+    RimPluginManager.Register(Foobar2000Plugin)
+
+Foobar2000_Keymaps(engine) {
+    engine.SetWin("Foobar2000", "BaseWindow_Root2", "foobar2000.exe")
 
     ; 注册动作
-    RegisterAction("<FB_Next>", T("act.Foobar2000.FB_Next"))
-    RegisterAction("<FB_Prev>", T("act.Foobar2000.FB_Prev"))
-    RegisterAction("<FB_Stop>", T("act.Foobar2000.FB_Stop"))
-    RegisterAction("<FB_Play>", T("act.Foobar2000.FB_Play"))
-    RegisterAction("<FB_NextTab>", T("act.Foobar2000.FB_NextTab"))
-    RegisterAction("<FB_PrevTab>", T("act.Foobar2000.FB_PrevTab"))
-    RegisterAction("<FB_Search>", T("act.Foobar2000.FB_Search"))
-    RegisterAction("<FB_Home>", T("act.Foobar2000.FB_Home"))
-    RegisterAction("<FB_End>", T("act.Foobar2000.FB_End"))
-    RegisterAction("<FB_PgUp>", T("act.Foobar2000.FB_PgUp"))
-    RegisterAction("<FB_PgDn>", T("act.Foobar2000.FB_PgDn"))
-    RegisterAction("<FB_VolUp>", T("act.Foobar2000.FB_VolUp"))
-    RegisterAction("<FB_VolDown>", T("act.Foobar2000.FB_VolDown"))
-    RegisterAction("<FB_VolMute>", T("act.Foobar2000.FB_VolMute"))
-    RegisterAction("<FB_FocusTree>", T("act.Foobar2000.FB_FocusTree"))
-    RegisterAction("<FB_FocusList>", T("act.Foobar2000.FB_FocusList"))
-    RegisterAction("<FB_ShowHelp>", T("act.Foobar2000.FB_ShowHelp"))
+    engine.SetAction("<FB_Next>", T("act.Foobar2000.FB_Next"))
+    engine.SetAction("<FB_Prev>", T("act.Foobar2000.FB_Prev"))
+    engine.SetAction("<FB_Stop>", T("act.Foobar2000.FB_Stop"))
+    engine.SetAction("<FB_Play>", T("act.Foobar2000.FB_Play"))
+    engine.SetAction("<FB_NextTab>", T("act.Foobar2000.FB_NextTab"))
+    engine.SetAction("<FB_PrevTab>", T("act.Foobar2000.FB_PrevTab"))
+    engine.SetAction("<FB_Search>", T("act.Foobar2000.FB_Search"))
+    engine.SetAction("<FB_Home>", T("act.Foobar2000.FB_Home"))
+    engine.SetAction("<FB_End>", T("act.Foobar2000.FB_End"))
+    engine.SetAction("<FB_PgUp>", T("act.Foobar2000.FB_PgUp"))
+    engine.SetAction("<FB_PgDn>", T("act.Foobar2000.FB_PgDn"))
+    engine.SetAction("<FB_VolUp>", T("act.Foobar2000.FB_VolUp"))
+    engine.SetAction("<FB_VolDown>", T("act.Foobar2000.FB_VolDown"))
+    engine.SetAction("<FB_VolMute>", T("act.Foobar2000.FB_VolMute"))
+    engine.SetAction("<FB_FocusTree>", T("act.Foobar2000.FB_FocusTree"))
+    engine.SetAction("<FB_FocusList>", T("act.Foobar2000.FB_FocusList"))
+    engine.SetAction("<FB_ShowHelp>", T("act.Foobar2000.FB_ShowHelp"))
 
     ; insert 模式映射
-    MapKey("<enter>", "<enter>", "Foobar2000", "insert")
-    MapKey("<bs>", "<bs>", "Foobar2000", "insert")
-    MapKey("<tab>", "<tab>", "Foobar2000", "insert")
-    MapKey("<space>", "<space>", "Foobar2000", "insert")
-    MapKey("<del>", "<del>", "Foobar2000", "insert")
+    engine.MapKey("<enter>", "<enter>", "Foobar2000", "insert")
+    engine.MapKey("<bs>", "<bs>", "Foobar2000", "insert")
+    engine.MapKey("<tab>", "<tab>", "Foobar2000", "insert")
+    engine.MapKey("<space>", "<space>", "Foobar2000", "insert")
+    engine.MapKey("<del>", "<del>", "Foobar2000", "insert")
 
     ; normal 模式映射
     ; 播放控制
-    MapKey("n", "<FB_Next>", "Foobar2000", "normal")
-    MapKey("p", "<FB_Prev>", "Foobar2000", "normal")
-    MapKey("s", "<FB_Stop>", "Foobar2000", "normal")
-    MapKey("<Space>", "<FB_Play>", "Foobar2000", "normal")
+    engine.MapKey("n", "<FB_Next>", "Foobar2000", "normal")
+    engine.MapKey("p", "<FB_Prev>", "Foobar2000", "normal")
+    engine.MapKey("s", "<FB_Stop>", "Foobar2000", "normal")
+    engine.MapKey("<Space>", "<FB_Play>", "Foobar2000", "normal")
 
     ; 标签页
-    MapKey("t", "<FB_NextTab>", "Foobar2000", "normal")
-    MapKey("m", "<FB_PrevTab>", "Foobar2000", "normal")
+    engine.MapKey("t", "<FB_NextTab>", "Foobar2000", "normal")
+    engine.MapKey("m", "<FB_PrevTab>", "Foobar2000", "normal")
 
     ; 搜索
-    MapKey("/", "<FB_Search>", "Foobar2000", "normal")
+    engine.MapKey("/", "<FB_Search>", "Foobar2000", "normal")
 
     ; 导航
-    MapKey("gg", "<FB_Home>", "Foobar2000", "normal")
-    MapKey("G", "<FB_End>", "Foobar2000", "normal")
-    MapKey("<C-u>", "<FB_PgUp>", "Foobar2000", "normal")
-    MapKey("<C-d>", "<FB_PgDn>", "Foobar2000", "normal")
+    engine.MapKey("gg", "<FB_Home>", "Foobar2000", "normal")
+    engine.MapKey("G", "<FB_End>", "Foobar2000", "normal")
+    engine.MapKey("<C-u>", "<FB_PgUp>", "Foobar2000", "normal")
+    engine.MapKey("<C-d>", "<FB_PgDn>", "Foobar2000", "normal")
 
     ; 音量控制
-    MapKey("+", "<FB_VolUp>", "Foobar2000", "normal")
-    MapKey("-", "<FB_VolDown>", "Foobar2000", "normal")
-    MapKey("z", "<FB_VolMute>", "Foobar2000", "normal")
+    engine.MapKey("+", "<FB_VolUp>", "Foobar2000", "normal")
+    engine.MapKey("-", "<FB_VolDown>", "Foobar2000", "normal")
+    engine.MapKey("z", "<FB_VolMute>", "Foobar2000", "normal")
 
     ; 控件定位
-    MapKey("<C-w>h", "<FB_FocusTree>", "Foobar2000", "normal")
-    MapKey("<C-w>l", "<FB_FocusList>", "Foobar2000", "normal")
+    engine.MapKey("<C-w>h", "<FB_FocusTree>", "Foobar2000", "normal")
+    engine.MapKey("<C-w>l", "<FB_FocusList>", "Foobar2000", "normal")
 
     ; 帮助
-    MapKey("z/", "<FB_ShowHelp>", "Foobar2000", "normal")
+    engine.MapKey("z/", "<FB_ShowHelp>", "Foobar2000", "normal")
 
     ; 模式切换
-    MapKey("i", "<Gen_InsertMode>", "Foobar2000", "normal")
-    MapKey("<Esc>", "<Gen_NormalMode>", "Foobar2000", "insert")
+    engine.MapKey("i", "<Gen_InsertMode>", "Foobar2000", "normal")
+    engine.MapKey("<Esc>", "<Gen_NormalMode>", "Foobar2000", "insert")
 }
 
 ; === 动作函数 ===

@@ -2,7 +2,7 @@
 
 ; === QRCode Plugin - 二维码生成 ===
 ; 移植自 RunZ 的 QRCode 插件
-; Hybrid: Modern 壳 (命令通道) + 旧 RegisterPlugin_QRCode() 体 (Vim/手势无诉求, 不进 LegacyVim 名单)
+; 命令经 Hybrid RegisterCommands 直注
 
 class QRCodePlugin extends RimPlugin {
     static Name => "QRCode"
@@ -10,19 +10,15 @@ class QRCodePlugin extends RimPlugin {
     static Description => "二维码生成 (文本/剪切板/URL)"
 
     static RegisterCommands() {
-        RegisterPlugin_QRCode()
+        RimCommand.Register("QRCode", "QRCode", MakeLegacyCmd("GenerateQRCode"), Map("Category", "Tool", "Description", T("cmd.QRCode.QRCode"), "Keywords", "QRCode"))
+        RimCommand.Register("QRText", "QRText", MakeLegacyCmd("QRFromText"), Map("Category", "Tool", "Description", T("cmd.QRCode.QRText"), "Keywords", "QRText"))
+        RimCommand.Register("QRClip", "QRClip", MakeLegacyCmd("QRFromClipboard"), Map("Category", "Tool", "Description", T("cmd.QRCode.QRClip"), "Keywords", "QRClip"))
+        RimCommand.Register("QRUrl", "QRUrl", MakeLegacyCmd("QRFromUrl"), Map("Category", "Tool", "Description", T("cmd.QRCode.QRUrl"), "Keywords", "QRUrl"))
     }
 }
 
 if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
     RimPluginManager.Register(QRCodePlugin)
-
-RegisterPlugin_QRCode() {
-    RegisterCommand("QRCode", "function", "GenerateQRCode", T("cmd.QRCode.QRCode"))
-    RegisterCommand("QRText", "function", "QRFromText", T("cmd.QRCode.QRText"))
-    RegisterCommand("QRClip", "function", "QRFromClipboard", T("cmd.QRCode.QRClip"))
-    RegisterCommand("QRUrl", "function", "QRFromUrl", T("cmd.QRCode.QRUrl"))
-}
 
 ; === 二维码生成 (g_Arg > 剪切板 > InputBox; 空输入 DisplayResult 报错) ===
 QRCodePipeInput(prompt, title) {

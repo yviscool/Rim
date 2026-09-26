@@ -1168,6 +1168,8 @@ VimCfg_AcPick(*) {
                 if (desc = "" && mc[4] != "")
                     desc := VimCfg_TrKey(mc[4])
                 lines.Push(Map("action", mc[1] " [" mc[2] "]", "desc", desc))
+            } else if RegExMatch(_line, 'RimCommand\.Register\("([^"]+)"\s*,\s*"([^"]+)"\s*,\s*MakeLegacyCmd\("([^"]+)"[^)]*T\("([^"]+)"\)', &mr) {
+                lines.Push(Map("action", mr[3], "desc", VimCfg_TrKey(mr[4])))
             }
         }
     }

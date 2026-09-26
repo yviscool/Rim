@@ -12,61 +12,40 @@ class LauncherSystemPlugin extends RimPlugin {
     static Description => "系统管理功能 (剪贴板、音量、进程管理、电源与关机)"
 
     static RegisterCommands() {
-        RegisterPlugin_LauncherSystem()
-    }
-}
+    ; --- Original commands (names preserved from v1 @() registrations,直注 RimCommand, 无别名表) ---
+    RimCommand.Register("Clip", "Clip", MakeLegacyCmd("Clip"), Map("Category", "System", "Description", T("cmd.LauncherSystem.Clip"), "Keywords", "Clip clipboard"))
+    RimCommand.Register("ClearClipboardFormat", "ClearClipboardFormat", MakeLegacyCmd("ClearClipboardFormat"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ClearClipboardFormat"), "Keywords", "ClearClipboardFormat"))
+    RimCommand.Register("EmptyRecycle", "EmptyRecycle", MakeLegacyCmd("EmptyRecycle"), Map("Category", "System", "Description", T("cmd.LauncherSystem.EmptyRecycle"), "Keywords", "EmptyRecycle emptytrash"))
+    RimCommand.Register("Logoff", "Logoff", MakeLegacyCmd("Logoff"), Map("Category", "System", "Description", T("cmd.LauncherSystem.Logoff"), "Keywords", "Logoff"))
+    RimCommand.Register("RestartMachine", "RestartMachine", MakeLegacyCmd("RestartMachine"), Map("Category", "System", "Description", T("cmd.LauncherSystem.RestartMachine"), "Keywords", "RestartMachine restart"))
+    RimCommand.Register("ShutdownMachine", "ShutdownMachine", MakeLegacyCmd("ShutdownMachine"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ShutdownMachine"), "Keywords", "ShutdownMachine shutdown"))
+    RimCommand.Register("SuspendMachine", "SuspendMachine", MakeLegacyCmd("SuspendMachine"), Map("Category", "System", "Description", T("cmd.LauncherSystem.SuspendMachine"), "Keywords", "SuspendMachine suspend sleep"))
+    RimCommand.Register("HibernateMachine", "HibernateMachine", MakeLegacyCmd("HibernateMachine"), Map("Category", "System", "Description", T("cmd.LauncherSystem.HibernateMachine"), "Keywords", "HibernateMachine hibernate"))
+    RimCommand.Register("TurnMonitorOff", "TurnMonitorOff", MakeLegacyCmd("TurnMonitorOff"), Map("Category", "System", "Description", T("cmd.LauncherSystem.TurnMonitorOff"), "Keywords", "TurnMonitorOff monitoroff"))
+    RimCommand.Register("ListProcess", "ListProcess", MakeLegacyCmd("ListProcess"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ListProcess"), "Keywords", "ListProcess processlist"))
+    RimCommand.Register("DiskSpace", "DiskSpace", MakeLegacyCmd("DiskSpace"), Map("Category", "System", "Description", T("cmd.LauncherSystem.DiskSpace"), "Keywords", "DiskSpace"))
+    RimCommand.Register("IncreaseVolume", "IncreaseVolume", MakeLegacyCmd("IncreaseVolume"), Map("Category", "System", "Description", T("cmd.LauncherSystem.IncreaseVolume"), "Keywords", "IncreaseVolume volumeup"))
+    RimCommand.Register("DecreaseVolume", "DecreaseVolume", MakeLegacyCmd("DecreaseVolume"), Map("Category", "System", "Description", T("cmd.LauncherSystem.DecreaseVolume"), "Keywords", "DecreaseVolume volumedown"))
+    RimCommand.Register("SystemState", "SystemState", MakeLegacyCmd("SystemState"), Map("Category", "System", "Description", T("cmd.LauncherSystem.SystemState"), "Keywords", "SystemState top"))
+    RimCommand.Register("KillProcess", "KillProcess", MakeLegacyCmd("KillProcess"), Map("Category", "System", "Description", T("cmd.LauncherSystem.KillProcess"), "Keywords", "KillProcess"))
+    RimCommand.Register("SendToClip", "SendToClip", MakeLegacyCmd("SendToClip"), Map("Category", "System", "Description", T("cmd.LauncherSystem.SendToClip"), "Keywords", "SendToClip"))
+    RimCommand.Register("ListWindow", "ListWindow", MakeLegacyCmd("ListWindow"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ListWindow"), "Keywords", "ListWindow"))
+    RimCommand.Register("ActivateWindow", "ActivateWindow", MakeLegacyCmd("ActivateWindow"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ActivateWindow"), "Keywords", "ActivateWindow"))
+    RimCommand.Register("ListRunningService", "ListRunningService", MakeLegacyCmd("ListRunningService"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ListRunningService"), "Keywords", "ListRunningService"))
+    RimCommand.Register("ListAllService", "ListAllService", MakeLegacyCmd("ListAllService"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ListAllService"), "Keywords", "ListAllService"))
+    RimCommand.Register("ShowService", "ShowService", MakeLegacyCmd("ShowService"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ShowService"), "Keywords", "ShowService"))
+    RimCommand.Register("ShowProcess", "ShowProcess", MakeLegacyCmd("ShowProcess"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ShowProcess"), "Keywords", "ShowProcess"))
 
-if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
-    RimPluginManager.Register(LauncherSystemPlugin)
-
-RegisterPlugin_LauncherSystem() {
-    ; --- Original commands (names preserved from v1 @() registrations) ---
-    RegisterCommand("Clip", "function", "Clip", T("cmd.LauncherSystem.Clip"))
-    RegisterCommand("ClearClipboardFormat", "function", "ClearClipboardFormat", T("cmd.LauncherSystem.ClearClipboardFormat"))
-    RegisterCommand("EmptyRecycle", "function", "EmptyRecycle", T("cmd.LauncherSystem.EmptyRecycle"))
-    RegisterCommand("Logoff", "function", "Logoff", T("cmd.LauncherSystem.Logoff"))
-    RegisterCommand("RestartMachine", "function", "RestartMachine", T("cmd.LauncherSystem.RestartMachine"))
-    RegisterCommand("ShutdownMachine", "function", "ShutdownMachine", T("cmd.LauncherSystem.ShutdownMachine"))
-    RegisterCommand("SuspendMachine", "function", "SuspendMachine", T("cmd.LauncherSystem.SuspendMachine"))
-    RegisterCommand("HibernateMachine", "function", "HibernateMachine", T("cmd.LauncherSystem.HibernateMachine"))
-    RegisterCommand("TurnMonitorOff", "function", "TurnMonitorOff", T("cmd.LauncherSystem.TurnMonitorOff"))
-    RegisterCommand("ListProcess", "function", "ListProcess", T("cmd.LauncherSystem.ListProcess"))
-    RegisterCommand("DiskSpace", "function", "DiskSpace", T("cmd.LauncherSystem.DiskSpace"))
-    RegisterCommand("IncreaseVolume", "function", "IncreaseVolume", T("cmd.LauncherSystem.IncreaseVolume"))
-    RegisterCommand("DecreaseVolume", "function", "DecreaseVolume", T("cmd.LauncherSystem.DecreaseVolume"))
-    RegisterCommand("SystemState", "function", "SystemState", T("cmd.LauncherSystem.SystemState"))
-    RegisterCommand("KillProcess", "function", "KillProcess", T("cmd.LauncherSystem.KillProcess"))
-    RegisterCommand("SendToClip", "function", "SendToClip", T("cmd.LauncherSystem.SendToClip"))
-    RegisterCommand("ListWindow", "function", "ListWindow", T("cmd.LauncherSystem.ListWindow"))
-    RegisterCommand("ActivateWindow", "function", "ActivateWindow", T("cmd.LauncherSystem.ActivateWindow"))
-    RegisterCommand("ListRunningService", "function", "ListRunningService", T("cmd.LauncherSystem.ListRunningService"))
-    RegisterCommand("ListAllService", "function", "ListAllService", T("cmd.LauncherSystem.ListAllService"))
-    RegisterCommand("ShowService", "function", "ShowService", T("cmd.LauncherSystem.ShowService"))
-    RegisterCommand("ShowProcess", "function", "ShowProcess", T("cmd.LauncherSystem.ShowProcess"))
-
-    ; --- Backward-compat aliases (point at the same original funcs) ---
-    RegisterCommand("Clipboard", "function", "Clip", T("cmd.LauncherSystem.Clipboard"))
-    RegisterCommand("EmptyTrash", "function", "EmptyRecycle", T("cmd.LauncherSystem.EmptyRecycle"))
-    RegisterCommand("Shutdown", "function", "ShutdownMachine", T("cmd.LauncherSystem.ShutdownMachine"))
-    RegisterCommand("Restart", "function", "RestartMachine", T("cmd.LauncherSystem.RestartMachine"))
-    RegisterCommand("Suspend", "function", "SuspendMachine", T("cmd.LauncherSystem.Suspend"))
-    RegisterCommand("Hibernate", "function", "HibernateMachine", T("cmd.LauncherSystem.HibernateMachine"))
-    RegisterCommand("MonitorOff", "function", "TurnMonitorOff", T("cmd.LauncherSystem.TurnMonitorOff"))
-    RegisterCommand("Top", "function", "SystemState", T("cmd.LauncherSystem.Top"))
-    RegisterCommand("VolumeUp", "function", "IncreaseVolume", T("cmd.LauncherSystem.VolumeUp"))
-    RegisterCommand("VolumeDown", "function", "DecreaseVolume", T("cmd.LauncherSystem.VolumeDown"))
-    RegisterCommand("ProcessList", "function", "ListProcess", T("cmd.LauncherSystem.ProcessList"))
-    RegisterCommand("Sleep", "function", "SuspendMachine", T("cmd.LauncherSystem.Suspend"))
+    ; --- 旧 Backward-compat 别名已删 (Clipboard/EmptyTrash/Shutdown/Restart/Suspend/Hibernate/MonitorOff/Top/VolumeUp/VolumeDown/ProcessList/Sleep/CancelTimer), 关键词并入主体 ---
 
     ; --- Pure gain (kept): lock screen + mute toggle ---
-    RegisterCommand("Lock", "function", "LockScreen", T("cmd.LauncherSystem.Lock"))
-    RegisterCommand("VolumeMute", "function", "VolumeMute", T("cmd.LauncherSystem.VolumeMute"))
+    RimCommand.Register("Lock", "Lock", MakeLegacyCmd("LockScreen"), Map("Category", "System", "Description", T("cmd.LauncherSystem.Lock"), "Keywords", "Lock"))
+    RimCommand.Register("VolumeMute", "VolumeMute", MakeLegacyCmd("VolumeMute"), Map("Category", "System", "Description", T("cmd.LauncherSystem.VolumeMute"), "Keywords", "VolumeMute"))
 
     ; --- 定时关机/重启 (单例: Windows 同一时间只允许一个 pending shutdown) ---
-    RegisterCommand("ShutdownTimer", "function", "ShutdownTimer", T("cmd.LauncherSystem.ShutdownTimer"))
-    RegisterCommand("RestartTimer", "function", "RestartTimer", T("cmd.LauncherSystem.RestartTimer"))
-    RegisterCommand("CancelShutdown", "function", "CancelShutdown", T("cmd.LauncherSystem.CancelShutdown"))
-    RegisterCommand("CancelTimer", "function", "CancelShutdown", T("cmd.LauncherSystem.CancelTimer"))
+    RimCommand.Register("ShutdownTimer", "ShutdownTimer", MakeLegacyCmd("ShutdownTimer"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ShutdownTimer"), "Keywords", "ShutdownTimer"))
+    RimCommand.Register("RestartTimer", "RestartTimer", MakeLegacyCmd("RestartTimer"), Map("Category", "System", "Description", T("cmd.LauncherSystem.RestartTimer"), "Keywords", "RestartTimer"))
+    RimCommand.Register("CancelShutdown", "CancelShutdown", MakeLegacyCmd("CancelShutdown"), Map("Category", "System", "Description", T("cmd.LauncherSystem.CancelShutdown"), "Keywords", "CancelShutdown canceltimer"))
 
     ; --- Invented cmd/file shortcuts (GUI 程序必须用 file，直接 Run；用 cmd 会走 `cmd /C xxx & pause` 多弹一个终端) ---
     ; 注意: control 已由 Core\ControlPanelFunctions.txt 提供 `file | control`，此处不再重复注册，避免和 `cmd | control` 冲突
@@ -106,6 +85,13 @@ RegisterPlugin_LauncherSystem() {
     RegisterCommand("Fonts", "file", "control fonts", T("cmd.LauncherSystem.Fonts"))
     RegisterCommand("AdministrativeTools", "file", "control admintools", T("cmd.LauncherSystem.AdministrativeTools"))
 }
+
+}
+
+if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
+    RimPluginManager.Register(LauncherSystemPlugin)
+
+
 
 ; === Original behavior (same names as v1 labels) ===
 

@@ -31,25 +31,25 @@ MakePoints(coords) {
     return pts
 }
 
-Check("RD jitter", Gesture_DirectionChain(MakePoints([
+Check("RD jitter", GestureRecognizer.DirectionChain(MakePoints([
     [0,0],[20,1],[40,-2],[38,1],[60,2],[85,-1],[100,0],
     [102,20],[99,40],[101,38],[100,62],[102,82],[100,100]])), "R_D")
-Check("RD dense", Gesture_DirectionChain(MakePoints([
+Check("RD dense", GestureRecognizer.DirectionChain(MakePoints([
     [0,0],[8,0],[16,1],[24,-1],[32,1],[40,-1],[48,0],
     [56,0],[64,1],[72,0],[80,0],[80,8],[81,16],[79,24],
     [81,32],[80,40],[80,48],[80,56],[80,64]])), "R_D")
-Check("diagonal", Gesture_DirectionChain(MakePoints([
+Check("diagonal", GestureRecognizer.DirectionChain(MakePoints([
     [0,100],[20,79],[40,61],[60,39],[80,20],[100,0]])), "UR")
-Check("U then UR", Gesture_DirectionChain(MakePoints([
+Check("U then UR", GestureRecognizer.DirectionChain(MakePoints([
     [0,100],[1,80],[-1,60],[0,40],[0,20],[20,0],[40,-20]])), "U_UR")
-Check("V stroke", Gesture_DirectionChain(MakePoints([
+Check("V stroke", GestureRecognizer.DirectionChain(MakePoints([
     [0,0],[20,20],[40,40],[50,50],[60,40],[80,20],[100,0]])), "DR_UR")
-Check("inverted V stroke", Gesture_DirectionChain(MakePoints([
+Check("inverted V stroke", GestureRecognizer.DirectionChain(MakePoints([
     [0,100],[20,80],[40,60],[50,50],[60,60],[80,80],[100,100]])), "UR_DR")
-Check("inverted V pause split", Gesture_DirectionChain(MakePoints([
+Check("inverted V pause split", GestureRecognizer.DirectionChain(MakePoints([
     [0,100],[16,84],[32,68],[44,56],[49,51],[50,50],[50,50],[51,51],
     [56,56],[68,68],[84,84],[100,100]])), "UR_DR")
-uChain := Gesture_DirectionChain(MakePoints([
+uChain := GestureRecognizer.DirectionChain(MakePoints([
     [0,0],[0,20],[0,48],[4,72],[18,92],[40,100],[62,92],[76,72],[80,48],[80,20],[80,0]]))
 Check("U is not inverted V", uChain != "DR_UR" && uChain != "UR_DR", true)
 
@@ -85,10 +85,10 @@ for name, def in Tpl_BuiltinDefs() {
     }
 }
 
-legacy := Tpl_PrepareLegacy(MakePoints(Tpl_BuiltinDefs()["B"][2]))
-g_Templates := Map("B", {action: "key|^d", samples: [legacy], versions: [1], builtin: 0})
-Check("legacy version", Tpl_Match(MakePoints(Tpl_BuiltinDefs()["B"][2]), 6)[1], "B")
-Check("legacy serialization", SubStr(Tpl_JoinSamples(g_Templates["B"]), 1, 3), "v1:")
+prevSample := Tpl_Prepare(MakePoints(Tpl_BuiltinDefs()["B"][2]))
+g_Templates := Map("B", {action: "key|^d", samples: [prevSample], versions: [2], builtin: 0})
+Check("prepared version", Tpl_Match(MakePoints(Tpl_BuiltinDefs()["B"][2]), 6)[1], "B")
+Check("current serialization", SubStr(Tpl_JoinSamples(g_Templates["B"]), 1, 3), "v2:")
 
 if failures
     ExitApp(1)

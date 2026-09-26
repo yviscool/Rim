@@ -29,7 +29,7 @@ try {
         . "[GestureApp:Probe]`nset_file=probe.exe`nnoglobal=1`n"
         . "[GestureDisabled]`n全局:L`n[GestureDesc]`n全局:L=old description`n", g_ConfFile, "UTF-8")
     g_Conf := EasyIni(g_ConfFile)
-    Gesture_ReloadLayers()
+    GestureEngine.ReloadLayers()
     Tpl_LoadAll()
 
     Check("save new", GestureStore_SaveGesture("全局", "R_D", "key|^b", "new description"))
@@ -38,8 +38,8 @@ try {
     Check("move disabled", GestureStore_MoveGesture("全局", "L", "Probe", "U_D", "key|^c", "moved description"))
     Check("old removed", !g_Conf.HasKey("Gestures", "L"))
     Check("old description removed", Gesture_GetGestureDesc("全局", "L") = "")
-    Check("old off removed", !Gesture_ChainOff("全局", "L"))
-    Check("new off transferred", Gesture_ChainOff("Probe", "U_D"))
+    Check("old off removed", !GestureEngine.ChainOff("全局", "L"))
+    Check("new off transferred", GestureEngine.ChainOff("Probe", "U_D"))
     Check("new description", Gesture_GetGestureDesc("Probe", "U_D") = "moved description")
     beforeFailedMove := FileRead(g_ConfFile, "UTF-8")
     Check("missing old binding rejected", !GestureStore_MoveGesture("全局", "MISSING", "Probe", "R", "key|^x", "invalid"))
@@ -49,7 +49,7 @@ try {
     pts := []
     for _, xy in Tpl_BuiltinDefs()["V"][2]
         pts.Push(Tpl_Pt(xy[1], xy[2]))
-    Check("unbound shape does not execute", Gesture_ResolveStroke("DR_UR", pts, "other.exe", "OtherClass", "")[1] = "")
+    Check("unbound shape does not execute", GestureEngine.ResolveStroke("DR_UR", pts, "other.exe", "OtherClass", "")[1] = "")
 
     pkgPath := g_ConfFile . ".export.ini"
     Check("export", GesturePkg_Export(pkgPath))

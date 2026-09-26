@@ -255,7 +255,8 @@ Benchmark_Main() {
     rejRate := Round(rejected / total * 100, 1)
     misRate := Round(misclassified / total * 100, 1)
 
-    ; P95 单样本耗时门禁 (Collect+Select 纯数学路径; 30ms 为交互可接受上限, headless 抖动留足余量)
+    ; P95 单样本耗时门禁 (Collect+Select 纯数学路径; A_TickCount 量子约 15.6ms, 门禁取 50ms
+    ; 防一跳抖动误杀 (曾实测 31ms 误杀 30ms 线); 真卡死是秒级, 50ms 照样抓, 基线约 16ms)
     p95 := 0
     try {
         st := []
@@ -285,7 +286,7 @@ Benchmark_Main() {
     rpt .= "Correct:         " . correct . " (" . acc . "%)`n"
     rpt .= "Rejected:        " . rejected . " (" . rejRate . "%)`n"
     rpt .= "Misclassified:   " . misclassified . " (" . misRate . "%)`n"
-    rpt .= "P95 Eval:        " . p95 . "ms (gate <= 30ms)`n`n"
+    rpt .= "P95 Eval:        " . p95 . "ms (gate <= 50ms)`n`n"
     rpt .= "NOTE: train/test same-source (template-generated samples); 100% does not imply unseen-user accuracy; negatives in probe_gesture_unified.ahk`n`n"
 
     rpt .= "--- MISCLASSIFICATIONS & REJECTIONS ---`n"
@@ -297,8 +298,8 @@ Benchmark_Main() {
     rpt .= "====================================================`n"
     FileAppend(rpt, outPath, "UTF-8")
     FileAppend("Completed. Report saved to " . outPath . "`n", logPath)
-    if (p95 > 30) {
-        FileAppend("P95 GATE FAILED: " . p95 . "ms > 30ms`n", logPath)
+    if (p95 > 50) {
+        FileAppend("P95 GATE FAILED: " . p95 . "ms > 50ms`n", logPath)
         ExitApp(1)
     }
 }

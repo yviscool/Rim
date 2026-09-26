@@ -4,12 +4,28 @@
 ; === VimDConfig Plugin - 按键/插件浏览器 (VimDesktop core/VimDConfig.ahk 移植) ===
 ; 插件一览 (左插件右动作, 过滤, 双击定位源码) + 按键一览 (窗/模式/映射三栏)
 
-RegisterPlugin_VimDConfig() {
-    RegisterAction("<VimDConfig_Plugin>", T("act.VimDConfig.VimDConfig_Plugin"))
-    RegisterAction("<VimDConfig_Keymap>", T("act.VimDConfig.VimDConfig_Keymap"))
-    RegisterAction("<VimDConfig_EditConfig>", T("act.VimDConfig.VimDConfig_EditConfig"))
-    RegisterCommand("VimPlugins", "function", "VimDConfig_ShowPlugin", T("cmd.VimDConfig.VimPlugins"))
-    RegisterCommand("VimKeymap", "function", "VimDConfig_ShowKeymap", T("cmd.VimDConfig.VimKeymap"))
+class VimDConfigPlugin extends RimPlugin {
+    static Name => "VimDConfig"
+    static Title => "VimDConfig Browser"
+    static Description => "插件/按键浏览器"
+
+    static RegisterKeymaps(engine) {
+        VimDConfig_Keymaps(engine)
+    }
+
+    static RegisterCommands() {
+        RimCommand.Register("VimPlugins", "VimPlugins", MakeLegacyCmd("VimDConfig_ShowPlugin"), Map("Category", "Tool", "Description", T("cmd.VimDConfig.VimPlugins"), "Keywords", "VimPlugins"))
+        RimCommand.Register("VimKeymap", "VimKeymap", MakeLegacyCmd("VimDConfig_ShowKeymap"), Map("Category", "Tool", "Description", T("cmd.VimDConfig.VimKeymap"), "Keywords", "VimKeymap"))
+    }
+}
+
+if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
+    RimPluginManager.Register(VimDConfigPlugin)
+
+VimDConfig_Keymaps(engine) {
+    engine.SetAction("<VimDConfig_Plugin>", T("act.VimDConfig.VimDConfig_Plugin"))
+    engine.SetAction("<VimDConfig_Keymap>", T("act.VimDConfig.VimDConfig_Keymap"))
+    engine.SetAction("<VimDConfig_EditConfig>", T("act.VimDConfig.VimDConfig_EditConfig"))
 }
 
 ; ==================== 插件浏览器 ====================
@@ -80,6 +96,8 @@ VimDConfig_PluginPick(lb, st) {
                 if (desc = "" && mc[4] != "")
                     desc := T(mc[4])
                 lines.Push(Map("action", mc[1] " [" mc[2] "]", "desc", desc))
+            } else if RegExMatch(_line, 'RimCommand\.Register\("([^"]+)"\s*,\s*"([^"]+)"\s*,\s*MakeLegacyCmd\("([^"]+)"[^)]*T\("([^"]+)"\)', &mr) {
+                lines.Push(Map("action", mr[3], "desc", T(mr[4])))
             }
         }
     }

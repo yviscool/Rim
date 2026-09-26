@@ -16,8 +16,12 @@
 ; Help KeyHelp ReindexFiles EditConfig CleanupRank 见 Core Hotkeys
 ; ShowArg 见 Core Execution, RunClipboard 见 Misc 插件
 
-global g_Arg := ""
-global FullPipeArg := ""
+; 顶层空值只在未赋值时初始化 (#Include 按 auto-execute 顺序执行, 无条件 := 会清空主入口已赋值, 见 AGENTS 错误 18)
+global g_Arg, FullPipeArg
+if !IsSet(g_Arg)
+    g_Arg := ""
+if !IsSet(FullPipeArg)
+    FullPipeArg := ""
 
 __LauncherCore_LoadGuard() {
     global g_Conf
@@ -29,31 +33,40 @@ Host(fn, args*) {
     return %fn%(args*)
 }
 
-RegisterPlugin_LauncherCore() {
-    Core()
+class LauncherCorePlugin extends RimPlugin {
+    static Name => "LauncherCore"
+    static Title => "Launcher Core Commands"
+    static Description => "启动器核心命令 (运行/插件管理/参数)"
+
+    static RegisterCommands() {
+        Core()
+    }
 }
+
+if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
+    RimPluginManager.Register(LauncherCorePlugin)
 
 ; ---- 原版 Core 标签 ----
 Core() {
-    Host("RegisterCommand", "Help", "function", "Help", T("cmd.LauncherCore.Help"))
-    Host("RegisterCommand", "KeyHelp", "function", "KeyHelp", T("cmd.LauncherCore.KeyHelp"))
-    Host("RegisterCommand", "AhkRun", "function", "AhkRun", T("cmd.LauncherCore.AhkRun"))
-    Host("RegisterCommand", "CmdRun", "function", "CmdRun", T("cmd.LauncherCore.CmdRun"))
-    Host("RegisterCommand", "CmdRunOnly", "function", "CmdRunOnly", T("cmd.LauncherCore.CmdRunOnly"))
-    Host("RegisterCommand", "WinRRun", "function", "WinRRun", T("cmd.LauncherCore.WinRRun"))
-    Host("RegisterCommand", "RunAndDisplay", "function", "RunAndDisplay", T("cmd.LauncherCore.RunAndDisplay"))
-    Host("RegisterCommand", "ReindexFiles", "function", "ReindexFiles", T("cmd.LauncherCore.ReindexFiles"))
-    Host("RegisterCommand", "EditConfig", "function", "EditConfig", T("cmd.LauncherCore.EditConfig"))
-    Host("RegisterCommand", "RunClipboard", "function", "RunClipboard", T("cmd.LauncherCore.RunClipboard"))
-    Host("RegisterCommand", "CleanupRank", "function", "CleanupRank", T("cmd.LauncherCore.CleanupRank"))
-    Host("RegisterCommand", "ShowArg", "function", "ShowArg", T("cmd.LauncherCore.ShowArg"))
-    Host("RegisterCommand", "AhkTest", "function", "AhkTest", T("cmd.LauncherCore.AhkTest"))
-    Host("RegisterCommand", "InstallPlugin", "function", "InstallPlugin", T("cmd.LauncherCore.InstallPlugin"))
-    Host("RegisterCommand", "RemovePlugin", "function", "RemovePlugin", T("cmd.LauncherCore.RemovePlugin"))
-    Host("RegisterCommand", "ListPlugin", "function", "ListPlugin", T("cmd.LauncherCore.ListPlugin"))
-    Host("RegisterCommand", "CleanupPlugin", "function", "CleanupPlugin", T("cmd.LauncherCore.CleanupPlugin"))
-    Host("RegisterCommand", "CountNumber", "function", "CountNumber", T("cmd.LauncherCore.CountNumber"))
-    Host("RegisterCommand", "Open", "function", "Open", T("cmd.LauncherCore.Open"))
+    RimCommand.Register("Help", "Help", MakeLegacyCmd("Help"), Map("Category", "System", "Description", T("cmd.LauncherCore.Help"), "Keywords", "Help"))
+    RimCommand.Register("KeyHelp", "KeyHelp", MakeLegacyCmd("KeyHelp"), Map("Category", "System", "Description", T("cmd.LauncherCore.KeyHelp"), "Keywords", "KeyHelp"))
+    RimCommand.Register("AhkRun", "AhkRun", MakeLegacyCmd("AhkRun"), Map("Category", "System", "Description", T("cmd.LauncherCore.AhkRun"), "Keywords", "AhkRun"))
+    RimCommand.Register("CmdRun", "CmdRun", MakeLegacyCmd("CmdRun"), Map("Category", "System", "Description", T("cmd.LauncherCore.CmdRun"), "Keywords", "CmdRun"))
+    RimCommand.Register("CmdRunOnly", "CmdRunOnly", MakeLegacyCmd("CmdRunOnly"), Map("Category", "System", "Description", T("cmd.LauncherCore.CmdRunOnly"), "Keywords", "CmdRunOnly"))
+    RimCommand.Register("WinRRun", "WinRRun", MakeLegacyCmd("WinRRun"), Map("Category", "System", "Description", T("cmd.LauncherCore.WinRRun"), "Keywords", "WinRRun"))
+    RimCommand.Register("RunAndDisplay", "RunAndDisplay", MakeLegacyCmd("RunAndDisplay"), Map("Category", "System", "Description", T("cmd.LauncherCore.RunAndDisplay"), "Keywords", "RunAndDisplay"))
+    RimCommand.Register("ReindexFiles", "ReindexFiles", MakeLegacyCmd("ReindexFiles"), Map("Category", "System", "Description", T("cmd.LauncherCore.ReindexFiles"), "Keywords", "ReindexFiles"))
+    RimCommand.Register("EditConfig", "EditConfig", MakeLegacyCmd("EditConfig"), Map("Category", "System", "Description", T("cmd.LauncherCore.EditConfig"), "Keywords", "EditConfig settings"))
+    RimCommand.Register("RunClipboard", "RunClipboard", MakeLegacyCmd("RunClipboard"), Map("Category", "System", "Description", T("cmd.LauncherCore.RunClipboard"), "Keywords", "RunClipboard"))
+    RimCommand.Register("CleanupRank", "CleanupRank", MakeLegacyCmd("CleanupRank"), Map("Category", "System", "Description", T("cmd.LauncherCore.CleanupRank"), "Keywords", "CleanupRank"))
+    RimCommand.Register("ShowArg", "ShowArg", MakeLegacyCmd("ShowArg"), Map("Category", "System", "Description", T("cmd.LauncherCore.ShowArg"), "Keywords", "ShowArg"))
+    RimCommand.Register("AhkTest", "AhkTest", MakeLegacyCmd("AhkTest"), Map("Category", "System", "Description", T("cmd.LauncherCore.AhkTest"), "Keywords", "AhkTest"))
+    RimCommand.Register("InstallPlugin", "InstallPlugin", MakeLegacyCmd("InstallPlugin"), Map("Category", "System", "Description", T("cmd.LauncherCore.InstallPlugin"), "Keywords", "InstallPlugin"))
+    RimCommand.Register("RemovePlugin", "RemovePlugin", MakeLegacyCmd("RemovePlugin"), Map("Category", "System", "Description", T("cmd.LauncherCore.RemovePlugin"), "Keywords", "RemovePlugin"))
+    RimCommand.Register("ListPlugin", "ListPlugin", MakeLegacyCmd("ListPlugin"), Map("Category", "System", "Description", T("cmd.LauncherCore.ListPlugin"), "Keywords", "ListPlugin"))
+    RimCommand.Register("CleanupPlugin", "CleanupPlugin", MakeLegacyCmd("CleanupPlugin"), Map("Category", "System", "Description", T("cmd.LauncherCore.CleanupPlugin"), "Keywords", "CleanupPlugin"))
+    RimCommand.Register("CountNumber", "CountNumber", MakeLegacyCmd("CountNumber"), Map("Category", "System", "Description", T("cmd.LauncherCore.CountNumber"), "Keywords", "CountNumber"))
+    RimCommand.Register("Open", "Open", MakeLegacyCmd("Open"), Map("Category", "System", "Description", T("cmd.LauncherCore.Open"), "Keywords", "Open"))
 }
 
 ; ---- 输入链 g_Arg 大于剪切板大于 InputBox ----

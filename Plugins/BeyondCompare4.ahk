@@ -4,62 +4,75 @@
 ; 完整移植自 VimDesktop 的 BeyondCompare4 插件
 ; 支持 insert/normal 模式系统
 
-RegisterPlugin_BeyondCompare4() {
-    RegisterWin("BeyondCompare4", "TConvertForm", "BCompare.exe")
+class BeyondCompare4Plugin extends RimPlugin {
+    static Name => "BeyondCompare4"
+    static Title => "Beyond Compare 4"
+    static Description => "BC4 比较窗口 Vim 映射"
+
+    static RegisterKeymaps(engine) {
+        BeyondCompare4_Keymaps(engine)
+    }
+}
+
+if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
+    RimPluginManager.Register(BeyondCompare4Plugin)
+
+BeyondCompare4_Keymaps(engine) {
+    engine.SetWin("BeyondCompare4", "TConvertForm", "BCompare.exe")
 
     ; 注册动作
-    RegisterAction("<BC4_NextDiff>", T("act.BeyondCompare4.BC4_NextDiff"))
-    RegisterAction("<BC4_PrevDiff>", T("act.BeyondCompare4.BC4_PrevDiff"))
-    RegisterAction("<BC4_NextDiffLine>", T("act.BeyondCompare4.BC4_NextDiffLine"))
-    RegisterAction("<BC4_PrevDiffLine>", T("act.BeyondCompare4.BC4_PrevDiffLine"))
-    RegisterAction("<BC4_CopyToLeft>", T("act.BeyondCompare4.BC4_CopyToLeft"))
-    RegisterAction("<BC4_CopyToRight>", T("act.BeyondCompare4.BC4_CopyToRight"))
-    RegisterAction("<BC4_CopyToLeftContinue>", T("act.BeyondCompare4.BC4_CopyToLeftContinue"))
-    RegisterAction("<BC4_CopyToRightContinue>", T("act.BeyondCompare4.BC4_CopyToRightContinue"))
-    RegisterAction("<BC4_Search>", T("act.BeyondCompare4.BC4_Search"))
-    RegisterAction("<BC4_Home>", T("act.BeyondCompare4.BC4_Home"))
-    RegisterAction("<BC4_End>", T("act.BeyondCompare4.BC4_End"))
-    RegisterAction("<BC4_Save>", T("act.BeyondCompare4.BC4_Save"))
-    RegisterAction("<BC4_Refresh>", T("act.BeyondCompare4.BC4_Refresh"))
-    RegisterAction("<BC4_Compare>", T("act.BeyondCompare4.BC4_Compare"))
-    RegisterAction("<BC4_NextSection>", T("act.BeyondCompare4.BC4_NextSection"))
-    RegisterAction("<BC4_PrevSection>", T("act.BeyondCompare4.BC4_PrevSection"))
+    engine.SetAction("<BC4_NextDiff>", T("act.BeyondCompare4.BC4_NextDiff"))
+    engine.SetAction("<BC4_PrevDiff>", T("act.BeyondCompare4.BC4_PrevDiff"))
+    engine.SetAction("<BC4_NextDiffLine>", T("act.BeyondCompare4.BC4_NextDiffLine"))
+    engine.SetAction("<BC4_PrevDiffLine>", T("act.BeyondCompare4.BC4_PrevDiffLine"))
+    engine.SetAction("<BC4_CopyToLeft>", T("act.BeyondCompare4.BC4_CopyToLeft"))
+    engine.SetAction("<BC4_CopyToRight>", T("act.BeyondCompare4.BC4_CopyToRight"))
+    engine.SetAction("<BC4_CopyToLeftContinue>", T("act.BeyondCompare4.BC4_CopyToLeftContinue"))
+    engine.SetAction("<BC4_CopyToRightContinue>", T("act.BeyondCompare4.BC4_CopyToRightContinue"))
+    engine.SetAction("<BC4_Search>", T("act.BeyondCompare4.BC4_Search"))
+    engine.SetAction("<BC4_Home>", T("act.BeyondCompare4.BC4_Home"))
+    engine.SetAction("<BC4_End>", T("act.BeyondCompare4.BC4_End"))
+    engine.SetAction("<BC4_Save>", T("act.BeyondCompare4.BC4_Save"))
+    engine.SetAction("<BC4_Refresh>", T("act.BeyondCompare4.BC4_Refresh"))
+    engine.SetAction("<BC4_Compare>", T("act.BeyondCompare4.BC4_Compare"))
+    engine.SetAction("<BC4_NextSection>", T("act.BeyondCompare4.BC4_NextSection"))
+    engine.SetAction("<BC4_PrevSection>", T("act.BeyondCompare4.BC4_PrevSection"))
 
     ; insert 模式映射
-    MapKey("<enter>", "<enter>", "BeyondCompare4", "insert")
-    MapKey("<bs>", "<bs>", "BeyondCompare4", "insert")
-    MapKey("<tab>", "<tab>", "BeyondCompare4", "insert")
-    MapKey("<space>", "<space>", "BeyondCompare4", "insert")
-    MapKey("<del>", "<del>", "BeyondCompare4", "insert")
+    engine.MapKey("<enter>", "<enter>", "BeyondCompare4", "insert")
+    engine.MapKey("<bs>", "<bs>", "BeyondCompare4", "insert")
+    engine.MapKey("<tab>", "<tab>", "BeyondCompare4", "insert")
+    engine.MapKey("<space>", "<space>", "BeyondCompare4", "insert")
+    engine.MapKey("<del>", "<del>", "BeyondCompare4", "insert")
 
     ; normal 模式映射
     ; 导航
-    MapKey("j", "<BC4_NextDiff>", "BeyondCompare4", "normal")
-    MapKey("k", "<BC4_PrevDiff>", "BeyondCompare4", "normal")
-    MapKey("J", "<BC4_NextDiffLine>", "BeyondCompare4", "normal")
-    MapKey("K", "<BC4_PrevDiffLine>", "BeyondCompare4", "normal")
-    MapKey("n", "<BC4_NextSection>", "BeyondCompare4", "normal")
-    MapKey("p", "<BC4_PrevSection>", "BeyondCompare4", "normal")
-    MapKey("gg", "<BC4_Home>", "BeyondCompare4", "normal")
-    MapKey("G", "<BC4_End>", "BeyondCompare4", "normal")
+    engine.MapKey("j", "<BC4_NextDiff>", "BeyondCompare4", "normal")
+    engine.MapKey("k", "<BC4_PrevDiff>", "BeyondCompare4", "normal")
+    engine.MapKey("J", "<BC4_NextDiffLine>", "BeyondCompare4", "normal")
+    engine.MapKey("K", "<BC4_PrevDiffLine>", "BeyondCompare4", "normal")
+    engine.MapKey("n", "<BC4_NextSection>", "BeyondCompare4", "normal")
+    engine.MapKey("p", "<BC4_PrevSection>", "BeyondCompare4", "normal")
+    engine.MapKey("gg", "<BC4_Home>", "BeyondCompare4", "normal")
+    engine.MapKey("G", "<BC4_End>", "BeyondCompare4", "normal")
 
     ; 复制操作
-    MapKey("h", "<BC4_CopyToLeft>", "BeyondCompare4", "normal")
-    MapKey("l", "<BC4_CopyToRight>", "BeyondCompare4", "normal")
-    MapKey("H", "<BC4_CopyToLeftContinue>", "BeyondCompare4", "normal")
-    MapKey("L", "<BC4_CopyToRightContinue>", "BeyondCompare4", "normal")
+    engine.MapKey("h", "<BC4_CopyToLeft>", "BeyondCompare4", "normal")
+    engine.MapKey("l", "<BC4_CopyToRight>", "BeyondCompare4", "normal")
+    engine.MapKey("H", "<BC4_CopyToLeftContinue>", "BeyondCompare4", "normal")
+    engine.MapKey("L", "<BC4_CopyToRightContinue>", "BeyondCompare4", "normal")
 
     ; 搜索
-    MapKey("/", "<BC4_Search>", "BeyondCompare4", "normal")
+    engine.MapKey("/", "<BC4_Search>", "BeyondCompare4", "normal")
 
     ; 文件操作
-    MapKey("<c-s>", "<BC4_Save>", "BeyondCompare4", "normal")
-    MapKey("R", "<BC4_Refresh>", "BeyondCompare4", "normal")
-    MapKey("C", "<BC4_Compare>", "BeyondCompare4", "normal")
+    engine.MapKey("<c-s>", "<BC4_Save>", "BeyondCompare4", "normal")
+    engine.MapKey("R", "<BC4_Refresh>", "BeyondCompare4", "normal")
+    engine.MapKey("C", "<BC4_Compare>", "BeyondCompare4", "normal")
 
     ; 模式切换
-    MapKey("i", "<Gen_InsertMode>", "BeyondCompare4", "normal")
-    MapKey("<Esc>", "<Gen_NormalMode>", "BeyondCompare4", "insert")
+    engine.MapKey("i", "<Gen_InsertMode>", "BeyondCompare4", "normal")
+    engine.MapKey("<Esc>", "<Gen_NormalMode>", "BeyondCompare4", "insert")
 }
 
 ; === 动作函数 ===

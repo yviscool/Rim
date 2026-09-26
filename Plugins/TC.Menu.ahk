@@ -241,7 +241,7 @@ TC_PopupMenu(items, x, y) {
     try WinActivate("ahk_id " g.Hwnd)
     catch {
     }
-    ; 字母键常驻 (注册时已绑, 见 RegisterPlugin_TotalCommander 尾; 此处不再逐弹绑定)
+    ; 字母键常驻 (注册时已绑, 见 TotalCommander_Keymaps 尾; 此处不再逐弹绑定)
     g_TCMenuGui := g
     g_TCMenuLV := lv
     g_TCMenuShownTick := A_TickCount
@@ -561,7 +561,7 @@ TC_ClosePopupMenu() {
     global g_TCMenuGui, g_TCMenuLV, g_TCMenuIL, g_TCMenuItems, g_TCMenuStack, g_TCMenuTimer, g_TCMenuFocusHwnd
     global g_TCMenuLastX, g_TCMenuLastY, g_TCMenuLastW, g_TCMenuLastH
     ; 关弹前留住矩形 (模板项关菜单即弹新建文件对话框, 对话框贴此矩形右侧)
-    ; 字母键常驻不再解绑 (HotIf 作用域休眠, 见 RegisterPlugin_TotalCommander 尾)
+    ; 字母键常驻不再解绑 (HotIf 作用域休眠, 见 TotalCommander_Keymaps 尾)
     try {
         if IsObject(g_TCMenuGui) {
             WinGetPos(&cx, &cy, &cw, &ch, "ahk_id " g_TCMenuGui.Hwnd)

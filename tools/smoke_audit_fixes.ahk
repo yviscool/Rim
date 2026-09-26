@@ -110,12 +110,14 @@ try {
     Assert(false, "Test 4 failed: " . e.Message)
 }
 
-; --- 测试 5: LegacyVimPlugins 名单与入口一致 ---
-; (本探针未 include 插件文件, 只断言名单成员; 可调用性由 smoke_register 的 TryReg 全覆盖)
+; --- 测试 5: 插件契约完整 (无 legacy 名单, 生命周期六阶段齐备, 沙箱隔离可用) ---
+; (本探针未 include 插件文件, 只断言契约形状; 可调用性由 smoke_register 全覆盖)
 try {
-    Assert(!RimPluginManager.LegacyVimPlugins.Has("MicrosoftExcel"), "LegacyVimPlugins does not contain MicrosoftExcel")
-    Assert(RimPluginManager.LegacyVimPlugins.Has("VimEditor"), "LegacyVimPlugins contains wired VimEditor")
-    Assert(!RimPluginManager.LegacyVimPlugins.Has("VimEditorAdapters"), "LegacyVimPlugins does not contain VimEditorAdapters")
+    Assert(!HasProp(RimPluginManager, "LegacyVimPlugins"), "no LegacyVimPlugins map")
+    Assert(!HasMethod(RimPluginManager, "LoadLegacyVimPlugins"), "no LoadLegacyVimPlugins adapter")
+    Assert(!HasMethod(RimPluginManager, "LoadLegacyCommandPlugins"), "no LoadLegacyCommandPlugins adapter")
+    Assert(HasMethod(RimPluginManager, "RegisterAllKeymaps"), "lifecycle keymaps stage exists")
+    Assert(HasMethod(RimPluginManager, "OnExitAll"), "lifecycle exit stage exists")
 } catch Error as e {
     Assert(false, "Test 5 failed: " . e.Message)
 }

@@ -45,7 +45,7 @@ Rim 采用严格的单向依赖 6 层架构模型，杜绝模块间的循环依�
 
 ## 二、统一插件架构契约 (`Core/Plugin.ahk`)
 
-Rim 正在从双轨制向统一插件契约过渡。现状是过渡态：新插件继承 `RimPlugin` 即插即用，11 个历史 Vim 插件仍经 `RimPluginManager.LegacyVimPlugins` 白名单 + `RegisterPlugin_*` 字符串协议分发（命令通道在 `Core/Files.ahk:238 RegisterAllCommands`，Vim 通道在 `Rim.ahk` 引擎就绪后；`OnExitAll` 由进程退出回调触发，见 `Rim.ahk Rim_OnExit`）。新增插件 checklist：
+全插件经 `RimPlugin` 六阶段直注：命令进 `RimCommand`（`RegisterCommands`，字符串动作或闭包，无别名表），Vim 映射经 `engine.SetWin/SetAction/MapKey`（`RegisterKeymaps(engine)`），手势经 `GestureRegistry`，上下文经 `RimContext`。无白名单、无字符串分发、无双轨。`OnExitAll` 由进程退出回调触发，见 `Rim.ahk Rim_OnExit`。新增插件 checklist：
 
 ### 1. 生命周期阶段 (Lifecycle Phases)
 
@@ -72,12 +72,12 @@ Rim 正在从双轨制向统一插件契约过渡。现状是过渡态：新插�
         └─ Plugin.OnExit()               (销毁外部钩子、专属定时器)
 ```
 
-> 新增插件 checklist（缺一即静默不加载，无报错）：
-> 1. `Plugins/Foo.ahk` 写 `RegisterPlugin_Foo()`（旧）或 `class FooPlugin extends RimPlugin` + 尾部 `RimPluginManager.Register()`（新；Vim 部分仍需旧函数）。
-> 2. `Rim.ahk` 加 `#Include *i Plugins\Foo.ahk`（目录扫描只填名单不加载代码）。
+> 新增插件 checklist：
+> 1. `Plugins/Foo.ahk` 写 `class FooPlugin extends RimPlugin` + 尾部 `RimPluginManager.Register()`，各阶段方法内直调引擎/注册表（命令见 Misc，键位见 TotalCommander）。
+> 2. `Rim.ahk` 加 `#Include *i Plugins\Foo.ahk`。
 > 3. `Conf/rim.ini [Plugins]` 加 `Foo=1`（开关大小写不敏感，见 `Core/Plugin.ahk IsEnabled`）。
 > 4. 用户可见串走 `T("...")` 并在 `Lang/en.ini + zh-CN.ini` 补键，跑 `python tools/i18n_audit.py audit --check`。
-> 5. Vim 插件确认 `LegacyVimPlugins` 名单；手势插件判 `IsSet(GestureRegistry)` 后注册。
+> 5. 手势插件判 `IsSet(GestureRegistry)` 后注册；探针 `smoke_register` 加对等计数断言。
 
 ### 2. 标准插件实现范式 (示例)
 
@@ -176,20 +176,19 @@ Core/Gesture.ahk (主门面 Facade, 保持向后兼容 API 与全局 Map)
 
 ---
 
-## 六、Legacy 退役与巨石拆分路线
+## 六、插件与拆分现状（零兼容）
 
-### 1. Hybrid 现状（新壳旧体，行为不变）
-- `TotalCommander / Explorer / LauncherSystem`（早先）＋ `QRCode / Kanji`（本轮）：`class XxxPlugin extends RimPlugin` 只做通道注册，体内转调旧 `RegisterPlugin_*()`。`LoadLegacyCommandPlugins` 以 `Plugins.Has(小写名)` 去重，不会 double-register。
-- 每迁完一个 legacy 插件：从 `LegacyVimPlugins` 删名（Vim 通道）或确认命令通道单注册，记 CHANGELOG；`g_FuncAlias` 别名表随最后一个 legacy 命令插件退役而 sunset。`VimDConfig` 留 Vim 通道（`RegisterAction` 需引擎，勿动）。
-- TODO `Plugins/MicrosoftExcel.ahk`：三层全死（`Rim.ahk` 未 `#Include` ＋ 无 `RegisterPlugin_*` 入口 ＋ ini 置 0），55 动作/54 映射为旧 `Plugin` 基类写法，待 COM 重移植后按 Hybrid 重写或删除（2026-09 决议：先留）。
-- `g_FuncAlias` sunset 条件（非日期）：全部 `RegisterCommand(name,"function",...)` 调用方（Misc / QRCode / Kanji / LauncherCore-Host / LauncherSystem / StatsBall / VimDConfig）迁为 `RimCommand.Register` 后，删除 `LauncherCompat.AddCommand` 别名分支 + `ResolveFuncAlias` + `SearchTargetKey` 的别名回查。QRCode/Kanji 虽已 Hybrid 但仍走旧 `RegisterCommand`，别名表暂不可删。
+### 1. 统一现状
+- 全插件（命令 8 个 Hybrid 类＋Vim 11 个 Hybrid 类）经 `RimPlugin` 六阶段直注：命令 `RegisterCommands()` 直调 `RimCommand.Register`，键位 `RegisterKeymaps(engine)` 直调 `engine.SetWin/SetAction/MapKey`。`LoadLegacy*` 适配器、`LegacyVimPlugins` 白名单、6 个全局注册函数、`RegisterPlugin_*` 旧入口已全部删除；`smoke_register` 以对等计数断言（10 插件 W/A/M/G/Mode/X 精确值）锁死映射不丢失。
+- `g_FuncAlias` 已退役：function 型命令内联为 `RimCommand`（闭包经 `LegacyDirectCall` 直调真实函数）；`ResolveFuncAlias` 及 `SearchTargetKey` 别名分支已删。现代指令池行统一三段式 `command | id | label`（旧四段式会被解析器误判 key/type，从启动器回车现代命令此前根本跑不通）。
 - 小语种缺口（`python tools/i18n_audit.py scaffold <lang>` 实测 de 缺约 1900 键，en/zh 双全量约 1918 键）：机翻填 `Lang/*.ini` 后跑 `audit --check` 即可合，翻不翻、机翻审不审由维护者定，CI 只卡 en/zh。
 
-### 2. 巨石拆分图（按注释边界机械切，对外仅保留原 `RegisterPlugin_*` 入口）
-- `Plugins/Misc.ahk (1693)` → 主文件保留聚合注册（44 命令零增减）＋共享 `MiscPipeInput/UriEncode/EvalExpression`，纯实现下沉 `Misc.Search.ahk`（搜索/翻译）/ `Misc.Clip.ahk`（剪贴板日期取色）/ `Misc.Net.ahk`（IP/WiFi/DNS/Ping/公网/环境）/ `Misc.Codec.ahk`（汇率/万年历/URL编解码/RunClipboard/帮助），经主文件 `#Include` 组装（`smoke_register` 命令数断言不变）。
+### 2. 巨石拆分图（已执行完毕，入口均为 Hybrid 类方法）
+- `Plugins/Misc.ahk (1693)` → 主文件 `MiscPlugin.RegisterCommands`（9 url 直注＋20 功能直注，旧 SearchOn*/Dictionary 别名已删）＋共享 `MiscPipeInput/UriEncode/EvalExpression`，纯实现下沉 `Misc.Search.ahk`（搜索/翻译）/ `Misc.Clip.ahk`（剪贴板日期取色）/ `Misc.Net.ahk`（IP/WiFi/DNS/Ping/公网/环境）/ `Misc.Codec.ahk`（汇率/万年历/URL编解码/RunClipboard/帮助），经主文件 `#Include` 组装。
 - `Plugins/StatsBall.ahk (1793)` → 采样 `StatsBall.Sample.ahk`（CPU/内存/网速/Top进程/Boost数据）＋ 自绘 `StatsBall.Render.ahk`（GDI+三段横条）＋ 主文件（入口/`g_StatsBall`/`StatsBallObj` 类整体保留：方法经 `this` 互调，类内不可再切），经主文件 `#Include` 组装（注册期不建窗的 headless 约束不变）。
 - `Plugins/TotalCommander.ahk (3798)` → 自造菜单 `TC.Menu.ahk`（定位/级联/字母跳转/回车确认/新建文件对话框，原 1803–2715）独立文件、`#Include` 组装；映射表与动作主体留本文件（`TC_MenuRouteKey` 直调探针覆盖，不走 `Send` 回环）。
-- `Core/Hotkeys.ahk (657)` 按“绑定 vs rank/历史/文件业务”拆；`Core/SmartInput.ahk` 的 `*Pure` 纯函数抽独立可测库。
+- `Core/Hotkeys.ahk (657)` 已拆：绑定与窗口行为留本文件，rank/历史/文件/配置/帮助/管道迁 `Hotkeys.Commands.ahk`，经 `#Include` 组装（`BindLauncherHotkeys` 引用的函数对象在调用期解析，不受文件位置影响）。
+- `Core/SmartInput.ahk (860)` 已拆：`*Pure` 九函数迁 `SmartInputPure.ahk`（零 GUI/零配置依赖，`smoke_si` 直测；与 `CmdLine_Parse` 同文法，改一处同步另一处）。
 - 物理搬移待工作区脏文件落地后一次性执行（本轮只定边界，不断编译）。
 
 ### 3. 真机回归最小清单（headless 探针测不到输入路由，必须人手过）
@@ -202,4 +201,8 @@ Core/Gesture.ahk (主门面 Facade, 保持向后兼容 API 与全局 Map)
 
 ### 4. CI 门禁现状
 - 已有：`i18n_audit --check` ＋ `smoke_parse/register/si/command/context/plugin/workspace/gesture/audit_fixes`（见 `.github/workflows/i18n.yml`）。
-- 待补（本轮脚本已就绪，工作流文件等脏区落地后加两行）：`probe_gesture_store/unified/fix` 进 `smoke` job；`benchmark_gesture.ahk` P95 门禁（>30ms 即非 0 退出，本地基线 16ms）。
+- 待补（本轮脚本已就绪，工作流文件等脏区落地后加两行）：`probe_gesture_store/unified/fix` 进 `smoke` job；`benchmark_gesture.ahk` P95 门禁（>50ms 即非 0 退出，A_TickCount 量子约 15.6ms，50ms 防抖动误杀，本地基线 16ms）。
+
+### 5. 排序 frecency（指数半衰）
+- 公式：`score = min(visits,25) × 0.5^(daysSinceUse/半衰期)`，精确桶永远第一，非精确桶内前缀子桶优先、同分保注册序。
+- 存储 `[Rank] key = visits|YYYYMMDD`（旧裸整数按极旧计，一次使用即回血）；半衰期默认 14 天，`[Config] RankHalfLife` 可调；手动 `^n/^p` 为 ±10（一次就有话语权）；`ChangeRank` 30 秒节流落盘，退出照常全量保存。

@@ -115,7 +115,7 @@ class GestureEngine {
                 return
             }
 
-            GestureEngine.Dispatch(action)
+            GestureEngine.ExecuteAction(action)
             return
         }
 
@@ -314,13 +314,7 @@ class GestureEngine {
         return ""
     }
 
-    ; ---- 动作执行器 ----
-    ; Dispatch 为 ExecuteAction 的改名别名 (全局 ExecuteAction 另有其人, 见 Core/Execution.ahk);
-    ; 新代码调 Dispatch, 旧调用与探针保持兼容
-    static Dispatch(action) {
-        return GestureEngine.ExecuteAction(action)
-    }
-
+    ; ---- 动作执行器 (唯一入口; 曾用名 Dispatch 已收敛回此, 全仓只此一处实现) ----
     static ExecuteAction(action) {
         global g_GestureHookBefore, g_GestureHookAfter
         if (Type(action) = "String" && Trim(action) = "")
@@ -474,7 +468,7 @@ class GestureEngine {
                 SetTimer(GestureEngine.fnHideTip, -2000)
                 return
             }
-            GestureEngine.Dispatch(res[1])
+            GestureEngine.ExecuteAction(res[1])
             if (g_Gesture["showOSD"]) {
                 actStr := Type(res[1]) = "String" ? res[1] : "Function"
                 try ToolTip(T("gesture.wheel", (mods . which), actStr, res[2]))
@@ -745,11 +739,9 @@ class GestureEngine {
                     g_Gesture["enable"] := (sec["Enable"] = "1") ? 1 : 0
                 if sec.Has("Threshold") && (sec["Threshold"] + 0 > 0)
                     g_Gesture["threshold"] := sec["Threshold"] + 0
-                ; 形状阈值主鍵 TemplateThreshold (设置页写入), TplThreshold 作旧别名兼容
+                ; 形状阈值唯一键 TemplateThreshold (设置页写入)
                 if sec.Has("TemplateThreshold") && (sec["TemplateThreshold"] + 0 > 0)
                     g_Gesture["tplThreshold"] := sec["TemplateThreshold"] + 0
-                else if sec.Has("TplThreshold") && (sec["TplThreshold"] + 0 > 0)
-                    g_Gesture["tplThreshold"] := sec["TplThreshold"] + 0
                 if sec.Has("Segment") && (sec["Segment"] + 0 > 0)
                     g_Gesture["segment"] := sec["Segment"] + 0
                 if sec.Has("Poll") && (sec["Poll"] + 0 >= 5)

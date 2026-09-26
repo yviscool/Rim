@@ -2,15 +2,28 @@
 ; 完整实现 TC 作为文件选择对话框的功能
 ; 功能: 检测系统文件打开对话框, 自动切换到 TC, 选择文件后返回原窗口
 
-; TC 对话框实例 (RegisterPlugin_TCDialog 创建)
+; TC 对话框实例 (TCDialog_Keymaps 创建)
 global g_TCDialog := ""
 
-RegisterPlugin_TCDialog() {
+class TCDialogPlugin extends RimPlugin {
+    static Name => "TCDialog"
+    static Title => "TC Dialog Takeover"
+    static Description => "TC 接管系统文件对话框"
+
+    static RegisterKeymaps(engine) {
+        TCDialog_Keymaps(engine)
+    }
+}
+
+if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
+    RimPluginManager.Register(TCDialogPlugin)
+
+TCDialog_Keymaps(engine) {
     global g_TCDialog, g_Conf
     if (g_Conf.Get("Plugins", "TCDialog", "1") = "0")
         return
     g_TCDialog := Plugin_TCDialog("TCDialog", "", "", T("tcdlg.title"))
-    g_TCDialog.Setup()
+    g_TCDialog.Setup(engine)
 }
 
 ; 全局动作入口 (Action.Do 经 ActionToFuncName 调这些)
@@ -59,7 +72,7 @@ class Plugin_TCDialog extends Plugin {
     CheckTimer := ""
     ExcludeList := ""
 
-    Setup() {
+    Setup(engine) {
         ; 总开关: AsOpenFileDialog (对齐原版读 [TotalCommander_Config])
         try {
             if (Rim.config.Get("TotalCommander_Config", "AsOpenFileDialog", "0") != "1")
@@ -87,13 +100,13 @@ class Plugin_TCDialog extends Plugin {
         }
 
         ; 注册动作
-        RegisterAction("<TCD_Select>", T("act.TCDialog.TCD_Select"))
-        RegisterAction("<TCD_Cancel>", T("act.TCDialog.TCD_Cancel"))
-        RegisterAction("<TCD_PreSelected>", T("act.TCDialog.TCD_PreSelected"))
-        RegisterAction("<TCD_Selected>", T("act.TCDialog.TCD_Selected"))
-        RegisterAction("<TCD_SelectedCurrentDir>", T("act.TCDialog.TCD_SelectedCurrentDir"))
-        RegisterAction("<TCD_ReturnToCaller>", T("act.TCDialog.TCD_ReturnToCaller"))
-        RegisterAction("<TCD_OpenTCDialog>", T("act.TCDialog.TCD_OpenTCDialog"))
+        engine.SetAction("<TCD_Select>", T("act.TCDialog.TCD_Select"))
+        engine.SetAction("<TCD_Cancel>", T("act.TCDialog.TCD_Cancel"))
+        engine.SetAction("<TCD_PreSelected>", T("act.TCDialog.TCD_PreSelected"))
+        engine.SetAction("<TCD_Selected>", T("act.TCDialog.TCD_Selected"))
+        engine.SetAction("<TCD_SelectedCurrentDir>", T("act.TCDialog.TCD_SelectedCurrentDir"))
+        engine.SetAction("<TCD_ReturnToCaller>", T("act.TCDialog.TCD_ReturnToCaller"))
+        engine.SetAction("<TCD_OpenTCDialog>", T("act.TCDialog.TCD_OpenTCDialog"))
 
         ; 启动定时检测
         this.CheckTimer := ObjBindMethod(this, "CheckFileDialog")
