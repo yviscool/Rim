@@ -121,7 +121,7 @@ Keys are per-application (matched by process/class/title); each app section can 
 | --- | --- |
 | `Win+J` / ``Win+` `` / `Win+Esc` / `Alt+Space` | Show/hide launcher |
 | `Alt+E` | Open/switch to Total Commander |
-| `Win+W` | Toggle the VimEditor integration |
+| `Win+W` | Toggle Vim takeover for the active window (immediate, no restart) |
 | `Alt+H` | Center the active window |
 
 ### 3.2 Total Commander (`TTOTAL_CMD`, highlights)
@@ -136,7 +136,7 @@ Move: `h` parent dir, `j`/`k` up/down, `l` enter (super return), `a` select all;
 
 `i` insert mode, `Esc` back to normal; in normal mode `h/j/k/l` move, `w/b/e` word jumps, `0`/`Shift+4` line ends, `dd` delete line, `yy` yank line, `p` paste, `u` undo, `Ctrl+R` redo, `x` delete char, `a/o/I/A/O` insert variants, `v` visual mode, `/` search, `n/N` next/previous match.
 
-Typora / Sublime / console sections exist as match-ready placeholders with no default keys yet — add your own.
+Typora / console sections exist as match-ready placeholders with no default keys yet — add your own. To permanently disable takeover for an editor, set `vim_enable=0` in its window section (survives restart).
 
 Customize in the config UI, or as `key=<action>[=mode]` ini lines such as `dd=<deletedLine>[=normal]`. Action names come from the General plugin (arrows/window/tab/mouse actions) and per-app plugins.
 

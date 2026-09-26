@@ -32,6 +32,13 @@ FileAppend("=== Smoke Test: Audit Fixes Verification ===`n", "*")
 #Include ..\Core\Gesture.ahk
 #Include ..\Core\Plugin.ahk
 
+; 启动不变量探针池: 复刻 LoadFiles 的池语义 (清空后经 Populate 重建, 单轮内不得重复)
+global g_InvPool := []
+AddCommand(line) {
+    global g_InvPool
+    g_InvPool.Push(line)
+}
+
 ; --- 测试 1: TC <cm_...> 动作前缀路由 ---
 try {
     global g_VimEngine := VimEngine()
@@ -139,6 +146,36 @@ try {
     Assert(encoded = "%E4%B8%AD%E6%96%87%E6%B5%8B%E8%AF%95", "UrlEncode: UTF-8 Chinese characters correctly percent-encoded")
 } catch Error as e {
     Assert(false, "Test 7 failed: " . e.Message)
+}
+
+; --- 测试 8: 启动顺序不变量 (Init* 在 LoadFiles 之前, Populate 为唯一重建点) ---
+; 复刻 LoadFiles 行为: 清空命令池后经 PopulateAllToLauncher 重建, 不得丢失、不得重复
+try {
+    RimCommand.Register("test.docprobe", "Doc Probe", (*) => 0, Map("Category", "TestCat",
+        "Description", "Startup invariant probe", "Keywords", "docprobe"))
+    global g_InvPool
+    g_InvPool := []
+    RimCommand.PopulateAllToLauncher()
+    Assert(g_InvPool.Length > 0, "Startup invariant: pool rebuilt non-empty after clear+Populate")
+    seen := Map()
+    hasProbe := false
+    allUnique := true
+    for _, line in g_InvPool {
+        if (line = "command | test.docprobe | Doc Probe - Startup invariant probe")
+            hasProbe := true
+        if (seen.Has(line))
+            allUnique := false
+        seen[line] := true
+    }
+    Assert(hasProbe, "Startup invariant: registry entry survives clear+Populate rebuild")
+    Assert(allUnique, "Startup invariant: single Populate produces no duplicate pool lines")
+    ; 第二轮: 再清空再重建, 行数必须一致 (Populate 无累积副作用, 重复调用方只能是 LoadFiles 清池后)
+    n1 := g_InvPool.Length
+    g_InvPool := []
+    RimCommand.PopulateAllToLauncher()
+    Assert(g_InvPool.Length = n1, "Startup invariant: rebuild is stable across clear+Populate cycles")
+} catch Error as e {
+    Assert(false, "Test 8 failed: " . e.Message)
 }
 
 FileAppend("`n=== Summary: " . passed . " passed, " . failed . " failed ===`n", "*")

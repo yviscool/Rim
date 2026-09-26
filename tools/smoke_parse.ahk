@@ -40,6 +40,7 @@
 #Include ..\Plugins\StatsBall.ahk
 #Include ..\Plugins\TCCompare.ahk
 #Include ..\Plugins\TCDialog.ahk
+#Include ..\Plugins\Terminal.ahk
 #Include ..\Plugins\TotalCommander.ahk
 #Include ..\Plugins\VimDConfig.ahk
 #Include ..\Plugins\VimEditor.ahk

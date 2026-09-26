@@ -157,58 +157,6 @@ class NotepadAdapter {
 }
 
 ; ====================================================================
-; Sublime Text 适配
-; ====================================================================
-class SublimeAdapter {
-    static name := "SublimeText"
-
-    ; Sublime 特殊处理:
-    ; 1. 多光标支持
-    ; 2. 增量选择
-    ; 3. 快速跳转
-
-    static wordMoveLeft() {
-        Send "{Ctrl down}{Left}{Ctrl up}"
-    }
-
-    static wordMoveRight() {
-        Send "{Ctrl down}{Right}{Ctrl up}"
-    }
-
-    static selectLine() {
-        Send "{Home}+{End}"
-    }
-
-    static deleteLine() {
-        Send "{Ctrl down}{Shift down}{k}{Ctrl up}{Shift up}"
-    }
-
-    static duplicateLine() {
-        Send "{Ctrl down}{Shift down}{d}{Ctrl up}{Shift up}"
-    }
-
-    static moveLineUp() {
-        Send "{Ctrl down}{Shift down}{Up}{Ctrl up}{Shift up}"
-    }
-
-    static moveLineDown() {
-        Send "{Ctrl down}{Shift down}{Down}{Ctrl up}{Shift up}"
-    }
-
-    static commentLine() {
-        Send "{Ctrl down}{/}{Ctrl up}"
-    }
-
-    static toggleMultipleSelection() {
-        Send "{Ctrl down}{d}{Ctrl up}"
-    }
-
-    static selectAllOccurrences() {
-        Send "{Ctrl down}{Alt down}{d}{Alt up}{Ctrl up}"
-    }
-}
-
-; ====================================================================
 ; VSCode 适配
 ; ====================================================================
 class VSCodeAdapter {
@@ -364,7 +312,6 @@ class EditorAdapterFactory {
     static adapters := Map(
         "Notepad", NotepadAdapter,
         "Typora", TyporaAdapter,
-        "SublimeText", SublimeAdapter,
         "Code", VSCodeAdapter,
         "Notepad++", NotepadPlusPlusAdapter,
         "ConsoleWindowClass", ConsoleAdapter

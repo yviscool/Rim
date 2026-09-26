@@ -176,6 +176,12 @@ class VimEngine {
         this.ExcludeWinList[name] := exclude
     }
 
+    ; 解除排除 (ExcludeWin 传 false 只改值不清键, KeyHandler 按 Has() 判定, 必须删键才真恢复)
+    UnexcludeWin(name) {
+        if this.ExcludeWinList.Has(name)
+            this.ExcludeWinList.Delete(name)
+    }
+
     ; === 模式管理 ===
     SetMode(mode, winName := "") {
         win := this.GetWin(winName)
@@ -298,6 +304,15 @@ class VimEngine {
     ; $ 前缀: Send 发出的键不再触发自身, 掐断 Send 回环 (71 hotkeys/94ms 防洪根因)
     ; 逐字符单元注册 (对齐原版 Map 行为: gg 的 g 与 gg 各注一键, 前缀键触发等待)
     BindHotkey(key, win) {
+        ; 架构不变量 (终端 3 事件定案):
+        ; 无类名+无文件名的非 __global__ 窗 (如 General) 是纯数据窗
+        ; (动作注册/按键浏览/中文注释保留), 一律不注册钩子.
+        ; 全局钩子只属于 __global__ (用户 [global] 节显式配置才有).
+        ; 否则未接管程序的每个按键都要进 KeyHandler 再 Send 回去:
+        ; 开销、提权 UIPI 下 Send 投递失败、IME 数字选词被吞, 全是这一笔.
+        ; 未命中任何窗时原生输入零经过 Rim, 不再需要 Send 透传.
+        if (win.WinClass = "" && win.WinFile = "" && win.Name != "__global__")
+            return
         ; 条件热键 (各单元共用上下文, 注册完复位; 全函数式, 命令式在此构建疑似静默无注册)
         if (win.WinClass != "" || win.WinFile != "") {
             if (win.WinFile != "")
@@ -728,6 +743,28 @@ class VimEngine {
                 return ">"
             if RegExMatch(key, "i)^S\-(.*)", &m)
                 return ToSend ? "+" this.CheckToSend(m[1]) : "+" m[1]
+            ; 全写修饰符 (NormalizeVimKey 把 <Ctrl-u> 整体大写成 <CTRL-U>,
+            ; 单字母分支 ^C\- 匹配不上, 曾导致 Hotkey("$CTRL-U") 非法刷屏)
+            if RegExMatch(key, "i)^CTRL\-(.*)", &m)
+                return ToSend ? "^" this.CheckToSend(m[1]) : "^" m[1]
+            if RegExMatch(key, "i)^LCTRL\-(.*)", &m)
+                return ToSend ? "<^" this.CheckToSend(m[1]) : "<^" m[1]
+            if RegExMatch(key, "i)^RCTRL\-(.*)", &m)
+                return ToSend ? ">^" this.CheckToSend(m[1]) : ">^" m[1]
+            if RegExMatch(key, "i)^ALT\-(.*)", &m)
+                return ToSend ? "!" this.CheckToSend(m[1]) : "!" m[1]
+            if RegExMatch(key, "i)^LALT\-(.*)", &m)
+                return ToSend ? "<!" this.CheckToSend(m[1]) : "<!" m[1]
+            if RegExMatch(key, "i)^RALT\-(.*)", &m)
+                return ToSend ? ">!" this.CheckToSend(m[1]) : ">!" m[1]
+            if RegExMatch(key, "i)^SHIFT\-(.*)", &m)
+                return ToSend ? "+" this.CheckToSend(m[1]) : "+" m[1]
+            if RegExMatch(key, "i)^LSHIFT\-(.*)", &m)
+                return ToSend ? "<+" this.CheckToSend(m[1]) : "<+" m[1]
+            if RegExMatch(key, "i)^RSHIFT\-(.*)", &m)
+                return ToSend ? ">+" this.CheckToSend(m[1]) : ">+" m[1]
+            if RegExMatch(key, "i)^WIN\-(.*)", &m)
+                return ToSend ? "#" this.CheckToSend(m[1]) : "#" m[1]
             if RegExMatch(key, "i)^LS\-(.*)", &m)
                 return ToSend ? "<+" this.CheckToSend(m[1]) : "<+" m[1]
             if RegExMatch(key, "i)^RS\-(.*)", &m)

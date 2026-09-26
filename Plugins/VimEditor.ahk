@@ -19,7 +19,9 @@ class VimEditorPlugin extends RimPlugin {
     static MODE_COMMAND := "command"
 
     static currentMode := "normal"
-    static vimEnabled := false
+    ; 按窗口独立开关 (winName 集合): 全局单 bool 会在记事本开、终端按时互相翻转
+    ; (想开终端反而关掉全局), 状态必须跟窗走. 缺省(不在集合)=未接管=原生输入.
+    static enabledWins := Map()
     static repeatCount := 0
     static pendingKey := ""
     static registerBuffer := ""
@@ -42,7 +44,6 @@ class VimEditorPlugin extends RimPlugin {
     static EditorWindows := Map(
         "Notepad", "ved.ed_notepad",
         "Typora", "Typora",
-        "SublimeText", "Sublime",
         " mintty", "Git Bash",
         "ConsoleWindowClass", "ved.ed_console",
         "PuTTY", "PuTTY",
@@ -186,9 +187,40 @@ class VimEditorPlugin extends RimPlugin {
 
     DoBind() {
         engine := Rim.vim
-        for winClass, _ in VimEditorPlugin.EditorWindows
+        for winClass, _ in VimEditorPlugin.EditorWindows {
+            ; ini 持久开关: 对应窗口节 vim_enable=0 则启动即不接管 (重启仍有效)
+            if (this.VimDisabledByIni(winClass))
+                continue
             this.BindWindow(engine, winClass)
+        }
         this.BindWindow(engine, "VimEditor_Global")
+    }
+
+    ; 查某窗口类是否被 ini 持久关闭 (节名即类名直接查, 否则按 set_class 反查;
+    ; 缺节/缺键/探针桩无此方法一律默认启用)
+    VimDisabledByIni(winClass) {
+        global g_Conf
+        try {
+            if !IsSet(g_Conf) || !IsObject(g_Conf)
+                return false
+            val := ""
+            try val := g_Conf.Get(winClass, "vim_enable", "")
+            if (Trim(val) = "0")
+                return true
+            if (Trim(val) != "")
+                return false
+            try {
+                for sectionName, section in g_Conf.GetSections() {
+                    cls := ""
+                    try cls := g_Conf.Get(sectionName, "set_class", "")
+                    if (cls = winClass) {
+                        try val := g_Conf.Get(sectionName, "vim_enable", "")
+                        return Trim(val) = "0"
+                    }
+                }
+            }
+        }
+        return false
     }
 
     BindWindow(engine, wn) {
@@ -209,6 +241,8 @@ class VimEditorPlugin extends RimPlugin {
         mk(wn, m, "S", "VimEditor_SKey")
 
         ; 光标移动
+        ; 注: Ctrl 系绑定接管 normal 模式 (insert 模式透传), 系 Vim 设计原意:
+        ; 如 Code 窗 normal 下 Ctrl+F=翻页而非查找, 要打字先按 i. 行为变化见发版注记.
         mk(wn, m, "h", "VimEditor_h")
         mk(wn, m, "j", "VimEditor_j")
         mk(wn, m, "k", "VimEditor_k")
@@ -356,25 +390,51 @@ VimEditor_VisualLineMode() {
     SetTimer () => ToolTip(), -600
 }
 
+; Win+W 按窗开关: 开=解除排除并把 VimEditor 绑定合并进命中窗, 关=整窗排除透传
+; (两层接管一起停, 即时生效, 不用重启; 各窗状态独立, 互不翻转)
 VimEditor_Toggle() {
-    VimEditorPlugin.vimEnabled := !VimEditorPlugin.vimEnabled
-    if (VimEditorPlugin.vimEnabled) {
-        wc := ""
-        try wc := WinGetClass("A")
-        if (wc != "") {
-            engine := Rim.vim
-            engine.CopyWin("VimEditor_Global", wc)
-            engine.SetWin(wc, wc, "")
-            engine.SetMode("normal", wc)
-            ; Map 值是 i18n key 或英文直通原文, 经 T() 统一解析
-            ; (audit 视 ved.ed_* 为间接引用, 属已知白名单, 见 T(变量) 调用)
-            n := VimEditorPlugin.EditorWindows.Has(wc) ? T(VimEditorPlugin.EditorWindows[wc]) : wc
-            ToolTip(T("ved.enabled", n))
-        } else {
-            ToolTip(T("ved.not_editor"))
+    wc := ""
+    try wc := WinGetClass("A")
+    if (wc = "") {
+        ToolTip(T("ved.not_editor"))
+        SetTimer () => ToolTip(), -1500
+        return
+    }
+    engine := ""
+    try engine := Rim.vim
+    ; 规范窗口名: 已有窗口用其名 (类名与节名可能不一致, 如 Terminal),
+    ; 未命中不用 __global__ (排除它等于全灭)
+    winName := wc
+    if IsObject(engine) {
+        try {
+            _hit := engine.CheckWin()
+            if (_hit != "" && _hit != "__global__")
+                winName := _hit
         }
-    } else {
+    }
+    if (VimEditorPlugin.enabledWins.Has(winName)) {
+        VimEditorPlugin.enabledWins.Delete(winName)
+        if IsObject(engine) {
+            try engine.ExcludeWin(winName, true)
+        }
         ToolTip(T("ved.disabled"))
+    } else {
+        ; 会话级强开: 即使该窗被 ini vim_enable=0 持久关闭, Win+W 仍可临时接管
+        ; (只影响本次运行, 重启恢复持久配置). 设计如此, 不是 bug.
+        VimEditorPlugin.enabledWins[winName] := true
+        if IsObject(engine) {
+            try engine.UnexcludeWin(winName)
+            ; 合并目标用命中窗名, 不用裸类名: 注册名与类名不一致时按类名会建
+            ; 一个永远匹配不上的影子窗, 开关提示与实际行为脱节. 已有窗
+            ; (TC/记事本等) 命中名与类名相同, 对它们无影响.
+            engine.CopyWin("VimEditor_Global", winName)
+            engine.SetWin(winName, wc, "")
+            engine.SetMode("normal", winName)
+        }
+        ; Map 值是 i18n key 或英文直通原文, 经 T() 统一解析
+        ; (audit 视 ved.ed_* 为间接引用, 属已知白名单, 见 T(变量) 调用)
+        n := VimEditorPlugin.EditorWindows.Has(wc) ? T(VimEditorPlugin.EditorWindows[wc]) : wc
+        ToolTip(T("ved.enabled", n))
     }
     SetTimer () => ToolTip(), -1500
 }
@@ -411,18 +471,15 @@ VimEditor_0() {
     Send "{Home}"
 }
 
-VimEditor_4() {  ; $ 行尾 或 数字4
-    if (VimEditorPlugin.repeatCount > 0)
-        VimEditorPlugin.repeatCount := VimEditorPlugin.repeatCount * 10 + 4
-    else
-        Send "{End}"
+VimEditor_4() {
+    ; 注: 首键 4 到不了这里 (引擎层先吞作 Count, 见 Engine.ahk KeyHandler 数字分支),
+    ; 故与其它数字统一为纯累加; 行尾请用 $ (VimEditor_Dollar)
+    VimEditorPlugin.repeatCount := VimEditorPlugin.repeatCount * 10 + 4
 }
 
-VimEditor_6() {  ; ^ 非空行首 或 数字6
-    if (VimEditorPlugin.repeatCount > 0)
-        VimEditorPlugin.repeatCount := VimEditorPlugin.repeatCount * 10 + 6
-    else
-        Send "{Home}"
+VimEditor_6() {
+    ; 同上; 非空行首请用 ^ (VimEditor_Caret)
+    VimEditorPlugin.repeatCount := VimEditorPlugin.repeatCount * 10 + 6
 }
 
 VimEditor_Go() {

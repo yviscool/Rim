@@ -315,7 +315,7 @@ ExecuteAction_Body(action := "", actionArg := "") {
         }
         try %fn%()
         catch as e {
-            try RimLog("EXEC_FAILED", fn, e)
+            try RimLog("EXEC_FAILED", action . " fn=" . fn, e)
             catch {
             }
         }
@@ -336,7 +336,7 @@ ExecuteAction_Body(action := "", actionArg := "") {
         }
         try %fn%()
         catch as e {
-            try RimLog("EXEC_FAILED", fn, e)
+            try RimLog("EXEC_FAILED", action . " fn=" . fn, e)
             catch {
             }
         }

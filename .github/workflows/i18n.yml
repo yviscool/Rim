@@ -36,7 +36,7 @@ jobs:
           & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut tools/smoke_parse.ahk
           if ($LASTEXITCODE -ne 0) { exit 1 }
           if ((Get-Content smoke_parse.out.txt -Raw).Trim() -ne "smoke-parse-ok") { exit 1 }
-      - name: Register smoke (16 RegisterPlugin_* must resolve, en zero missing)
+      - name: Register smoke (Hybrid direct-register parity, en zero missing)
         run: |
           & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut tools/smoke_register.ahk
           if ($LASTEXITCODE -ne 0) { exit 1 }
@@ -48,6 +48,12 @@ jobs:
       - name: Command/Context/Plugin/Workspace/Gesture/Audit probes
         run: |
           foreach ($p in @("smoke_command", "smoke_context", "smoke_plugin", "smoke_workspace", "smoke_gesture", "smoke_audit_fixes")) {
+            & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut "tools/$p.ahk"
+            if ($LASTEXITCODE -ne 0) { Write-Host "$p FAILED"; exit 1 }
+          }
+      - name: Dispatch invariant probes (no global hooks except [global])
+        run: |
+          foreach ($p in @("probe_nohook", "probe_global_hook", "probe_terminal")) {
             & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut "tools/$p.ahk"
             if ($LASTEXITCODE -ne 0) { Write-Host "$p FAILED"; exit 1 }
           }

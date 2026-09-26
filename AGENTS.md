@@ -561,3 +561,43 @@ if (menuOpen && g_TCLastCmd != 572)
 ;   解析器把 ln 当函数，赋值即炸。同族：LOG(撞 Log())、t(撞 T())、menu(撞 Menu()) 见错误 20
 ; ✅ 循环/临时变量一律用完整小写名 (negLine/codeLine/value)，绝不用两三字母缩写
 ```
+
+### 错误 31：分发不变量 —— 无类窗禁止注册全局钩子（"终端 3" 定案）
+
+```ahk
+; ❌ 实测翻车 (WT 输入框按 3 完全没反应, 退出 Rim 恢复)：
+;   General 窗 SetWin("General","","") 空类空文件, CheckWin 两轮都跳过它 (映射永死),
+;   但 BindHotkey 空条件 HotIfWinActive() 全局注册 $3/$j/... —— 未接管程序的每个按键
+;   都要进 KeyHandler 再 Send 回去。数字再被 Count 分支吞作前缀 (KeyHandler 491-503),
+;   IME 数字选词同死；提权 UIPI 下 Send 投递失败则全灭。另 Win+W 在 WT 按类名建影子窗，
+;   CheckWin 永远命中不上，开关提示与行为脱节。
+; ✅ 不变量 (Core/Engine.ahk BindHotkey 首行守卫)：无类+无文件且名非 __global__ 者，
+;   纯数据窗 (动作/浏览/注释保留)，一律不钩键；全局钩子只属于 __global__
+;   (用户 [global] 节显式配置)。未命中窗原生输入零经过 Rim。
+; ✅ WT 另有 Terminal 插件给确定性身份 (CASCADIA_HOSTING_WINDOW_CLASS, 零映射透传，
+;   Win+W 合并目标)。新窗凡无类无文件，一律走此规，不得加全局钩。
+; ✅ 回归探针：无类窗 MapKey 后脚本必须秒退 (钩子会常驻，有钩即 hang，即错)。
+```
+
+### 错误 32：Win+W 开关状态必须跟窗走 —— 全局单 bool 跨窗口互翻
+
+```ahk
+; ❌ 实测翻车 (记事本开着 Vim, 到终端按 Win+W 想开终端, 结果全局翻成关)：
+;   VimEditorPlugin.vimEnabled 单 bool 全窗口共享，Toggle 按 CheckWin 时刻翻转，
+;   与"当前窗口开关"的提示语义相悖。
+; ✅ 改 enabledWins Map 按 winName 独立 (开=合并绑定+解排除, 关=整窗排除透传)；
+;   合并目标用命中窗名不用裸类名 (注册名≠类名时影子窗见错误 31)。
+;   读状态一律 Has(winName)，禁止再引全局 bool。
+```
+
+### 错误 33：`Hotkey(x, "Off")` 不去常驻 —— Off 的钩子照样吊住进程
+
+```ahk
+; ❌ 实测翻车 (不变量探针 verify_nohook 本应自然退出, 却 hang 45s 超时)：
+;   v2 里 Off 只是禁用, 钩子对象还在, 脚本照样 persistent；只有从未注册才自然退出。
+;   TC_MenuUnbindKeys 之流只能算"休眠", 不能算"卸载", 真卸载只能重启进程。
+; ✅ 关窗透传一律走 ExcludeWin (KeyHandler 判 Has 即 Send)，别指望 Off 摘钩；
+;   写探针时分两种：断言零钩子用"无 ExitApp 自然退出"(hang 即错)，
+;   断言钩子存在用 Off 不抛错 + 末尾必须 ExitApp。见 tools/probe_nohook.ahk
+;   与 tools/probe_global_hook.ahk。
+```

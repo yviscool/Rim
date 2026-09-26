@@ -229,6 +229,7 @@ global g_CommandArea := "Edit4"
 #Include *i Plugins\StatsBall.ahk
 ; VimDesktop 风格插件 (需 VimEngine, 已接线; Excel 待 COM 重移植)
 #Include *i Plugins\Explorer.ahk
+#Include *i Plugins\Terminal.ahk
 #Include *i Plugins\TCCompare.ahk
 #Include *i Plugins\WinMerge.ahk
 #Include *i Plugins\BeyondCompare4.ahk
@@ -433,6 +434,9 @@ VimdCheckHotKey() {
             setClass := g_Conf.Get(sectionName, "set_class", "")
             setFile := g_Conf.Get(sectionName, "set_file", "")
             if (setClass = "" && setFile = "")
+                continue
+            ; 单窗 vim 持久开关: 本节 vim_enable=0 则整节不编译进 vim (两层一起停, 重启仍有效; Win+W 只管临时)
+            if (Trim(g_Conf.Get(sectionName, "vim_enable", "1")) = "0")
                 continue
             g_VimEngine.SetWin(sectionName, setClass, setFile)
             try g_VimEngine.GetWin(sectionName).SetTimeOut(Integer(g_Conf.Get(sectionName, "set_time_out", "800")))

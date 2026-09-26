@@ -28,7 +28,7 @@ Rim 采用严格的单向依赖 6 层架构模型，杜绝模块间的循环依�
 ├────────────────────────────────────────────────────────────────────────┤
 │ 4. 上下文感知层 (Context Awareness Tier)                              │
 │    - RimContext (活动窗口焦点提取、输入框智能判定、路径提取 Provider)    │
-│    - ExplorerProvider / TCProvider / TerminalProvider                 │
+│    - ExplorerProvider / TCProvider (仅有的两个真实 Provider, 见 Plugins/Explorer.ahk 与 Plugins/TotalCommander.ahk)
 ├────────────────────────────────────────────────────────────────────────┤
 │ 5. 扩展与插件层 (Integration & Plugin Tier)                           │
 │    - RimPlugin (标准插件生命周期抽象契约)                                │
@@ -71,6 +71,13 @@ Rim 采用严格的单向依赖 6 层架构模型，杜绝模块间的循环依�
   └─ 6. RimPluginManager.OnExitAll()
         └─ Plugin.OnExit()               (销毁外部钩子、专属定时器)
 ```
+
+> 启动顺序不变量 (P0, 见 `Rim.ahk` + `Core/Files.ahk LoadFiles`)：
+> `InitAll → RegisterAllContexts → InitUniversalCommands/InitWorkspaceCommands → LoadFiles(RegisterAllCommands + PopulateAllToLauncher)`。
+> `LoadFiles` 会先清空 `g_Commands` 再经 `PopulateAllToLauncher` 从 `RimCommand.Registry` 重建，
+> 因此 `InitUniversal/Workspace` 必须在 `LoadFiles` 之前，且 `Populate` 是每轮唯一的重建点
+> （之后再调 `Populate` 会造成池行重复；之后新增命令走 `Register` 内联 `AddCommand` 单条追加）。
+> 回归见 `tools/smoke_audit_fixes.ahk` Test 8。
 
 > 新增插件 checklist：
 > 1. `Plugins/Foo.ahk` 写 `class FooPlugin extends RimPlugin` + 尾部 `RimPluginManager.Register()`，各阶段方法内直调引擎/注册表（命令见 Misc，键位见 TotalCommander）。

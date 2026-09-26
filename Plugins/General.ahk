@@ -14,6 +14,8 @@ class GeneralPlugin extends RimPlugin {
 
     static RegisterCommands() {
         RimCommand.Register("VimDiag", "VimDiag", MakeLegacyCmd("VimDiagCmd"), Map("Category", "Tool", "Description", T("cmd.General.VimDiag"), "Keywords", "VimDiag"))
+        ; Rim Doctor lite: 文本诊断 (复用 VimDiag + Context + 手势相位, 无新 i18n 键, 纯英文输出)
+        RimCommand.Register("system.doctor", "Rim Doctor", MakeLegacyCmd("RimDoctorCmd"), Map("Category", "Tool", "Description", "Rim runtime diagnostics: context/vim/gesture", "Keywords", "doctor diagnose debug status health"))
     }
 }
 
@@ -21,7 +23,8 @@ if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
     RimPluginManager.Register(GeneralPlugin)
 
 General_Keymaps(engine) {
-    ; 注册窗口
+    ; 注册窗口 (纯数据窗: 无类名/无文件名, 分发不变量保证 BindHotkey 不为其注册
+    ; 全局钩子; 映射保留供按键浏览/中文注释/ini 动作引用, 未接管程序原生输入)
     engine.SetWin("General", "", "")
 
     ; 注册动作
@@ -205,6 +208,69 @@ VimDiagCmd() {
     global g_VimEngine
     if IsObject(g_VimEngine)
         g_VimEngine.VimDiag()
+}
+
+; Rim Doctor lite: 一屏文本诊断 (Context/Vim/Gesture/Registry), 供托盘与启动器调用;
+; headless 探针安全: 全程 try 兜底, DisplayResult 缺失时仅返回字符串
+RimDoctorCmd() {
+    out := RimDoctor()
+    try DisplayResult(out)
+    catch {
+    }
+    return out
+}
+
+RimDoctor() {
+    out := "[Rim Doctor]`n"
+    try {
+        if (IsSet(g_BuildTag))
+            out .= "build=" . String(g_BuildTag) . "`n"
+    }
+    try {
+        ctx := GetActiveContext()
+        out .= "context: exe=" . ctx.Exe . " class=" . ctx.Class . " app=" . ctx.AppId
+            . " isInput=" . (ctx.IsInput ? "1" : "0") . " dir=" . ctx.CurrentDir . "`n"
+    } catch {
+        out .= "context: <unavailable>`n"
+    }
+    try {
+        if (IsSet(g_VimEngine) && IsObject(g_VimEngine)) {
+            winName := g_VimEngine.CheckWin()
+            win := g_VimEngine.GetWin(winName)
+            if IsObject(win)
+                out .= "vim: win=" . winName . " mode=" . win.currentMode
+                    . " keytemp=" . win.KeyTemp . " count=" . win.Count
+                    . " lastAction=" . g_VimEngine.lastAction . "`n"
+            else
+                out .= "vim: win=" . winName . " <no win object>`n"
+        } else {
+            out .= "vim: <engine not ready>`n"
+        }
+    } catch {
+        out .= "vim: <unavailable>`n"
+    }
+    try {
+        if (IsSet(g_Gesture) && IsObject(g_Gesture))
+            out .= "gesture: phase=" . String(g_Gesture.Get("phase", "?"))
+                . " trigger=" . String(g_Gesture.Get("trigger", "?"))
+                . " candidate=" . String(g_Gesture.Get("candidate", "")) . "`n"
+        else
+            out .= "gesture: <not ready>`n"
+    } catch {
+        out .= "gesture: <unavailable>`n"
+    }
+    try {
+        if (IsSet(RimCommand) && IsObject(RimCommand))
+            out .= "commands: registry=" . RimCommand.Registry.Count . "`n"
+    } catch {
+    }
+    try {
+        if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
+            out .= "plugins: enabled=" . RimPluginManager.EnabledPlugins.Count
+                . " registered=" . RimPluginManager.Plugins.Count . "`n"
+    } catch {
+    }
+    return out
 }
 
 CurVimWin() {
