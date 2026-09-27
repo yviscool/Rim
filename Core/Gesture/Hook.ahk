@@ -112,6 +112,7 @@ class GestureHook {
         ; 旁路判定 (黑名单、忽略键、自身窗口等)
         if (!g_Gesture["enable"] || GestureHook.IsBypass(true, ctx)) {
             g_Gesture["forwardDown"] := 1
+            g_Gesture["phase"] := "relay"
             try Send("{" . trig . " Down}")
             catch {
             }
@@ -208,8 +209,12 @@ class GestureHook {
             if GetKeyState("Esc", "P") {
                 g_Gesture["cancelled"] := 1
                 g_Gesture["gesturing"] := 0
+                g_Gesture["phase"] := "cancelled"
                 g_Gesture["dirs"] := []
                 g_Gesture["gesture"] := ""
+                try SetTimer(GestureHook_PollTimer, 0)
+                catch {
+                }
                 try GestureTrail_Hide()
                 catch {
                 }
@@ -239,7 +244,11 @@ class GestureHook {
 
         MouseGetPos(&mx, &my)
         pts := g_Gesture["points"]
+        if (pts.Length = 0)
+            return
         last := pts[pts.Length]
+        if !IsObject(last)
+            return
         dx0 := mx - last.x
         dy0 := my - last.y
 
@@ -330,7 +339,12 @@ class GestureHook {
 
         MouseGetPos(&endX, &endY)
         pts := g_Gesture["points"]
-        last := pts[pts.Length]
+        if (pts.Length = 0)
+            last := {x: endX, y: endY}
+        else
+            last := pts[pts.Length]
+        if !IsObject(last)
+            last := {x: endX, y: endY}
         dx := endX - last.x, dy := endY - last.y
         if (dx * dx + dy * dy >= 16) {
             pts.Push({x: endX, y: endY})
@@ -369,6 +383,7 @@ class GestureHook {
 
         if (wasGesturing && !wasCancelled) {
             ; 委托给引擎处理分发
+            g_Gesture["phase"] := "matched"
             GestureEngine.DispatchComplete(gesture, pts, leftCombo)
             return
         }
@@ -473,6 +488,7 @@ class GestureHook {
 
     static BeginRelay() {
         global g_Gesture
+        g_Gesture["phase"] := "relay"
         try SetTimer(GestureHook_PollTimer, 0)
         catch {
         }
@@ -487,6 +503,7 @@ class GestureHook {
             g_Gesture["gesturing"] := 0
             g_Gesture["forwardDown"] := 1
             GestureHook.ClearStartContext()
+            g_Gesture["phase"] := "relay"
         }
     }
 
@@ -500,6 +517,10 @@ class GestureHook {
         g_Gesture["volUsed"] := 0
         g_Gesture["comboUntil"] := 0
         g_Gesture["comboKind"] := ""
+        g_Gesture["phase"] := "idle"
+        g_Gesture["points"] := []
+        g_Gesture["dirs"] := []
+        g_Gesture["gesture"] := ""
         GestureHook.DisarmLeftSwallow()
     }
 

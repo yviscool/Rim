@@ -69,15 +69,25 @@ RunCommand(originCmd) {
         ExecuteAction(cmdType "|" cmd, g_Arg)
     }
 
-    ; 保存历史 (对齐原版: 仅 fresh 命令拼 g_Arg, 重放历史不再叠加)
-    if (g_Conf["Config"]["SaveHistory"] = "1" && cmd != "DisplayHistoryCommands") {
+    ; 保存历史 (P1-4: CfgGet 统一入口; 对齐原版: 仅 fresh 命令拼 g_Arg, 重放历史不再叠加)
+    saveHist := "1"
+    try saveHist := CfgGet("Config", "SaveHistory", "1")
+    catch {
+        try saveHist := g_Conf["Config"]["SaveHistory"]
+    }
+    histSize := 100
+    try histSize := Integer(CfgGet("Config", "HistorySize", "100"))
+    catch {
+        try histSize := g_Conf["Config"]["HistorySize"] + 0
+    }
+    if (saveHist = "1" && cmd != "DisplayHistoryCommands") {
         isFresh := (cmdKey != "" && splitedOriginCmd.Length = 4) || (cmdKey = "" && splitedOriginCmd.Length = 3)
         if (g_Arg != "" && isFresh)
             g_HistoryCommands.InsertAt(1, originCmd " | " g_Arg)
         else if (originCmd != "")
             g_HistoryCommands.InsertAt(1, originCmd)
 
-        if (g_HistoryCommands.Length > (g_Conf["Config"]["HistorySize"] + 0))
+        if (g_HistoryCommands.Length > histSize)
             g_HistoryCommands.Pop()
     }
 
@@ -88,14 +98,29 @@ RunCommand(originCmd) {
     }
 
     ; 自动排名
-    if (g_Conf["Config"]["AutoRank"] = "1")
+    autoRank := "1"
+    try autoRank := CfgGet("Config", "AutoRank", "1")
+    catch {
+        try autoRank := g_Conf["Config"]["AutoRank"]
+    }
+    if (autoRank = "1")
         ChangeRank(originCmd)
 
     g_DisableAutoExit := false
 
     ; RunOnce
-    if (g_Conf["Config"]["RunOnce"] = "1" && !g_UseDisplay) {
-        if (g_Conf["Config"]["KeepInputText"] != "1")
+    runOnce := "1"
+    keepInput := "1"
+    try runOnce := CfgGet("Config", "RunOnce", "0")
+    catch {
+        try runOnce := g_Conf["Config"]["RunOnce"]
+    }
+    try keepInput := CfgGet("Config", "KeepInputText", "1")
+    catch {
+        try keepInput := g_Conf["Config"]["KeepInputText"]
+    }
+    if (runOnce = "1" && !g_UseDisplay) {
+        if (keepInput != "1")
             ClearInput()
         HideOrExit()
     }
@@ -124,6 +149,14 @@ LegacyDirectCall(content, callArg := "") {
         fnArg := g_Arg
     if (fnArg != "")
         g_Arg := fnArg
+    ; 点式静态方法 (同 function| 分支, 见 ActionProtocol.ActionCallDotted):
+    ; %fn%() 不支持点式, 先试点式再裸名, 否则未来点式 target 静默走 EXEC_FAILED
+    if (InStr(fn, ".")) {
+        try {
+            if (ActionCallDotted(fn, fnArg))
+                return true
+        }
+    }
     if (fnArg != "") {
         try {
             %fn%(fnArg)
@@ -179,7 +212,8 @@ OpenPath(filePath) {
 ; === 统一动作/命令执行器 (Unified Action & Command Dispatcher) ===
 ; 递归守卫: RimCommand.Execute ↔ ExecuteAction 双向互调, 动作串自指 (如 Action="command|self")
 ; 会无界递归; 深度超 10 直接丢弃并记日志 (调用链见日志 action 字段)
-ExecuteAction(action := "", actionArg := "") {
+; P1-5: 入口先经 ActionParse 结构化 (错误码+来源日志), 字符串 ABI 冻结兼容
+ExecuteAction(action := "", actionArg := "", source := "") {
     static execDepth := 0
     execDepth += 1
     if (execDepth > 10) {
@@ -190,6 +224,11 @@ ExecuteAction(action := "", actionArg := "") {
         return
     }
     try {
+        try {
+            parsed := ActionParse(action, source)
+            if (!parsed["ok"])
+                try RimLog("WARN", "ActionParse " . parsed["code"] . " src=" . source . " raw=" . SubStr(String(action), 1, 80))
+        }
         ExecuteAction_Body(action, actionArg)
     } finally {
         execDepth -= 1
@@ -306,6 +345,14 @@ ExecuteAction_Body(action := "", actionArg := "") {
         fnArg := parts.Length >= 2 ? Trim(parts[2]) : actionArg
         if (fnArg != "")
             g_Arg := fnArg
+        ; 点式静态方法 ("Class.Method", 见 ActionProtocol.ActionCallDotted):
+        ; %fn%() 不支持点式, 模板默认动作全死于此. 先点式, 再裸名.
+        if (InStr(fn, ".")) {
+            try {
+                if (ActionCallDotted(fn, fnArg))
+                    return
+            }
+        }
         if (fnArg != "") {
             try {
                 %fn%(fnArg)

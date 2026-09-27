@@ -11,6 +11,10 @@ Conf/UserFileList.txt
 Conf/TCMark.ini
 Conf/TCFileMarks.ini
 
+# 性能产物 (CI 门禁统一路径后双写, 均不进仓库)
+benchmark_out.txt
+tools/benchmark_report.txt
+tools/benchmark_run.log
 # 草稿与探针 (不进仓库)
 zz_*
 debug_*

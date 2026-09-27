@@ -167,8 +167,8 @@
 ## 八、错误处理
 
 ### 1. try/catch
-- **`catch as e` 无效**：用 `catch {` 或 `catch Error as e {`
-- **`catch e`（无 `Error`）也无效**
+- **`catch as e` 合法**（未类型化捕获，2026-09-27 实测可用；`catch Error as e` 为类型化版本，推荐后者以便读 `e.Message`）
+- **`catch e`（无 `as`）无效**
 - **`try` 包裹可能失败的调用**
 
 ### 2. Map 访问
@@ -278,14 +278,14 @@ SetTimer(MyFunc, 1000)
 Hotkey("^a", MyFunc)
 ```
 
-### 错误 10：`catch` 语法
+### 错误 10：`catch` 语法（2026-09-27 勘误：`catch as e` 合法，勿批量“修复”正常代码）
 ```ahk
-; ❌ 无效
-catch as e
+; ❌ 无效（缺 as）
 catch e
-; ✅ 正确
-catch {
+; ✅ 正确（三选一：未类型化 / 类型化 / 裸捕获）
+catch as e {
 catch Error as e {
+catch {
 ```
 
 ### 错误 11：`NumPut` 参数顺序
@@ -560,6 +560,9 @@ if (menuOpen && g_TCLastCmd != 572)
 ;   extra 指向赋值行)：Loop Parse 里写 ln := Trim(A_LoopField)，ln 与内建 Ln() 同名，
 ;   解析器把 ln 当函数，赋值即炸。同族：LOG(撞 Log())、t(撞 T())、menu(撞 Menu()) 见错误 20
 ; ✅ 循环/临时变量一律用完整小写名 (negLine/codeLine/value)，绝不用两三字母缩写
+; 勘误 2026-09-27：仅当同一函数作用域内又调用 `Ln()` 时才炸（局部 ln 遮蔽内建），
+; 无调用则无害（Misc.Net.ahk:269 的 `for ln` 循环实测正常）。`t` 撞 `T()` 同理按函数作用域判，
+; 文件级同存不算（Gui/GestureUI.ahk 4 函数同函双存是真凶，已改 `tpl`；其余 5 文件是误报）。
 ```
 
 ### 错误 31：分发不变量 —— 无类窗禁止注册全局钩子（"终端 3" 定案）
@@ -600,4 +603,49 @@ if (menuOpen && g_TCLastCmd != 572)
 ;   写探针时分两种：断言零钩子用"无 ExitApp 自然退出"(hang 即错)，
 ;   断言钩子存在用 Off 不抛错 + 末尾必须 ExitApp。见 tools/probe_nohook.ahk
 ;   与 tools/probe_global_hook.ahk。
+```
+
+## 十一、数据文法契约 (ini/动作/引用, 2026-09-27 血泪结账)
+
+字符串即代码, 编译器不检查, 以下三条由探针锁死, 改相关代码必先跑
+`probe_dead_refs` + `probe_ini_roundtrip` (CI 常驻)。
+
+### 契约 1：`function|X` 引用必须可解 (探针: probe_dead_refs)
+
+```ahk
+; ❌ 实测翻车 (Google 回退一点就 EXEC_FAILED, 手势 D_L_D 画了没反应)：
+;   ecfb4b3 删 79 别名 (SearchOn*/T2S), ini/模板里的 function|SearchOnGoogle、
+;   function|Gesture_IgnoreNext 全成悬空；%fn%() 对不存在的函数报 "Variable not found"，
+;   且 %fn%() 不支持点式 ("A.B" 同样报 Variable not found, 实测锤实)。
+; ✅ 新增 function| 引用三选一, 否则探针失败：
+;   裸函数 (定义见 Core/Plugins/Lib/Gui/Rim.ahk) / 点式静态 (ActionCallDotted 经 Core/ActionProtocol.ahk，
+;   执行器 Execution/GestureEngine 已优先试点式) / <SP_*> 插件前缀 (运行时注册, 探针不管)。
+; ✅ 删函数三连：grep 全仓 function|名 + MakeLegacyCmd("名") + 历史模板, 有一处引用就别删，
+;   非删不可则同步改 ini/模板 (见 Conf/rim.ini FallbackCommand、GestureApp:Desktop)。
+```
+
+### 契约 2：ini 裸行禁裸 `=` (探针: probe_ini_roundtrip + probe_fallback_eq)
+
+```ahk
+; ❌ 实测翻车 (回退描述列全变 {query}, 点执行还丢查询词)：
+;   EasyIni 按首个 "=" 切 key/value, URL 查询串 (?q=/ ?wd=) 把
+;   "url | https://..?wd={query} | desc" 裸行切成 key/value, Files.ahk 再用 " | "
+;   拼回去, "=" 变 "|", 行烂。Rank 键 (整行命令) 同病, 重启即截断丢 rank。
+; ✅ 分层守规：
+;   - Lib/EasyIni.ahk: 键内 "=" 存为 "\=" (值不动, 首 "=" 切分天然安全)；
+;     Load 读 "\=" 还原, 老无转义文件照旧读 (首 "=" 切, 行为不变)。
+;   - Core/Files.ahk FallbackJoin(): 裸行重组一律经它 ("=" 拼回是裸行文法才认)，
+;     禁止手写 key " | " value。
+;   - 含 "=" 的新裸行不直接写 ini (走代码注册或转义), 写了必被 round-trip 门拦下。
+```
+
+### 契约 3：进池别名必须保留 (探针: probe_command_alias + probe_alias_wire)
+
+```ahk
+; ❌ 实测翻车 ("Goo" Tab 不出 "Google", 空格不断句输参)：
+;   LauncherCompat 进池丢注册名, ghost/冻结/精确命中全对着整串 URL，
+;   名字叫不回来。
+; ✅ Core/Command.ahk g_CommandAlias[content]=name (首胜不覆盖), SI_CoreOfPure
+;   对 url/run/cmd 三段行优先别名, Search 搜索串尾补别名。删注册名即删别名，
+;   同契约 1 先 grep。
 ```

@@ -338,10 +338,12 @@ class VimEditorPlugin extends RimPlugin {
         mk(wn, m, "8", "VimEditor_8")
         mk(wn, m, "9", "VimEditor_9")
 
-        ; Insert/Visual模式Esc
+        ; Insert/Visual/Command模式Esc (command 表无映射会整体穿透, Esc 必须显式注册
+        ; 建表, 否则 / 进查找框后按 Esc 关了框却切不回 normal, 后续全变打字)
         mk(wn, VimEditorPlugin.MODE_INSERT, "<Esc>", "VimEditor_NormalMode")
         mk(wn, VimEditorPlugin.MODE_VISUAL, "<Esc>", "VimEditor_NormalMode")
         mk(wn, VimEditorPlugin.MODE_VISUAL_LINE, "<Esc>", "VimEditor_NormalMode")
+        mk(wn, VimEditorPlugin.MODE_COMMAND, "<Esc>", "VimEditor_NormalMode")
     }
 
     static Register() {
@@ -361,14 +363,31 @@ if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
 ; ====================================================================
 ; 动作实现 - 模式切换
 ; ====================================================================
+; 引擎+插件双模式同步: 原先只写插件变量+冒提示, 引擎 win.currentMode 永远 normal,
+; insert 形同虚设 (编辑器里什么都敲不了). __global__ 永不碰 (切过去就再也切不回来).
+VimEditor_SetMode(mode) {
+    VimEditorPlugin.currentMode := mode
+    try {
+        global g_VimEngine
+        if IsObject(g_VimEngine) {
+            name := g_VimEngine.CheckWin()
+            if (name != "" && name != "__global__") {
+                w := g_VimEngine.GetWin(name)
+                if IsObject(w)
+                    w.currentMode := mode
+            }
+        }
+    }
+}
+
 VimEditor_InsertMode() {
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_INSERT
+    VimEditor_SetMode(VimEditorPlugin.MODE_INSERT)
     ToolTip(T("ved.mode_insert"))
     SetTimer () => ToolTip(), -600
 }
 
 VimEditor_NormalMode() {
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_NORMAL
+    VimEditor_SetMode(VimEditorPlugin.MODE_NORMAL)
     if WinActive("ahk_class #32770")
         Send "{Escape}"
     Send "{Escape}"
@@ -377,14 +396,14 @@ VimEditor_NormalMode() {
 }
 
 VimEditor_VisualMode() {
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_VISUAL
+    VimEditor_SetMode(VimEditorPlugin.MODE_VISUAL)
     Send "{Shift down}{Right}{Shift up}"
     ToolTip(T("ved.mode_visual"))
     SetTimer () => ToolTip(), -600
 }
 
 VimEditor_VisualLineMode() {
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_VISUAL_LINE
+    VimEditor_SetMode(VimEditorPlugin.MODE_VISUAL_LINE)
     Send "{Home}+{End}"
     ToolTip(T("ved.mode_vline"))
     SetTimer () => ToolTip(), -600
@@ -576,18 +595,18 @@ VimEditor_semicolon() {
 ; 插入模式进入 (小写)
 ; ====================================================================
 VimEditor_a() {
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_INSERT
+    VimEditor_SetMode(VimEditorPlugin.MODE_INSERT)
     Send "{Right}"
 }
 VimEditor_i() {
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_INSERT
+    VimEditor_SetMode(VimEditorPlugin.MODE_INSERT)
 }
 VimEditor_o() {
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_INSERT
+    VimEditor_SetMode(VimEditorPlugin.MODE_INSERT)
     Send "{Home}{Enter}{Up}"
 }
 VimEditor_s() {
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_INSERT
+    VimEditor_SetMode(VimEditorPlugin.MODE_INSERT)
     Send "{Delete}"
 }
 
@@ -595,19 +614,19 @@ VimEditor_s() {
 ; 插入模式进入 (大写 - Key后缀)
 ; ====================================================================
 VimEditor_IKey() {
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_INSERT
+    VimEditor_SetMode(VimEditorPlugin.MODE_INSERT)
     Send "{Home}"
 }
 VimEditor_AKey() {
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_INSERT
+    VimEditor_SetMode(VimEditorPlugin.MODE_INSERT)
     Send "{End}"
 }
 VimEditor_OKey() {
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_INSERT
+    VimEditor_SetMode(VimEditorPlugin.MODE_INSERT)
     Send "{Home}{Enter}{Up}"
 }
 VimEditor_SKey() {
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_INSERT
+    VimEditor_SetMode(VimEditorPlugin.MODE_INSERT)
     Send "{Home}+{End}{Delete}"
 }
 
@@ -632,7 +651,7 @@ VimEditor_dd() {
 }
 VimEditor_cc() {
     VimEditorPlugin.yankIsLine := true
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_INSERT
+    VimEditor_SetMode(VimEditorPlugin.MODE_INSERT)
     Send "{Home}+{End}{Delete}"
 }
 VimEditor_yy() {
@@ -678,7 +697,7 @@ VimEditor_DKey() {
 }
 VimEditor_CKey() {
     VimEditorPlugin.yankIsLine := false
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_INSERT
+    VimEditor_SetMode(VimEditorPlugin.MODE_INSERT)
     Send "+{End}{Delete}"
 }
 VimEditor_YKey() {
@@ -717,11 +736,11 @@ VimEditor_daw() {
 }
 VimEditor_ciw() {
     VimEditor_diw()
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_INSERT
+    VimEditor_SetMode(VimEditorPlugin.MODE_INSERT)
 }
 VimEditor_caw() {
     VimEditor_daw()
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_INSERT
+    VimEditor_SetMode(VimEditorPlugin.MODE_INSERT)
 }
 VimEditor_yiw() {
     Send "{Ctrl down}{Left}{Ctrl up}"
@@ -747,11 +766,11 @@ VimEditor_dab() {
 }
 VimEditor_cib() {
     VimEditor_dib()
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_INSERT
+    VimEditor_SetMode(VimEditorPlugin.MODE_INSERT)
 }
 VimEditor_cab() {
     VimEditor_dab()
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_INSERT
+    VimEditor_SetMode(VimEditorPlugin.MODE_INSERT)
 }
 
 ; ====================================================================
@@ -762,7 +781,7 @@ VimEditor_diq() {
 }
 VimEditor_ciq() {
     VimEditor_diq()
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_INSERT
+    VimEditor_SetMode(VimEditorPlugin.MODE_INSERT)
 }
 VimEditor_yiq() {
     Send "{Shift down}{Home}{Shift up}"
@@ -775,7 +794,7 @@ VimEditor_diqq() {
 }
 VimEditor_ciqq() {
     VimEditor_diq()
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_INSERT
+    VimEditor_SetMode(VimEditorPlugin.MODE_INSERT)
 }
 VimEditor_yiqq() {
     VimEditor_yiq()
@@ -792,11 +811,11 @@ VimEditor_cia() {
 ; ====================================================================
 VimEditor_slash() {
     Send "^f"
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_COMMAND
+    VimEditor_SetMode(VimEditorPlugin.MODE_COMMAND)
 }
 VimEditor_question() {
     Send "^f"
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_COMMAND
+    VimEditor_SetMode(VimEditorPlugin.MODE_COMMAND)
 }
 VimEditor_n() {
     Send "{F3}"
@@ -830,31 +849,31 @@ VimEditor_percent() {
 ; ====================================================================
 VimEditor_VisualDelete() {
     Send "{Delete}"
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_NORMAL
+    VimEditor_SetMode(VimEditorPlugin.MODE_NORMAL)
 }
 VimEditor_VisualCopy() {
     Send "^c"
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_NORMAL
+    VimEditor_SetMode(VimEditorPlugin.MODE_NORMAL)
 }
 VimEditor_VisualPaste() {
     Send "^v"
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_NORMAL
+    VimEditor_SetMode(VimEditorPlugin.MODE_NORMAL)
 }
 VimEditor_VisualU() {
     Send "^x"
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_NORMAL
+    VimEditor_SetMode(VimEditorPlugin.MODE_NORMAL)
 }
 VimEditor_VisualU2() {
     Send "^u"
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_NORMAL
+    VimEditor_SetMode(VimEditorPlugin.MODE_NORMAL)
 }
 VimEditor_VisualIndent() {
     Send "{Tab}"
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_NORMAL
+    VimEditor_SetMode(VimEditorPlugin.MODE_NORMAL)
 }
 VimEditor_VisualOutdent() {
     Send "+{Tab}"
-    VimEditorPlugin.currentMode := VimEditorPlugin.MODE_NORMAL
+    VimEditor_SetMode(VimEditorPlugin.MODE_NORMAL)
 }
 
 ; ====================================================================

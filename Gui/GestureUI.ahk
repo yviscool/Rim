@@ -479,12 +479,12 @@ TplDlg_ShowCurrent(name) {
     if (dlg = "")
         return
     try {
-        t := Tpl_Get(name)
-        if (!IsObject(t) || t.samples.Length = 0)
+        tpl := Tpl_Get(name)
+        if (!IsObject(tpl) || tpl.samples.Length = 0)
             return
-        dlg["pts"] := Tpl_JoinSamples(t)
+        dlg["pts"] := Tpl_JoinSamples(tpl)
         GesturePreview_SetPic(dlg["pic"], GesturePreview_Template(name, 140, 110))
-        dlg["tx"].Text := T("gesture.tpl_current", t.samples.Length)
+        dlg["tx"].Text := T("gesture.tpl_current", tpl.samples.Length)
     } catch {
     }
 }
@@ -515,14 +515,14 @@ TplDlg_OnSave() {
     }
     if (pts = "") {
         ; 只改动作: 沿用已有(内置/已存)样本
-        t := Tpl_Get(nm)
-        if (!IsObject(t)) {
+        tpl := Tpl_Get(nm)
+        if (!IsObject(tpl)) {
             try dlg["hint"].Text := T("gesture.tpl_need_record")
             catch {
             }
             return
         }
-        pts := Tpl_JoinSamples(t)
+        pts := Tpl_JoinSamples(tpl)
     }
     if (GestureStore_SetTemplate(nm, pts) && GestureStore_SetDefinition(nm, "template")) {
         GestureMgr_SetStatus(T("gesture.tpl_saved", nm, ""))
@@ -815,8 +815,8 @@ GestureMgr_OnTplAppend(*) {
         GestureMgr_SetStatus(T("gesture.st_tpl_pick_append"))
         return
     }
-    t := Tpl_Get(row[1])
-    if (!IsObject(t)) {
+    tpl := Tpl_Get(row[1])
+    if (!IsObject(tpl)) {
         GestureMgr_SetStatus(T("gesture.st_tpl_missing"))
         return
     }
@@ -825,24 +825,24 @@ GestureMgr_OnTplAppend(*) {
         if (g_TplMaxSamples + 0 > 0)
             maxS := g_TplMaxSamples + 0
     }
-    if (t.samples.Length >= maxS) {
+    if (tpl.samples.Length >= maxS) {
         GestureMgr_SetStatus(T("gesture.st_samples_full", maxS))
         return
     }
-    GestureMgr_SetStatus(T("gesture.st_appending", row[1], t.samples.Length))
+    GestureMgr_SetStatus(T("gesture.st_appending", row[1], tpl.samples.Length))
     GestureEngine.ArmTplRecord((enc) => TplAppend_Save(row[1], enc))
 }
 
 TplAppend_Save(name, enc) {
-    t := Tpl_Get(name)
-    if (!IsObject(t)) {
+    tpl := Tpl_Get(name)
+    if (!IsObject(tpl)) {
         GestureMgr_SetStatus(T("gesture.st_tpl_missing"))
         return
     }
     arr := []
-    for i, samp in t.samples {
+    for i, samp in tpl.samples {
         version := 2
-        try version := t.versions[i]
+        try version := tpl.versions[i]
         arr.Push((version = 1 ? "v1:" : "v2:") . Tpl_Encode(samp))
     }
     arr.Push(enc)

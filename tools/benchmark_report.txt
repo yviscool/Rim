@@ -5,6 +5,49 @@ Total Samples:   99
 Correct:         99 (100.0%)
 Rejected:        0 (0.0%)
 Misclassified:   0 (0.0%)
+P50 Eval:        15ms
+P95 Eval:        16ms (gate <= 50ms)
+P99 Eval:        31ms
+Max Eval:        32ms
+Split P95:       dir=16ms collect=16ms select=0ms
 
---- MISCLASSIFICATIONS & REJECTIONS ---
+NOTE: train/test same-source (template-generated samples); 100% does not imply unseen-user accuracy; negatives in probe_gesture_unified.ahk
+
+--- CONFUSION (label -> pred=cnt) ---
+3: 3=5
+B: B=5
+D: D=3 LETTER_D=4
+DR_UR: V=3
+D_R: LETTER_L=3
+G: G=4
+InvV: INVV=1
+J: J=4
+L: L=3 LETTER_L=4
+M: M=4
+N: N=4
+P: P=5
+R: LETTER_R=4 R=3
+R_D: R_D=3
+S: S=4
+U: LETTER_U=6 U=3
+UR_DR: INVV=3
+U_D: U_D=3
+V: V=1
+X: X=4
+Z: Z=5
+e: E=4
+h: H=4
+
+--- MISCLASSIFICATIONS & REJECTIONS (with top2) ---
+--- METRICS (machine-parseable) ---
+metric total=99
+metric correct=99
+metric accuracy=100.0
+metric rejected=0
+metric misclassified=0
+metric p50_ms=15
+metric p95_ms=16
+metric p99_ms=31
+metric max_ms=32
+metric gate_ms=50
 ====================================================

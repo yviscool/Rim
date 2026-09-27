@@ -54,6 +54,37 @@ Benchmark_ParseCoords(str) {
     return pts
 }
 
+; P0-2/P10 helpers: 排序与分位 (顶层函数, 供 Benchmark_Main 调用)
+Bench_Sort(arr) {
+    st := []
+    for _, ms in arr
+        st.Push(ms)
+    n := st.Length
+    if (n > 1) {
+        Loop n - 1 {
+            swapped := false
+            Loop n - A_Index {
+                if (st[A_Index] > st[A_Index + 1]) {
+                    tmp := st[A_Index]
+                    st[A_Index] := st[A_Index + 1]
+                    st[A_Index + 1] := tmp
+                    swapped := true
+                }
+            }
+            if (!swapped)
+                break
+        }
+    }
+    return st
+}
+
+Bench_Pct(st, p) {
+    n := st.Length
+    if (n = 0)
+        return 0
+    return st[Max(1, Ceil(n * p))]
+}
+
 ; 给已有轨迹加随机扰动与比例缩放
 Benchmark_JitterTrajectory(pts, scaleX := 1.0, scaleY := 1.0, jitter := 2.0) {
     if (pts.Length = 0)
@@ -196,54 +227,77 @@ Benchmark_Main() {
             g_GestureMap[up] := "test_action"
             g_GestureMap[canon] := "test_action"
         }
-        FileAppend("Step 5: Evaluating " . total . " samples...`n", logPath)
+        FileAppend("Step 5: Evaluating " . total . " samples x3 rounds (1 warmup + 2 measured)...`n", logPath)
         sIdx := 0
         times := []
-        for item in dataset {
-            sIdx++
-            label := item.label
-            up := StrUpper(label)
-            canon := (up = "U" || up = "R" || up = "D" || up = "L") ? "LETTER_" . up : up
-            pts := item.pts
+        tDir := []
+        tCollect := []
+        tSelect := []
+        rounds := 3
+        Loop rounds {
+            rnd := A_Index
+            for item in dataset {
+                label := item.label
+                up := StrUpper(label)
+                canon := (up = "U" || up = "R" || up = "D" || up = "L") ? "LETTER_" . up : up
+                pts := item.pts
 
-            t0 := A_TickCount
-            dirStr := GestureRecognizer.DirectionChain(pts, 6)
-            candidates := GestureEngine.CollectCandidates(dirStr, pts)
-            decision := GestureEngine.SelectCandidate(candidates, "explorer.exe", "CabinetWClass", "Test")
-            times.Push(A_TickCount - t0)
-            FileAppend("Evaluated " . sIdx . "/" . total . " (" . item.desc . ") -> " . (IsObject(decision.selected) ? decision.selected.name : "REJECT") . "`n", logPath)
+                t0 := A_TickCount
+                dirStr := GestureRecognizer.DirectionChain(pts, 6)
+                t1 := A_TickCount
+                candidates := GestureEngine.CollectCandidates(dirStr, pts)
+                t2 := A_TickCount
+                decision := GestureEngine.SelectCandidate(candidates, "explorer.exe", "CabinetWClass", "Test")
+                t3 := A_TickCount
+                if (rnd > 1) {
+                    times.Push(t3 - t0)
+                    tDir.Push(t1 - t0)
+                    tCollect.Push(t2 - t1)
+                    tSelect.Push(t3 - t2)
+                }
+                if (rnd = 1)
+                    continue
+                if (rnd > 2)
+                    continue
+                sIdx++
+                FileAppend("Evaluated " . sIdx . "/" . total . " (" . item.desc . ") -> " . (IsObject(decision.selected) ? decision.selected.name : "REJECT") . "`n", logPath)
 
-            selectedName := IsObject(decision.selected) ? decision.selected.name : ""
-            reason := decision.reason
+                selectedName := IsObject(decision.selected) ? decision.selected.name : ""
+                reason := decision.reason
 
-            if (!confusion.Has(label))
-                confusion[label] := Map()
+                if (!confusion.Has(label))
+                    confusion[label] := Map()
 
-            selUp := StrUpper(selectedName)
-            isMatch := (selUp = up) || (selUp = canon) || (canon != up && selUp = "LETTER_" . up)
-            if (!isMatch) {
-                if ((up = "DR_UR" && selUp = "V") || (up = "V" && selUp = "DR_UR"))
-                    isMatch := true
-                else if ((up = "UR_DR" && selUp = "INVV") || (up = "INVV" && selUp = "UR_DR"))
-                    isMatch := true
-                else if ((up = "D_R" && (selUp = "L" || selUp = "LETTER_L")) || ((up = "L" || up = "LETTER_L") && selUp = "D_R"))
-                    isMatch := true
-            }
+                selUp := StrUpper(selectedName)
+                isMatch := (selUp = up) || (selUp = canon) || (canon != up && selUp = "LETTER_" . up)
+                if (!isMatch) {
+                    if ((up = "DR_UR" && selUp = "V") || (up = "V" && selUp = "DR_UR"))
+                        isMatch := true
+                    else if ((up = "UR_DR" && selUp = "INVV") || (up = "INVV" && selUp = "UR_DR"))
+                        isMatch := true
+                    else if ((up = "D_R" && (selUp = "L" || selUp = "LETTER_L")) || ((up = "L" || up = "LETTER_L") && selUp = "D_R"))
+                        isMatch := true
+                }
 
-            predLabel := selectedName = "" ? "(REJECT:" . reason . ")" : selectedName
-            confusion[label][predLabel] := confusion[label].Get(predLabel, 0) + 1
-
-            if (selectedName = "") {
-                rejected++
-                errors.Push({desc: item.desc, expected: label, actual: predLabel, reason: reason, score: 0, margin: 0})
-            } else if (isMatch) {
-                correct++
-            } else {
-                misclassified++
-                topScore := decision.selected.score
-                secScore := (decision.candidates.Length > 1) ? decision.candidates[2].score : 0
-                errors.Push({desc: item.desc, expected: label, actual: selectedName, reason: "wrong_winner",
-                    score: topScore, margin: topScore - secScore})
+                predLabel := selectedName = "" ? "(REJECT:" . reason . ")" : selectedName
+                confusion[label][predLabel] := confusion[label].Get(predLabel, 0) + 1
+                top2 := ""
+                try {
+                    if (decision.candidates.Length >= 2)
+                        top2 := decision.candidates[2].name . "=" . Round(decision.candidates[2].score, 1)
+                }
+                if (selectedName = "") {
+                    rejected++
+                    errors.Push({desc: item.desc, expected: label, actual: predLabel, reason: reason, score: 0, margin: 0, top2: top2})
+                } else if (isMatch) {
+                    correct++
+                } else {
+                    misclassified++
+                    topScore := decision.selected.score
+                    secScore := (decision.candidates.Length > 1) ? decision.candidates[2].score : 0
+                    errors.Push({desc: item.desc, expected: label, actual: selectedName, reason: "wrong_winner",
+                        score: topScore, margin: topScore - secScore, top2: top2})
+                }
             }
         }
     } catch Error as e {
@@ -255,29 +309,23 @@ Benchmark_Main() {
     rejRate := Round(rejected / total * 100, 1)
     misRate := Round(misclassified / total * 100, 1)
 
-    ; P95 单样本耗时门禁 (Collect+Select 纯数学路径; A_TickCount 量子约 15.6ms, 门禁取 50ms
-    ; 防一跳抖动误杀 (曾实测 31ms 误杀 30ms 线); 真卡死是秒级, 50ms 照样抓, 基线约 16ms)
-    p95 := 0
+    ; P95 门禁 v2 (P0-2): warmup 剔除 + P50/P95/P99/max; A_TickCount 量子约 15.6ms,
+    ; 默认 gate 50ms; RIM_P95_GATE 环境变量可收紧 (CI 用小阈值自证会失败)
+    st := Bench_Sort(times)
+    p50 := Bench_Pct(st, 0.5)
+    p95 := Bench_Pct(st, 0.95)
+    p99 := Bench_Pct(st, 0.99)
+    mx := st.Length > 0 ? st[st.Length] : 0
+    sd := Bench_Sort(tDir)
+    sc2 := Bench_Sort(tCollect)
+    ss := Bench_Sort(tSelect)
+    gate := 50
     try {
-        st := []
-        for _, ms in times
-            st.Push(ms)
-        n := st.Length
-        Loop n - 1 {
-            swapped := false
-            Loop n - A_Index {
-                if (st[A_Index] > st[A_Index + 1]) {
-                    tmp := st[A_Index]
-                    st[A_Index] := st[A_Index + 1]
-                    st[A_Index + 1] := tmp
-                    swapped := true
-                }
-            }
-            if (!swapped)
-                break
-        }
-        p95 := n > 0 ? st[Max(1, Ceil(n * 0.95))] : 0
+        g := EnvGet("RIM_P95_GATE")
+        if (g != "" && IsNumber(g))
+            gate := Integer(g)
     }
+    warnLo := 30
 
     rpt := "====================================================`n"
     rpt .= "RIM GESTURE RECOGNITION BENCHMARK REPORT`n"
@@ -286,20 +334,51 @@ Benchmark_Main() {
     rpt .= "Correct:         " . correct . " (" . acc . "%)`n"
     rpt .= "Rejected:        " . rejected . " (" . rejRate . "%)`n"
     rpt .= "Misclassified:   " . misclassified . " (" . misRate . "%)`n"
-    rpt .= "P95 Eval:        " . p95 . "ms (gate <= 50ms)`n`n"
+    rpt .= "P50 Eval:        " . p50 . "ms`n"
+    rpt .= "P95 Eval:        " . p95 . "ms (gate <= " . gate . "ms)`n"
+    rpt .= "P99 Eval:        " . p99 . "ms`n"
+    rpt .= "Max Eval:        " . mx . "ms`n"
+    rpt .= "Split P95:       dir=" . Bench_Pct(sd, 0.95) . "ms collect=" . Bench_Pct(sc2, 0.95) . "ms select=" . Bench_Pct(ss, 0.95) . "ms`n`n"
     rpt .= "NOTE: train/test same-source (template-generated samples); 100% does not imply unseen-user accuracy; negatives in probe_gesture_unified.ahk`n`n"
 
-    rpt .= "--- MISCLASSIFICATIONS & REJECTIONS ---`n"
+    rpt .= "--- CONFUSION (label -> pred=cnt) ---`n"
+    for lab, preds in confusion {
+        line := lab . ": "
+        for pred, cnt in preds
+            line .= pred . "=" . cnt . " "
+        rpt .= RTrim(line) . "`n"
+    }
+    rpt .= "`n--- MISCLASSIFICATIONS & REJECTIONS (with top2) ---`n"
     for err in errors {
         scoreInfo := err.score ? (" score=" . Round(err.score, 1) . " margin=" . Round(err.margin, 1)) : ""
-        rpt .= "Case: " . err.desc . "`n  -> Expected: " . err.expected . "`n  -> Actual:   " . err.actual . "`n  -> Reason:   " . err.reason . scoreInfo . "`n`n"
+        rpt .= "Case: " . err.desc . "`n  -> Expected: " . err.expected . "`n  -> Actual:   " . err.actual . "`n  -> Reason:   " . err.reason . scoreInfo . " top2=" . err.top2 . "`n`n"
     }
 
+    rpt .= "--- METRICS (machine-parseable) ---`n"
+    rpt .= "metric total=" . total . "`n"
+    rpt .= "metric correct=" . correct . "`n"
+    rpt .= "metric accuracy=" . acc . "`n"
+    rpt .= "metric rejected=" . rejected . "`n"
+    rpt .= "metric misclassified=" . misclassified . "`n"
+    rpt .= "metric p50_ms=" . p50 . "`n"
+    rpt .= "metric p95_ms=" . p95 . "`n"
+    rpt .= "metric p99_ms=" . p99 . "`n"
+    rpt .= "metric max_ms=" . mx . "`n"
+    rpt .= "metric gate_ms=" . gate . "`n"
     rpt .= "====================================================`n"
     FileAppend(rpt, outPath, "UTF-8")
-    FileAppend("Completed. Report saved to " . outPath . "`n", logPath)
-    if (p95 > 50) {
-        FileAppend("P95 GATE FAILED: " . p95 . "ms > 50ms`n", logPath)
+    ; P0-2: 双写统一路径 (仓库根 benchmark_out.txt 供 CI 解析, 与 tools 内报告同内容)
+    rootOut := A_ScriptDir . "\..\benchmark_out.txt"
+    try FileDelete(rootOut)
+    catch {
+    }
+    FileAppend(rpt, rootOut, "UTF-8")
+    FileAppend("Completed. Report saved to " . outPath . " + " . rootOut . "`n", logPath)
+    if (p95 > gate) {
+        FileAppend("P95 GATE FAILED: " . p95 . "ms > " . gate . "ms`n", logPath)
         ExitApp(1)
+    }
+    if (p95 > warnLo) {
+        FileAppend("P95 WARN: " . p95 . "ms in [" . warnLo . "--" . gate . "]ms jitter band`n", logPath)
     }
 }

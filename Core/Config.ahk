@@ -46,6 +46,7 @@ SaveAutoConf() {
 }
 
 ; 加载历史命令
+; 加载历史命令
 LoadHistoryCommands() {
     global g_Conf, g_AutoConf, g_HistoryCommands
 

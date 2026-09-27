@@ -14,6 +14,11 @@ class RimPlugin {
     static Author => "Rim"         ; 作者
     static Description => ""       ; 功能说明
     static Version => "1.0.0"      ; 版本号
+    ; P1-6 契约第二版 (全可选, 缺省零行为变化)
+    static Id => ""                ; 稳定 ID, 缺省回退 Name
+    static ApiVersion => "1"       ; 声明兼容的 Rim API 主版本
+    static Dependencies => []      ; 依赖的插件 Id/Name 数组
+    static Capabilities => []      ; 能力声明: commands/keymaps/gestures/context/provider
 
     ; 生命周期阶段 1: 自身基础数据初始化 (读取专属配置、创建内部状态)
     static Init() {
@@ -46,19 +51,103 @@ class RimPlugin {
 class RimPluginManager {
     static Plugins := Map()         ; 已注册的 Plugin 类 (Key: 小写名称)
     static EnabledPlugins := Map()  ; 已激活的 Plugin 类
+    static Registry := Map()        ; P1-6: key -> Map(cls, id, version, api, deps, caps, at)
+    static CommandOwners := Map()   ; P1-6: commandId -> pluginName (冲突检测)
+    static HotkeyOwners := Map()    ; P1-6: hotkey -> pluginName
+    static GestureOwners := Map()   ; P1-6: gesture -> pluginName
+    static Conflicts := []          ; P1-6: Array of Map(type,id,a,b,at)
+    static Failures := []           ; P1-6: Array of Map(stage,plugin,msg,at)
 
-    ; 注册插件类
+    ; 注册插件类 (P1-6: 返回结构化结果, 保持 true/false 兼容: res["ok"])
     static Register(pluginClass) {
-        if (!IsObject(pluginClass))
-            return false
+        res := RimPluginManager.RegisterEx(pluginClass)
+        return res["ok"]
+    }
 
+    static RegisterEx(pluginClass) {
+        if (!IsObject(pluginClass))
+            return Map("ok", false, "id", "", "msg", "not an object")
         name := ""
         try name := pluginClass.Name
         if (name = "")
-            return false
-
+            return Map("ok", false, "id", "", "msg", "empty name")
+        id := name
+        try {
+            if (pluginClass.Id != "")
+                id := pluginClass.Id
+        }
+        ver := "1.0.0"
+        try ver := pluginClass.Version
+        api := "1"
+        try api := pluginClass.ApiVersion
+        deps := []
+        try deps := pluginClass.Dependencies
+        caps := []
+        try caps := pluginClass.Capabilities
         key := StrLower(Trim(name))
+        replaced := RimPluginManager.Plugins.Has(key) ? RimPluginManager.Plugins[key].Name : ""
         RimPluginManager.Plugins[key] := pluginClass
+        RimPluginManager.Registry[key] := Map("cls", pluginClass, "id", id, "name", name, "version", ver, "api", api, "deps", deps, "caps", caps, "at", A_Now, "replaced", replaced, "disabledReason", "")
+        if (replaced != "")
+            RimPluginManager.Conflicts.Push(Map("type", "plugin", "id", name, "a", replaced, "b", name, "at", A_Now))
+        return Map("ok", true, "id", id, "name", name, "version", ver, "replaced", replaced, "msg", "")
+    }
+
+    static Disable(name, reason := "") {
+        key := StrLower(Trim(name))
+        try RimPluginManager.EnabledPlugins.Delete(key)
+        catch {
+        }
+        if (RimPluginManager.Registry.Has(key))
+            RimPluginManager.Registry[key]["disabledReason"] := reason
+        try ObsRecordFailure("plugin", name, "disabled: " . reason)
+    }
+
+    static CheckDependencies() {
+        missing := []
+        for key, info in RimPluginManager.Registry {
+            deps := info.Has("deps") ? info["deps"] : []
+            if (!IsObject(deps))
+                continue
+            for _, d in deps {
+                dk := StrLower(Trim(String(d)))
+                if (dk = "" || RimPluginManager.Plugins.Has(dk))
+                    continue
+                missing.Push(Map("plugin", info["name"], "dep", d))
+                RimPluginManager.Disable(info["name"], "missing dep " . d)
+            }
+        }
+        return missing
+    }
+
+    ; 命令/热键/手势冲突登记 (先到先得拥有, 后者记冲突但不阻塞)
+    static ClaimCommand(cmdId, pluginName) {
+        k := StrLower(Trim(cmdId))
+        if (RimPluginManager.CommandOwners.Has(k)) {
+            RimPluginManager.Conflicts.Push(Map("type", "command", "id", cmdId, "a", RimPluginManager.CommandOwners[k], "b", pluginName, "at", A_Now))
+            return false
+        }
+        RimPluginManager.CommandOwners[k] := pluginName
+        return true
+    }
+
+    static ClaimHotkey(hk, pluginName) {
+        k := StrLower(Trim(hk))
+        if (RimPluginManager.HotkeyOwners.Has(k)) {
+            RimPluginManager.Conflicts.Push(Map("type", "hotkey", "id", hk, "a", RimPluginManager.HotkeyOwners[k], "b", pluginName, "at", A_Now))
+            return false
+        }
+        RimPluginManager.HotkeyOwners[k] := pluginName
+        return true
+    }
+
+    static ClaimGesture(ge, pluginName) {
+        k := StrLower(Trim(ge))
+        if (RimPluginManager.GestureOwners.Has(k)) {
+            RimPluginManager.Conflicts.Push(Map("type", "gesture", "id", ge, "a", RimPluginManager.GestureOwners[k], "b", pluginName, "at", A_Now))
+            return false
+        }
+        RimPluginManager.GestureOwners[k] := pluginName
         return true
     }
 
@@ -154,7 +243,9 @@ class RimPluginManager {
                 targetCls.%methodName%(args*)
             }
         } catch Error as e {
+            RimPluginManager.Failures.Push(Map("stage", methodName, "plugin", pluginName, "msg", e.Message, "at", A_Now))
             RimPluginManager._LogErr(pluginName . "." . methodName, e)
+            try ObsRecordFailure(methodName, pluginName, e.Message)
         }
     }
 
@@ -169,5 +260,20 @@ class RimPluginManager {
             } catch {
             }
         }
+    }
+}
+
+; P1-6 兼容函数: 冲突/失败报告查询
+PluginConflicts() {
+    try return RimPluginManager.Conflicts
+    catch {
+        return []
+    }
+}
+
+PluginFailures() {
+    try return RimPluginManager.Failures
+    catch {
+        return []
     }
 }

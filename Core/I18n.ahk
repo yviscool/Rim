@@ -70,6 +70,9 @@ I18nSetLang(lang, save := true) {
         return g_I18nLang
     g_I18nStrings := m
     g_I18nLang := I18nLoadedLang(lang)
+    ; 注意: save=true 只写内存 (g_Conf.Set), 不得在此调 g_Conf.Save()
+    ; (Save 重写全文件会吃掉 rim.ini 全部注释, 见 StrokePlus.ahk:137);
+    ; 落盘走配置中心的保注释写回 (VimConfigUI), 托盘切换用 save=false + 重建菜单
     if (save) {
         try g_Conf.Set("Config", "Language", g_I18nLang)
     }

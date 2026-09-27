@@ -22,13 +22,25 @@ class StatsBallPlugin extends RimPlugin {
         RimCommand.Register("StatsBall", "StatsBall", MakeLegacyCmd("StatsBall_Toggle"), Map("Category", "Tool", "Description", T("cmd.StatsBall.StatsBall"), "Keywords", "StatsBall"))
         RimCommand.Register("StatsBallBoost", "StatsBallBoost", MakeLegacyCmd("StatsBall_Boost"), Map("Category", "Tool", "Description", T("cmd.StatsBall.Boost"), "Keywords", "StatsBallBoost"))
     }
+
+    ; 热应用订阅 ([StatsBall] 段 live 档; 回调只做读配置→改对象, 禁阻塞)
+    static Init() {
+        for _, sbKey in ["Enable", "RefreshMs", "StripW", "StripH", "Opacity", "TopMost", "LockPos", "SnapEdge", "AlertThreshold"] {
+            try CfgSubscribe("StatsBall", sbKey, (*) => StatsBall_ApplyConfig())
+        }
+    }
 }
 
 if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
     RimPluginManager.Register(StatsBallPlugin)
 
-; ---------- 配置读取 (带默认值, 防 Map 缺键报错) ----------
+; ---------- 配置读取 (schema 中央表优先, 缺表回落手写默认; 防 Map 缺键报错) ----------
 StatsBall_Cfg(key, def) {
+    try {
+        if (IsSet(g_CfgSchema))
+            return CfgGet("StatsBall", key, def)
+    } catch {
+    }
     try {
         global g_Conf
         if (IsObject(g_Conf) && g_Conf.HasSection("StatsBall")) {
@@ -39,6 +51,56 @@ StatsBall_Cfg(key, def) {
     } catch {
     }
     return def
+}
+
+; ---------- 热应用: 重读 [StatsBall] → 活对象 (配置中心 live 档回调) ----------
+StatsBall_ApplyConfig(*) {
+    global g_StatsBall
+    enable := false
+    try enable := StatsBall_Cfg("Enable", "1") = "1"
+    if (!IsSet(g_StatsBall) || !IsObject(g_StatsBall)) {
+        if (enable) {
+            try StatsBall_Toggle()
+        }
+        return
+    }
+    if (!enable) {
+        try g_StatsBall.Hide()
+        return
+    }
+    try {
+        g_StatsBall.interval := Integer(StatsBall_Cfg("RefreshMs", "1000"))
+        if (g_StatsBall.interval < 500)
+            g_StatsBall.interval := 500
+        if (g_StatsBall.interval > 5000)
+            g_StatsBall.interval := 5000
+        g_StatsBall.opacity := Integer(StatsBall_Cfg("Opacity", "255"))
+        if (g_StatsBall.opacity < 80)
+            g_StatsBall.opacity := 80
+        if (g_StatsBall.opacity > 255)
+            g_StatsBall.opacity := 255
+        g_StatsBall.snapEdge := StatsBall_Cfg("SnapEdge", "0") = "1"
+        g_StatsBall.threshold := Integer(StatsBall_Cfg("AlertThreshold", "85"))
+        g_StatsBall.topMost := StatsBall_Cfg("TopMost", "1") = "1"
+        g_StatsBall.lockPos := StatsBall_Cfg("LockPos", "0") = "1"
+        g_StatsBall.ww := Integer(StatsBall_Cfg("StripW", "156"))
+        if (g_StatsBall.ww < 120)
+            g_StatsBall.ww := 120
+        if (g_StatsBall.ww > 480)
+            g_StatsBall.ww := 480
+        g_StatsBall.hh := Integer(StatsBall_Cfg("StripH", "40"))
+        if (g_StatsBall.hh < 32)
+            g_StatsBall.hh := 32
+        if (g_StatsBall.hh > 80)
+            g_StatsBall.hh := 80
+        g_StatsBall.ClampPos()
+        if (g_StatsBall.visible) {
+            try SetTimer(g_StatsBall.timerFn, g_StatsBall.interval)
+            try g_StatsBall.g.Show("x" . g_StatsBall.x . " y" . g_StatsBall.y . " NoActivate")
+            try WinSetAlwaysOnTop(g_StatsBall.topMost ? true : false, "ahk_id " . g_StatsBall.ballHwnd)
+            try g_StatsBall.Tick()
+        }
+    }
 }
 
 ; ---------- 入口 ----------

@@ -231,7 +231,7 @@ CmdLine_Format(type, cmd, desc := "", key := "") {
 ; ==================== 命令池写入 (非 function 型直写池行; function 型调用方已清零, 误调即抛错) ====================
 class LauncherCompat {
     static AddCommand(name, type, content, description := "") {
-        global g_Commands
+        global g_Commands, g_CommandAlias
         if (type = "function") {
             throw Error("RegisterCommand function-type retired; use RimCommand.Register + MakeLegacyCmd directly: " . name)
         } else {
@@ -239,8 +239,30 @@ class LauncherCompat {
             if (description != "")
                 element .= " | " description
             g_Commands.Push(element)
+            ; 别名保留: 进池丢名导致 ghost/冻结/精确命中全对 content (如整串 URL),
+            ; 名字叫不回来 ("Goo" Tab 不出 "Google"). 首胜, 不覆盖.
+            try {
+                if (IsSet(g_CommandAlias) && IsObject(g_CommandAlias)) {
+                    key := Trim(content)
+                    if (key != "" && Trim(name) != "" && !g_CommandAlias.Has(key))
+                        g_CommandAlias[key] := Trim(name)
+                }
+            }
         }
     }
+}
+
+; 别名查询: content → 注册名 (无则 ""). 探针未建表时回 "" 永不抛错
+CmdAliasOf(content) {
+    try {
+        global g_CommandAlias
+        if (IsSet(g_CommandAlias) && IsObject(g_CommandAlias)) {
+            key := Trim(String(content))
+            if (g_CommandAlias.Has(key))
+                return g_CommandAlias[key]
+        }
+    }
+    return ""
 }
 
 ; === 通用指令实现函数 (Universal Command Implementations) ===

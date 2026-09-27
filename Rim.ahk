@@ -92,6 +92,7 @@ global FullPipeArg := ""
 ; 不能是 Rim.ahk 的子串, 否则按键绑定会有问题 (对齐原版 4 空格)
 global g_WindowName := "RunZ    "
 global g_Commands := []
+global g_CommandAlias := Map()
 global g_FallbackCommands := []
 global g_CurrentInput := ""
 global g_CurrentCommand := ""
@@ -191,17 +192,25 @@ global g_CommandArea := "Edit4"
 
 ; ==================== 加载 Core 模块 ====================
 #Include Core\Config.ahk
+#Include Core\ConfigSchema.ahk
+#Include Core\ConfigTxn.ahk
 #Include Core\Files.ahk
 #Include Core\Search.ahk
+#Include Core\SearchIndex.ahk
 #Include Core\GUI.ahk
 #Include Core\Context.ahk
+#Include Core\WindowIndex.ahk
 #Include Core\Plugin.ahk
 #Include Core\Command.ahk
+#Include Core\ActionProtocol.ahk
 #Include Core\Window.ahk
 #Include Core\Workspace.ahk
 #Include Core\Execution.ahk
 #Include Core\Engine.ahk
 #Include Core\Utils.ahk
+#Include Core\Logging.ahk
+#Include Core\Observability.ahk
+#Include Core\TrainingLoop.ahk
 #Include Core\Hotkeys.ahk
 #Include Core\SmartInput.ahk
 #Include Core\Gesture.ahk
@@ -212,6 +221,10 @@ global g_CommandArea := "Edit4"
 #Include Core\GesturePreview.ahk
 #Include Gui\GestureUI.ahk
 #Include Gui\VimConfigUI.ahk
+#Include Gui\VimCfg_Save.ahk
+#Include Gui\VimCfg_Schema.ahk
+#Include Gui\VimCfg_TabsKeys.ahk
+#Include Gui\VimCfg_TabsMisc.ahk
 
 ; ==================== VimEditor 插件 ====================
 #Include *i Plugins\VimEditor.ahk
@@ -336,6 +349,18 @@ VimPluginOn(name) => RimPluginManager.IsEnabled(name)
 ; 插件按键模式注入 (全插件经 Hybrid RegisterKeymaps 直注引擎, 无双轨分发)
 RimPluginManager.RegisterAllKeymaps(g_VimEngine)
 VimdCheckHotKey()
+
+; 配置热应用订阅 (live/rebuild 档免重启; restart 档走重启链, 见 VimCfg_DoSave)
+; 注意: 回调只做"读配置→改对象", 禁止阻塞 (单线程, 卡死界面)
+try CfgSubscribe("Config", "Language", (val, _sec, _key) => I18nApplyTray(val))
+try CfgSubscribe("Config", "SearchFileDir", (*) => LoadFiles())
+try CfgSubscribe("Config", "SearchFileType", (*) => LoadFiles())
+try CfgSubscribe("Config", "SearchFileExclude", (*) => LoadFiles())
+; 外观 rebuild 档: 重载皮肤并重建主窗 (输入与可见性由 Launcher_ApplyGui 保持)
+try CfgSubscribe("Config", "WindowAlwaysOnTop", (*) => Launcher_ApplyGui())
+for _idx, guiKey in ["Skin", "HideTitle", "ShowCurrentCommand", "DisplayRows", "WidgetWidth", "FontName", "FontSize", "FontColor", "BackgroundColor", "EditColor"] {
+    try CfgSubscribe("Gui", guiKey, (*) => Launcher_ApplyGui())
+}
 
     ; ==================== 鼠标手势 (StrokePlus 重构 P1) ====================
     ; 右键按住拖拽=手势, 短点=普通右键; 映射见 [Gesture]/[Gestures]

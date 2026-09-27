@@ -88,6 +88,18 @@ SearchCommand(command := "", firstRun := false) {
     ; 命中先收集后渲染 (精确置顶需要稳定分区, 不能边扫边画)
     matchItems := []
 
+    ; P1-4+P8: 配置读出循环 (CfgGet 统一入口) + 索引预热
+    showExt := "0"
+    searchFull := "0"
+    try showExt := CfgGet("Config", "ShowFileExt", "0")
+    catch {
+        try showExt := g_Conf.Get("Config", "ShowFileExt", "0")
+    }
+    try searchFull := CfgGet("Config", "SearchFullPath", "0")
+    catch {
+        try searchFull := g_Conf.Get("Config", "SearchFullPath", "0")
+    }
+    try SearchIdx_Build(false)
     ; 搜索所有命令
     for index, element in g_Commands {
         if (InStr(fullResult, element "`n") || InStr(g_ExcludedCommands, element "`n"))
@@ -100,7 +112,7 @@ SearchCommand(command := "", firstRun := false) {
 
             elementToSearch := fileNameNoExt
             extra := splitedElement.Length >= 3 ? splitedElement[3] : ""
-            if (g_Conf.Get("Config", "ShowFileExt", "0") = "1")
+            if (showExt = "1")
                 elementToShow := "file | " . fileName . (extra ? " | " . extra : "")
             else
                 elementToShow := "file | " . fileNameNoExt . (extra ? " | " . extra : "")
@@ -108,7 +120,7 @@ SearchCommand(command := "", firstRun := false) {
             if (extra)
                 elementToSearch .= " " . extra
 
-            if (g_Conf.Get("Config", "SearchFullPath", "0") = "1") {
+            if (searchFull = "1") {
                 SplitPath(splitedElement[2], , &fileDir)
                 elementToSearch := StrReplace(fileDir, "\", " ") . " " . elementToSearch
             }
@@ -134,6 +146,13 @@ SearchCommand(command := "", firstRun := false) {
                 elementToShow .= " | " splitedElement[3]
                 elementToSearch .= " " splitedElement[3]
             }
+        }
+
+        ; 别名可搜: 注册名不在 content/desc 里时 (如短名), 补到搜索串尾
+        try {
+            aliasExtra := CmdAliasOf(splitedElement[2])
+            if (aliasExtra != "" && !InStr(elementToSearch, aliasExtra, false))
+                elementToSearch .= " " . aliasExtra
         }
 
         if (command = "" || MatchCommand(elementToSearch, command)) {

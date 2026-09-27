@@ -279,11 +279,15 @@ CurVimWin() {
         return ""
     try {
         name := g_VimEngine.CheckWin()
+        ; 全局/空名永不返回对象: Gen_* 模式翻转打到 winGlobal 上等于全局静默哑火
+        ; (global 无 insert 映射 → 回退全透传, 且无键能切回来)
+        if (name = "" || name = "__global__")
+            return ""
         w := g_VimEngine.GetWin(name)
         if IsObject(w)
             return w
     }
-    return g_VimEngine.winGlobal
+    return ""
 }
 
 Gen_Toggle() {

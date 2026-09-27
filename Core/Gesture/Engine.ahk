@@ -360,6 +360,15 @@ class GestureEngine {
             } else {
                 try {
                     fn := actStr
+                    ; 手势动作常带 function| 前缀, 点式前先剥掉再试 (裸名/点式都走)
+                    if (SubStr(fn, 1, 9) = "function|")
+                        fn := SubStr(fn, 10)
+                    if (InStr(fn, ".")) {
+                        try {
+                            if (ActionCallDotted(fn))
+                                return
+                        }
+                    }
                     %fn%()
                 }
             }

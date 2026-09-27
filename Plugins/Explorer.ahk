@@ -140,7 +140,8 @@ Explorer_ForceInsertMode(actionName, win) {
             return true
     }
     try {
-        if WinExist("ahk_class #32768")
+        ; v2 Menu() 弹的是 Xaml_WindowedPopupClass, 不是 #32768 (见 AGENTS 错误 21): 双认
+        if WinExist("ahk_class #32768") || WinExist("ahk_class Xaml_WindowedPopupClass")
             return true
     }
     return false

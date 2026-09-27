@@ -53,7 +53,7 @@ jobs:
           }
       - name: Dispatch invariant probes (no global hooks except [global])
         run: |
-          foreach ($p in @("probe_nohook", "probe_global_hook", "probe_terminal")) {
+          foreach ($p in @("probe_nohook", "probe_global_hook", "probe_terminal", "probe_vim_hotkeys", "probe_gesture_state")) {
             & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut "tools/$p.ahk"
             if ($LASTEXITCODE -ne 0) { Write-Host "$p FAILED"; exit 1 }
           }
@@ -63,7 +63,27 @@ jobs:
             & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut "tools/$p.ahk"
             if ($LASTEXITCODE -ne 0) { Write-Host "$p FAILED"; exit 1 }
           }
-      - name: Gesture benchmark (accuracy + P95<=30ms gate)
+      - name: Gesture benchmark (accuracy + P95<=50ms gate, warn 30-50ms)
         run: |
           & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut tools/benchmark_gesture.ahk
           if ($LASTEXITCODE -ne 0) { exit 1 }
+          if (-not (Test-Path benchmark_out.txt)) { Write-Host "missing benchmark_out.txt"; exit 1 }
+          if (-not (Test-Path tools/benchmark_report.txt)) { Write-Host "missing tools/benchmark_report.txt"; exit 1 }
+          $txt = Get-Content benchmark_out.txt -Raw
+          foreach ($k in @("metric total=", "metric correct=", "metric p95_ms=", "metric p50_ms=", "metric p99_ms=", "metric max_ms=")) {
+            if ($txt -notmatch [regex]::Escape($k)) { Write-Host "missing $k"; exit 1 }
+          }
+          $m = [regex]::Match($txt, "metric p95_ms=(\d+)")
+          $p95 = [int]$m.Groups[1].Value
+          if ($p95 -gt 50) { Write-Host "P95 gate failed: $p95 ms"; exit 1 }
+          $a = [regex]::Match($txt, "metric accuracy=([\d\.]+)")
+          if ([double]$a.Groups[1].Value -lt 90) { Write-Host "accuracy below 90"; exit 1 }
+      - name: Probe include-order + worktree baseline (P0-1 gate)
+        run: |
+          & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut tools/probe_include_order.ahk
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          if ((Get-Content probe_include_order.out.txt -Raw).Trim() -ne "include-order-ok") { exit 1 }
+          foreach ($p in @("probe_input_safety", "probe_action_protocol", "probe_plugin_v2", "probe_config_txn", "probe_search_index", "probe_window_index", "probe_observability", "probe_training_loop", "probe_desktop_matrix", "probe_fallback_url", "probe_command_alias", "probe_alias_wire", "probe_dotted_action", "probe_fallback_eq", "probe_dead_refs", "probe_ini_roundtrip", "probe_dialog_input", "probe_prefix_passthrough", "probe_keycodec", "probe_vim_modes")) {
+            & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut "tools/$p.ahk"
+            if ($LASTEXITCODE -ne 0) { Write-Host "$p FAILED"; exit 1 }
+          }

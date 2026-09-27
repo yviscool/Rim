@@ -39,6 +39,12 @@ class RimContext {
         }
         if (!hwnd)
             return ctx
+        ; P9: 同 HWND 300ms TTL 缓存 (按键/手势连击零 WinAPI)
+        try {
+            cached := CtxCache_Get(hwnd)
+            if (IsObject(cached))
+                return cached
+        }
 
         ctx.Hwnd := hwnd
 
@@ -92,6 +98,9 @@ class RimContext {
             }
         }
 
+        try CtxCache_Put(hwnd, ctx)
+        catch {
+        }
         return ctx
     }
 

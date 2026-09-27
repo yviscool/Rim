@@ -3,6 +3,55 @@
 ; === VimEngine - 核心Vim引擎 ===
 ; 管理窗口、模式、热键映射、Action执行
 
+; 文件对话框输入保护谓词 (纯逻辑, 探针直测; WinAPI 由 KeyHandler 采集后传入):
+; #32770 且焦点在输入控件 (文件名框等) 时透传, 其他一律不管.
+; 注意: 只认窗类, 不认控件白名单之外的东西; Notepad 主窗 (类名非 #32770) 不受影响,
+; TCDialog 不依赖窗内映射 (定时器偷焦点), 也不受影响.
+DialogShouldPassthrough(winClass, ctrlClass, ctrlNN) {
+    if (winClass != "#32770")
+        return false
+    try {
+        if (IsSet(RimContext) && IsObject(RimContext)) {
+            if (RimContext.CheckIsInput(ctrlClass, ctrlNN, winClass))
+                return true
+        }
+    }
+    ; #32770 专属放宽: 文件名组合框/类型下拉本身也可打字筛选, 同样透传
+    ; (CheckIsInput 不认 Combo 系, 此处补; 其他窗类不受影响)
+    if (ctrlClass = "ComboBox" || ctrlClass = "ComboBoxEx32")
+        return true
+    if RegExMatch(String(ctrlNN), "i)^ComboBox\d*$")
+        return true
+    ; RimContext 不可用 (探针/早期) 时的 Edit 兜底
+    if (ctrlClass = "Edit")
+        return true
+    if RegExMatch(String(ctrlNN), "i)^Edit\d+$")
+        return true
+    return false
+}
+
+; 多键前缀预检 (KeyHandler 前缀分支调用, 纯逻辑可单测):
+; BeforeActionDo("", win) 为真即应透传. 存在理由: 前缀键 (g/<C-w>/空格前缀等)
+; 走不到动作期回调, 会被 KeyTemp 吞掉出提示菜单 (Explorer 重命名框按 g 即此;
+; TC 当年同坑靠 PreKeyFilter 绕过, 见 TotalCommander.ahk 注释). 现有两实现
+; (Explorer_ForceInsertMode/TC_BeforeActionDo) 均忽略 actionName, 空串调用安全.
+EngineShouldPassthroughPrefix(win, globalBefore) {
+    try {
+        bf := ""
+        try bf := win.BeforeActionDoFunc
+        catch {
+        }
+        if (!IsObject(bf))
+            bf := globalBefore
+        if (IsObject(bf)) {
+            if bf("", win)
+                return true
+        }
+    } catch {
+    }
+    return false
+}
+
 class VimEngine {
     PluginList := Map()
     WinList := Map()
@@ -153,7 +202,7 @@ class VimEngine {
         }
     }
 
-    ; === 窗口级回调 ===
+; === 窗口级回调 ===
     SetBeforeActionDoForWin(winName, func) {
         win := this.GetWin(winName)
         if IsObject(win)
@@ -434,6 +483,46 @@ class VimEngine {
             }
         }
 
+        ; 文件对话框输入保护: #32770 且焦点在输入控件 (文件名框等) 时直接透传,
+        ; Typora/记事本另存为不再吃掉 o/i 等键. 现取类名 (CheckWin 有 50ms 缓存,
+        ; 对话框刚弹出时缓存还是父窗, 不能用); TCDialog 不依赖窗内映射, 不受影响.
+        try {
+            _dlgCls := WinGetClass("A")
+            if (_dlgCls = "#32770") {
+                _fHwnd := 0
+                try _fHwnd := ControlGetFocus("A")
+                catch {
+                }
+                if (_fHwnd) {
+                    _cc := ""
+                    _nn := ""
+                    try _cc := ControlGetClass(_fHwnd)
+                    catch {
+                    }
+                    try _nn := ControlGetClassNN(_fHwnd)
+                    catch {
+                    }
+                    if (DialogShouldPassthrough(_dlgCls, _cc, _nn)) {
+                        Send(this.ConvertFromVim(vimKey, true))
+                        ; 与其他透传分支对齐清状态: 父窗残留 KeyTemp (如列表里按了 g
+                        ; 又进对话框) 不得污染对话框后的按键
+                        try {
+                            _cw := this.CheckWin()
+                            _w := this.GetWin(_cw)
+                            if IsObject(_w) {
+                                _w.KeyTemp := ""
+                                _w.Count := 0
+                                try _w.HideMore()
+                            }
+                        } catch {
+                        }
+                        return
+                    }
+                }
+            }
+        } catch {
+        }
+
         ; 获取当前窗口信息
         winName := this.CheckWin()
         if (winName = "") {
@@ -540,6 +629,18 @@ class VimEngine {
         if (actionName = "") {
             ; 检查多键序列前缀
             if modeObj.keymoreList.Has(vimKey) {
+                ; 前缀同样先过 BeforeActionDo (输入框保护): 否则 g 等前缀键
+                ; 在重命名框/地址栏里被 KeyTemp 吞掉出提示菜单, 回调永远走不到
+                try {
+                    if (EngineShouldPassthroughPrefix(win, this.BeforeActionDoFunc)) {
+                        Send(this.ConvertFromVim(vimKey, true))
+                        win.KeyTemp := ""
+                        win.Count := 0
+                        win.HideMore()
+                        return
+                    }
+                } catch {
+                }
                 win.KeyTemp .= vimKey
 
                 ; 显示按键提示
@@ -615,6 +716,11 @@ class VimEngine {
 
     ; === 窗口检测 (对齐原版: exe 优先于 class, 解决 TConvertForm 撞车) ===
     CheckWin() {
+        ; 前台窗缓存: 50ms TTL (连击同窗命中率极高, 3 问 WinAPI → 命中时 0 问);
+        ; 窗口切换慢于 50ms 人眼无感, TTL 过期重查即跟上
+        static cacheName := "", cacheTick := 0
+        if (cacheName != "" && A_TickCount - cacheTick < 50)
+            return cacheName
         ; 返回值形态取值 (此构建 &var 输出型在部分函数上行为异常, try 吞错会导致全盲回退)
         winClass := ""
         winExe := ""
@@ -629,20 +735,36 @@ class VimEngine {
             winExe := ""
         }
 
-        ; 先按 exe 匹配
+        ; 先按 exe 匹配 (P9: 索引优先, 缺失回退线性)
+        try {
+            idxHit := WinIdx_Match(winExe, winClass, this)
+            if (idxHit != "" && this.WinList.Has(idxHit)) {
+                cacheName := idxHit
+                cacheTick := A_TickCount
+                return idxHit
+            }
+        }
         for name, win in this.WinList {
             if (name = "__global__")
                 continue
-            if (win.WinFile != "" && winExe = win.WinFile)
+            if (win.WinFile != "" && winExe = win.WinFile) {
+                cacheName := name
+                cacheTick := A_TickCount
                 return name
+            }
         }
         ; 再按 class 匹配
         for name, win in this.WinList {
             if (name = "__global__")
                 continue
-            if (win.WinClass != "" && winClass = win.WinClass)
+            if (win.WinClass != "" && winClass = win.WinClass) {
+                cacheName := name
+                cacheTick := A_TickCount
                 return name
+            }
         }
+        cacheName := "__global__"
+        cacheTick := A_TickCount
         return "__global__"
     }
 
@@ -742,7 +864,7 @@ class VimEngine {
             if RegExMatch(key, "<RT>")
                 return ">"
             if RegExMatch(key, "i)^S\-(.*)", &m)
-                return ToSend ? "+" this.CheckToSend(m[1]) : "+" m[1]
+                return ToSend ? "+" this.CheckToSend(m[1], true) : "+" m[1]
             ; 全写修饰符 (NormalizeVimKey 把 <Ctrl-u> 整体大写成 <CTRL-U>,
             ; 单字母分支 ^C\- 匹配不上, 曾导致 Hotkey("$CTRL-U") 非法刷屏)
             if RegExMatch(key, "i)^CTRL\-(.*)", &m)
@@ -758,17 +880,17 @@ class VimEngine {
             if RegExMatch(key, "i)^RALT\-(.*)", &m)
                 return ToSend ? ">!" this.CheckToSend(m[1]) : ">!" m[1]
             if RegExMatch(key, "i)^SHIFT\-(.*)", &m)
-                return ToSend ? "+" this.CheckToSend(m[1]) : "+" m[1]
+                return ToSend ? "+" this.CheckToSend(m[1], true) : "+" m[1]
             if RegExMatch(key, "i)^LSHIFT\-(.*)", &m)
-                return ToSend ? "<+" this.CheckToSend(m[1]) : "<+" m[1]
+                return ToSend ? "<+" this.CheckToSend(m[1], true) : "<+" m[1]
             if RegExMatch(key, "i)^RSHIFT\-(.*)", &m)
-                return ToSend ? ">+" this.CheckToSend(m[1]) : ">+" m[1]
+                return ToSend ? ">+" this.CheckToSend(m[1], true) : ">+" m[1]
             if RegExMatch(key, "i)^WIN\-(.*)", &m)
                 return ToSend ? "#" this.CheckToSend(m[1]) : "#" m[1]
             if RegExMatch(key, "i)^LS\-(.*)", &m)
-                return ToSend ? "<+" this.CheckToSend(m[1]) : "<+" m[1]
+                return ToSend ? "<+" this.CheckToSend(m[1], true) : "<+" m[1]
             if RegExMatch(key, "i)^RS\-(.*)", &m)
-                return ToSend ? ">+" this.CheckToSend(m[1]) : ">+" m[1]
+                return ToSend ? ">+" this.CheckToSend(m[1], true) : ">+" m[1]
             if RegExMatch(key, "i)^C\-(.*)", &m)
                 return ToSend ? "^" this.CheckToSend(m[1]) : "^" m[1]
             if RegExMatch(key, "i)^LC\-(.*)", &m)
@@ -789,7 +911,10 @@ class VimEngine {
         return key
     }
 
-    CheckToSend(key) {
+    ; Send 形态键名规范化. keepCase 专供 Shift 系 (S/SHIFT/LS/RS/LSSHIFT/RSHIFT):
+    ; Send 里大写字母自带 Shift ("^C"=Ctrl+Shift+C, 文档实锤), Ctrl/Alt/Win 后
+    ; 的单字母必须小写, Shift 后的必须大写. 注册侧 (Hotkey, 大小写无关) 不走此口.
+    CheckToSend(key, keepCase := false) {
         if RegExMatch(key, "i)^((F1)|(F2)|(F3)|(F4)|(F5)|(F6)|(F7)|(F8)|(F9)|(F10)|(F11)|(F12))$")
             return "{" key "}"
         if RegExMatch(key, "i)^((AppsKey)|(Tab)|(Enter)|(Space)|(Home)|(End)|(CapsLock)|(ScrollLock)|(Up)|(Down)|(Left)|(Right)|(PgUp)|(PgDn)|(BS)|(ESC)|(Insert)|(Delete)|(Pause))$")
@@ -808,6 +933,8 @@ class VimEngine {
             return "<"
         if RegExMatch(key, "<RT>")
             return ">"
+        if (!keepCase && RegExMatch(key, "^[A-Z]$"))
+            return StrLower(key)
         return key
     }
 

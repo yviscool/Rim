@@ -83,8 +83,19 @@ SI_CoreOfPure(element) {
             return fn
         return Trim(parts[2])
     }
-    if (parts.Length >= 2)
-        return Trim(parts[2])
+    if (parts.Length >= 2) {
+        core := Trim(parts[2])
+        ; 别名优先: 插件注册名 (Google) 比 content (整串 URL/路径) 更适合 ghost/冻结/精确命中.
+        ; (CmdAliasOf 见 Core/Command.ahk; 纯探针未包含时回落 content, 永不抛错)
+        try {
+            if (parts[1] == "url" || parts[1] == "run" || parts[1] == "cmd") {
+                alias := CmdAliasOf(parts[2])
+                if (alias != "")
+                    return alias
+            }
+        }
+        return core
+    }
     return Trim(element)
 }
 

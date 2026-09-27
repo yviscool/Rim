@@ -85,6 +85,16 @@ try {
     pkg := g_ConfFile . ".export.ini"
     Check("export", GesturePkg_Export(pkg))
     Check("definition export", InStr(FileRead(pkg, "UTF-8"), "[GestureDefinitions]"))
+
+    ; unified edit transaction: rename across layers preserves description and disabled state
+    Check("seed editable gesture", GestureStore_SaveGesture("global", "TEMP", "key|temp", "temporary"))
+    Check("seed disabled", GestureStore_SetDisabled("global:TEMP", true))
+    Check("move gesture", GestureStore_MoveGesture("global", "TEMP", "Browser", "TEMP2", "key|temp2", "renamed"))
+    Check("old gesture removed", g_Conf.Get("Gestures", "TEMP", "") = "")
+    Check("new gesture present", g_Conf.Get("GestureApp:Browser", "TEMP2", "") = "key|temp2")
+    Check("new description present", Gesture_GetGestureDesc("Browser", "TEMP2") = "renamed")
+    Check("disabled migrated", GestureEngine.ChainOff("Browser", "TEMP2"))
+    Check("delete gesture cleans desc", GestureStore_DelGesture("Browser", "TEMP2") && Gesture_GetGestureDesc("Browser", "TEMP2") = "")
 } catch Error as e {
     FileAppend("ERROR " . e.Message . " line=" . e.Line . "`n", "*")
     failures++

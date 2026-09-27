@@ -257,6 +257,7 @@ ChangePath(*) {
 WatchUserFileList(*) {
     static lastUserFileListModifyTime := ""
     static lastConfFileModifyTime := ""
+    global g_CfgSelfWriteTick
     ; 注意: FileGetTime 失败回 "" (杀软/同步盘/编辑器短暂锁文件);
     ; 空串绝不能当"变化"处理, 更不能存进 last (一次抖动会连炸两次重启,
     ; 配置窗被杀、dirty 丢失 —— "勾选不上/保存无效"的根因之一)
@@ -275,9 +276,17 @@ WatchUserFileList(*) {
     try {
         newConfFileModifyTime := FileGetTime(g_ConfFile)
         if (newConfFileModifyTime != "") {
-            if (lastConfFileModifyTime != "" && lastConfFileModifyTime != newConfFileModifyTime)
-                RestartRunZ()
-            lastConfFileModifyTime := newConfFileModifyTime
+            if (lastConfFileModifyTime != "" && lastConfFileModifyTime != newConfFileModifyTime) {
+                ; 配置中心自写且全热应用: 吃掉这次变化, 不重启 (8s 窗口, 见 VimCfg_DoSave)
+                if (IsSet(g_CfgSelfWriteTick) && g_CfgSelfWriteTick > 0 && A_TickCount - g_CfgSelfWriteTick < 8000) {
+                    g_CfgSelfWriteTick := 0
+                    lastConfFileModifyTime := newConfFileModifyTime
+                } else {
+                    RestartRunZ()
+                }
+            } else {
+                lastConfFileModifyTime := newConfFileModifyTime
+            }
         }
     }
 }

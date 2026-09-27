@@ -46,9 +46,12 @@ class EasyIni {
                 continue
             }
 
-            ; 检测 key=value, 同时兼容无 "=" 的裸键行 (RunZ FallbackCommand 格式)
-            if RegExMatch(line, "^([^=]+)=(.*)", &match) {
-                key := Trim(match[1])
+            ; 检测 key=value, 同时兼容无 "=" 的裸键行 (RunZ FallbackCommand 格式).
+            ; 键内 "=" 转义为 "\=" (Rank 键是整行命令, URL 查询串 ?q=/ ?wd= 必含 "=";
+            ; 不转义则 Save→Load 回合键被截断, rank 丢失且误入排除表).
+            ; 读兼容老文件 (无转义=旧行为, 首 "=" 切分).
+            if RegExMatch(line, "^((?:\\=|[^=])*)=(.*)", &match) {
+                key := Trim(StrReplace(match[1], "\=", "="))
                 value := Trim(match[2])
 
                 ; 注意: 不做行内 ;/# 注释截断, 原版 EasyIni 保留完整值
@@ -86,7 +89,8 @@ class EasyIni {
         for sectionName, section in this.sections {
             content .= "[" sectionName "]`r`n"
             for key, value in section {
-                content .= key "=" value "`r`n"
+                ; 键内 "=" 转义 (与 Load 对称; 值不转义, 首 "=" 切分天然安全)
+                content .= StrReplace(key, "=", "\=") "=" value "`r`n"
             }
             content .= "`r`n"
         }

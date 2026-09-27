@@ -75,15 +75,28 @@ ResolveSearchDir(dir) {
 
 ; 添加命令到全局列表
 AddCommand(element) {
-    global g_Commands, g_CommandObjects, g_SkinConf, g_Conf
+    global g_Commands, g_CommandObjects, g_SkinConf, g_Conf, g_CommandSet
 
-    ; 幂等去重检查 (防止重复追加同名指令)
-    for existing in g_Commands {
-        if (existing = element)
+    ; 幂等去重: Set O(1) 代替线性扫 O(n) (池数千条时启动平方爆炸);
+    ; 集合随 g_Commands 同清同建 (LoadFiles/排名合并两处重置点), 懒初始化兜底探针直调;
+    ; 键归一小写 (旧 `existing = element` 是不分大小写比较, 语义保持)
+    try {
+        if (!IsSet(g_CommandSet) || !IsObject(g_CommandSet))
+            g_CommandSet := Map()
+    ; 键归一小写 (旧 `existing = element` 是不分大小写比较, 语义保持)
+        if (g_CommandSet.Has(StrLower(element)))
             return
+    } catch {
+        for existing in g_Commands {
+            if (existing = element)
+                return
+        }
     }
 
     g_Commands.Push(element)
+    try g_CommandSet[StrLower(element)] := true
+    catch {
+    }
 
     cmdObj := Map()
     cmdObj["raw"] := element
@@ -178,9 +191,10 @@ MapTypeLabel(type) {
 LoadFiles(loadRank := true) {
     global g_Commands, g_CommandObjects, g_FallbackCommands, g_ExcludedCommands
     global g_ExcludedCommandsObj, g_AutoConf, g_Conf, g_Plugins, g_UserFileList
-    global g_SearchFileList, g_SkinConf
+    global g_SearchFileList, g_SkinConf, g_CommandSet
 
     g_Commands := []
+    g_CommandSet := Map()
     g_CommandObjects := []
     g_FallbackCommands := []
     g_ExcludedCommands := ""
@@ -245,8 +259,7 @@ LoadFiles(loadRank := true) {
     g_FallbackCommands := []
     if (g_Conf.HasSection("FallbackCommand")) {
         for key, value in g_Conf["FallbackCommand"] {
-            ; key 即 "function | Xxx | desc" (裸键行 value=""), value 非空时为 "key=..." 形式则拼接
-            fb := (value != "") ? (key " | " value) : key
+            fb := FallbackJoin(key, value)
             if (Trim(fb) != "")
                 g_FallbackCommands.Push(fb)
         }
@@ -302,6 +315,7 @@ LoadFiles(loadRank := true) {
             }
             g_Commands := []
             g_CommandObjects := []
+            g_CommandSet := Map()
             for _el in ranked
                 AddCommand(_el)
             for _el in rest
@@ -341,6 +355,20 @@ LoadFiles(loadRank := true) {
 }
 
 ; 注: v1 的 @() 在 v2 中是非法的函数名, 已无替代 (RegCmd 已删, 自定义函数走 [Commands] function|Fn|desc)
+
+; 回退行拼接: EasyIni 按首个 "=" 切分, URL 查询串 (?q=/ ?wd=) 会把裸行
+; "url | https://..?wd={query} | desc" 切成 key/value; 用 "=" 拼回去是原行
+; 才认定裸行, 否则沿用旧 "key | value" 拼接. 永不抛错.
+FallbackJoin(key, value) {
+    if (value = "")
+        return key
+    raw := key "=" value
+    try {
+        if (RegExMatch(raw, "^(function|url|run|cmd|command|file) \| "))
+            return raw
+    }
+    return key " | " value
+}
 
 ; 调整命令权重
 ; === Frecency (频次×时效): score = min(visits,25) * 0.5^(days/半衰期) ===

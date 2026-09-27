@@ -485,3 +485,72 @@ InitMainGui() {
 
     OnMessage(0x0200, WM_MOUSEMOVE)
 }
+
+; 皮肤配置重载 (与 Rim.ahk 启动逻辑同语义: 有皮肤文件用文件, 否则用 [Gui] 段)
+ReloadSkinConf() {
+    global g_SkinConf, g_Conf
+    skin := ""
+    try skin := g_Conf["Gui"]["Skin"]
+    if (skin != "") {
+        sp := A_ScriptDir "\Conf\Skins\" skin ".ini"
+        if (FileExist(sp)) {
+            try {
+                g_SkinConf := EasyIni(sp)["Gui"]
+                EnsureSkinDefaults()
+                return
+            }
+        }
+    }
+    try g_SkinConf := g_Conf["Gui"]
+    catch {
+    }
+    EnsureSkinDefaults()
+}
+
+; 热应用: 重载皮肤并重建启动器主窗 (配置中心 rebuild 档回调)
+; 保存输入框文本与可见性, 销毁旧窗, 重建, 回填并恢复焦点
+Launcher_ApplyGui(*) {
+    global g_MainGui, g_InputEdit, g_SkinConf, g_Conf, g_DisplayRows, g_FirstChar
+    savedInput := ""
+    wasVisible := false
+    try {
+        if (IsSet(g_InputEdit) && IsObject(g_InputEdit))
+            savedInput := g_InputEdit.Value
+    }
+    try {
+        if (IsSet(g_MainGui) && IsObject(g_MainGui))
+            wasVisible := DllCall("User32.dll\IsWindowVisible", "Ptr", g_MainGui.Hwnd) ? true : false
+    }
+    try ReloadSkinConf()
+    ; 同步启动时一次性派生的全局量
+    try g_DisplayRows := (g_SkinConf.Has("DisplayRows") ? g_SkinConf["DisplayRows"] : "15") + 0
+    try {
+        if (!g_DisplayRows)
+            g_DisplayRows := 15
+    }
+    try g_FirstChar := Ord(g_SkinConf.Has("FirstChar") ? g_SkinConf["FirstChar"] : "a")
+    try {
+        if (!g_FirstChar)
+            g_FirstChar := Ord("a")
+    }
+    try {
+        if (IsSet(g_MainGui) && IsObject(g_MainGui))
+            g_MainGui.Destroy()
+    } catch {
+    }
+    try InitMainGui()
+    catch {
+        return
+    }
+    ; 回填: 输入文本 + 可见性 + 焦点 (重建默认 Show, 原隐藏态必须藏回)
+    try {
+        if (IsSet(g_InputEdit) && IsObject(g_InputEdit) && savedInput != "")
+            g_InputEdit.Value := savedInput
+    }
+    try {
+        if (!wasVisible && IsSet(g_MainGui) && IsObject(g_MainGui))
+            g_MainGui.Hide()
+        else if (IsSet(g_InputEdit) && IsObject(g_InputEdit))
+            g_InputEdit.Focus()
+    }
+}
