@@ -9,9 +9,9 @@ GenerateSearchFileList() {
 
     try FileDelete(g_SearchFileList)
 
-    searchFileType := g_Conf.Get("Config", "SearchFileType", "*.exe | *.lnk")
+    searchFileType := CfgGet("Config", "SearchFileType", "*.exe | *.lnk")
 
-    for dirIndex, dir in StrSplit(g_Conf.Get("Config", "SearchFileDir", ""), " | ") {
+    for dirIndex, dir in StrSplit(CfgGet("Config", "SearchFileDir", ""), " | ") {
         dir := Trim(dir)
         if (dir = "")
             continue
@@ -22,8 +22,8 @@ GenerateSearchFileList() {
             if (ext = "")
                 continue
             loop files, searchPath "\" ext, "R" {
-                if (g_Conf.Get("Config", "SearchFileExclude", "") != ""
-                    && RegExMatch(A_LoopFileFullPath, g_Conf.Get("Config", "SearchFileExclude", "")))
+                if (CfgGet("Config", "SearchFileExclude", "") != ""
+                    && RegExMatch(A_LoopFileFullPath, CfgGet("Config", "SearchFileExclude", "")))
                     continue
                 FileAppend("file | " A_LoopFileFullPath "`n", g_SearchFileList)
             }
@@ -116,8 +116,7 @@ AddCommand(element) {
         cmdObj["extra"] := splitedElement.Length >= 3 ? splitedElement[3] : ""
 
         ; 对齐原版: ShowFileExt=1 显示 fileName(带扩展名), 否则 fileNameNoExt; 绝不显示全路径
-        showExt := false
-        try showExt := (g_Conf.Get("Config", "ShowFileExt", "0") = "1")
+        showExt := (CfgGet("Config", "ShowFileExt", "0") = "1")
         if (showExt)
             cmdObj["elementToShow"] := "file | " . fileName . (cmdObj["extra"] ? " | " . cmdObj["extra"] : "")
         else
@@ -127,7 +126,7 @@ AddCommand(element) {
         if (cmdObj["extra"])
             cmdObj["elementToSearch"] .= " " . cmdObj["extra"]
         try {
-            if (g_Conf.Get("Config", "SearchFullPath", "0") = "1")
+            if (CfgGet("Config", "SearchFullPath", "0") = "1")
                 cmdObj["elementToSearch"] := StrReplace(cmdObj["fileDir"], "\", " ") . " " . cmdObj["elementToSearch"]
         }
     } else if (CmdLine_IsFourSeg(splitedElement)) {
@@ -289,7 +288,7 @@ LoadFiles(loadRank := true) {
 
     ; 加载控制面板函数 (仅 Conf 目录)
     cplFile := A_ScriptDir "\Conf\ControlPanelFunctions.txt"
-    if (g_Conf.Get("Config", "LoadControlPanelFunctions", "0") = "1" && FileExist(cplFile))
+    if (CfgGet("Config", "LoadControlPanelFunctions", "0") = "1" && FileExist(cplFile))
         for _line in ReadFileLines(cplFile) {
             if (Trim(_line) != "")
                 AddCommand(Trim(_line))
@@ -414,7 +413,7 @@ RankHalfLife() {
     try {
         global g_Conf
         if (IsSet(g_Conf) && IsObject(g_Conf) && g_Conf.HasSection("Config")) {
-            raw := Trim(g_Conf.Get("Config", "RankHalfLife", "14"))
+            raw := Trim(CfgGet("Config", "RankHalfLife", "14"))
             if (IsInteger(raw) && Integer(raw) > 0)
                 hl := Integer(raw)
         }

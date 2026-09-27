@@ -203,18 +203,16 @@ class VimEditorPlugin extends RimPlugin {
         try {
             if !IsSet(g_Conf) || !IsObject(g_Conf)
                 return false
-            val := ""
-            try val := g_Conf.Get(winClass, "vim_enable", "")
+            val := CfgGet(winClass, "vim_enable", "")
             if (Trim(val) = "0")
                 return true
             if (Trim(val) != "")
                 return false
             try {
                 for sectionName, section in g_Conf.GetSections() {
-                    cls := ""
-                    try cls := g_Conf.Get(sectionName, "set_class", "")
+                    cls := CfgGet(sectionName, "set_class", "")
                     if (cls = winClass) {
-                        try val := g_Conf.Get(sectionName, "vim_enable", "")
+                        val := CfgGet(sectionName, "vim_enable", "")
                         return Trim(val) = "0"
                     }
                 }

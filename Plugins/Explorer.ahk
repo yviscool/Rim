@@ -276,11 +276,7 @@ Exp_TCPath() {
     global TCPath
     if (TCPath != "")
         return TCPath
-    try {
-        global g_Conf
-        return g_Conf.Get("Config", "TCPath", "")
-    }
-    return ""
+    return CfgGet("Config", "TCPath", "")
 }
 
 Exp_OpenInTC() {

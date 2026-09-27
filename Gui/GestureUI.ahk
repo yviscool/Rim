@@ -1003,7 +1003,7 @@ GestureCfg_OnSave(*) {
                 GestureMgr_SetStatus(T("gesture.cfg_save_failed", k))
                 return
             }
-            try g_Conf.Set("Gesture", k, v)
+            try CfgSet("Gesture", k, v)
             catch {
             }
         }

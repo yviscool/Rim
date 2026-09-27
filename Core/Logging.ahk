@@ -7,8 +7,20 @@
 global g_LogSession := 0
 global g_LogCat := Map()
 
+; trace 总闸: 仅 DebugMode=1 落盘 (生产零开销, 调试才有单链).
+; 探针/早期无 CfgGet 时一律关闭.
+LogTraceOn() {
+    try {
+        return CfgGet("Config", "DebugMode", "0") = "1"
+    } catch {
+    }
+    return false
+}
+
 LogTrace_Begin(label := "") {
     global g_LogSession
+    if (!LogTraceOn())
+        return 0
     g_LogSession++
     sid := g_LogSession
     try RimLog("INFO", "TRACE_BEGIN sid=" . sid . " " . label)
@@ -16,6 +28,8 @@ LogTrace_Begin(label := "") {
 }
 
 LogTrace(sid, cat, msg) {
+    if (!sid || !LogTraceOn())
+        return
     line := "sid=" . sid . " cat=" . cat . " " . msg
     try RimLog("INFO", line)
 }

@@ -42,12 +42,9 @@ StatsBall_Cfg(key, def) {
     } catch {
     }
     try {
-        global g_Conf
-        if (IsObject(g_Conf) && g_Conf.HasSection("StatsBall")) {
-            v := g_Conf.Get("StatsBall", key, "")
-            if (v != "")
-                return v
-        }
+        v := CfgGet("StatsBall", key, "")
+        if (v != "")
+            return v
     } catch {
     }
     return def

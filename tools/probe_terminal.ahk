@@ -5,6 +5,7 @@
 ; 1) Terminal 窗匹配 CASCADIA 类且零映射 (数字/字母全部透传, 不进 Count)
 ; 2) <Ctrl-u> 等全写经归一化后仍转出 ^u (曾生成 $CTRL-U 非法热键刷屏)
 #Include ..\Core\Plugin.ahk
+#Include ..\Core\ConfigSchema.ahk
 #Include ..\Core\Engine.ahk
 #Include ..\Plugins\Terminal.ahk
 

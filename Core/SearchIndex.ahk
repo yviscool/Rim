@@ -103,8 +103,8 @@ SearchIdx_Candidates(qlow) {
 }
 
 SearchIdx_TopK(scored, k := 50) {
-    if (scored.Length <= k)
-        return scored
+    if (k < 1)
+        return []
     best := []
     for _, it in scored {
         pos := best.Length + 1

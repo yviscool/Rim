@@ -20,7 +20,7 @@ if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
 
 TCDialog_Keymaps(engine) {
     global g_TCDialog, g_Conf
-    if (g_Conf.Get("Plugins", "TCDialog", "1") = "0")
+    if (CfgGet("Plugins", "TCDialog", "1") = "0")
         return
     g_TCDialog := Plugin_TCDialog("TCDialog", "", "", T("tcdlg.title"))
     g_TCDialog.Setup(engine)

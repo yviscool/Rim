@@ -10,12 +10,15 @@ SearchCommand(command := "", firstRun := false) {
     global g_ExcludedCommands, g_Commands, g_EnableTCMatch, g_SkinConf
     global g_UseResultFilter, g_UseRealtimeExec, g_InputEdit, g_DisplayEdit
     global g_WindowName, g_UseFallbackCommands, g_Arg, g_Conf, g_RowActive
+    global g_ExcludedCommandsObj
 
     g_UseDisplay := false
     g_RowActive := false
     g_ExecInterval := -1
     result := ""
-    fullResult := ""
+    ; 精确去重表 (原 fullResult 字符串 InStr 扫描是 O(n²), 等价 Map 替代;
+    ; 排除表用 LoadFiles/ChangeRank 同步维护的 g_ExcludedCommandsObj)
+    seenExact := Map()
     static resultToFilter := ""
     commandPrefix := SubStr(command, 1, 1)
 
@@ -88,22 +91,21 @@ SearchCommand(command := "", firstRun := false) {
     ; 命中先收集后渲染 (精确置顶需要稳定分区, 不能边扫边画)
     matchItems := []
 
-    ; P1-4+P8: 配置读出循环 (CfgGet 统一入口) + 索引预热
-    showExt := "0"
-    searchFull := "0"
-    try showExt := CfgGet("Config", "ShowFileExt", "0")
-    catch {
-        try showExt := g_Conf.Get("Config", "ShowFileExt", "0")
-    }
-    try searchFull := CfgGet("Config", "SearchFullPath", "0")
-    catch {
-        try searchFull := g_Conf.Get("Config", "SearchFullPath", "0")
-    }
+    ; P1-4+P8: 配置读出循环 (CfgGet 统一入口, 永不抛错) + 索引预热
+    showExt := CfgGet("Config", "ShowFileExt", "0")
+    searchFull := CfgGet("Config", "SearchFullPath", "0")
     try SearchIdx_Build(false)
     ; 搜索所有命令
     for index, element in g_Commands {
-        if (InStr(fullResult, element "`n") || InStr(g_ExcludedCommands, element "`n"))
+        if (seenExact.Has(element))
             continue
+        try {
+            if (IsObject(g_ExcludedCommandsObj) && g_ExcludedCommandsObj.Has(element))
+                continue
+        } catch {
+            if (InStr(g_ExcludedCommands, element "`n"))
+                continue
+        }
 
         splitedElement := StrSplit(element, " | ")
 
@@ -160,7 +162,7 @@ SearchCommand(command := "", firstRun := false) {
             if (seenTargets.Has(targetKey))
                 continue
             seenTargets[targetKey] := true
-            fullResult .= element "`n"
+            seenExact[element] := true
             exactHit := false
             try {
                 exactHit := SI_IsExactHit(element, command)
@@ -198,16 +200,23 @@ SearchCommand(command := "", firstRun := false) {
         nonExact.Push(Map("mi", mi, "seq", seq, "score", sc, "pre", isPre))
     }
     ordered := []
-    for _, it in nonExact {
-        pos := ordered.Length + 1
-        Loop ordered.Length {
-            o := ordered[A_Index]
-            if (it["pre"] > o["pre"] || (it["pre"] = o["pre"] && it["score"] > o["score"])) {
-                pos := A_Index
-                break
+    ; P8: 稳定 top-k 替代全量插入排序 (同比较器 pre/score + 同稳定性 seq,
+    ; 前缀与旧序逐项一致; 渲染至 DisplayRows 即停, 取 rows+10 冗余)
+    topK := g_DisplayRows + 10
+    try {
+        ordered := SearchIdx_TopK(nonExact, topK)
+    } catch {
+        for _, it in nonExact {
+            pos := ordered.Length + 1
+            Loop ordered.Length {
+                o := ordered[A_Index]
+                if (it["pre"] > o["pre"] || (it["pre"] = o["pre"] && it["score"] > o["score"])) {
+                    pos := A_Index
+                    break
+                }
             }
+            ordered.InsertAt(pos, it)
         }
-        ordered.InsertAt(pos, it)
     }
     for _, it in ordered {
         if (!SearchRenderItem(it["mi"], &result, &order, firstRun))
@@ -397,7 +406,7 @@ TryEvalInput(input) {
     if (!RegExMatch(tmp, "^[\d\+\-\*\/\%\^\(\)\.,!]+$"))
         return ""
     ; 本构建无 IsFunc: 以插件开关代 existence 检查 (Misc 缺席则无计算器)
-    if (g_Conf.Get("Plugins", "Misc", "1") = "0")
+    if (CfgGet("Plugins", "Misc", "1") = "0")
         return ""
     try {
         val := EvalExpression(input)

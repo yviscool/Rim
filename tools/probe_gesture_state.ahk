@@ -1,5 +1,6 @@
 #Requires AutoHotkey v2.0
 #Warn All, Off
+#Include ..\Core\ConfigSchema.ahk
 #Include ..\Core\Gesture.ahk
 
 g_Gesture["phase"] := "pending"

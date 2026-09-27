@@ -9,6 +9,7 @@ RimLog(level, msg, err := "") {
     return
 }
 
+#Include ..\Core\ConfigSchema.ahk
 #Include ..\Core\Gesture.ahk
 
 fails := []

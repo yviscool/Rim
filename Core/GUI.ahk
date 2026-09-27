@@ -94,7 +94,7 @@ ChangeCommand(step, resetCurrentLine := false) {
 ; GUI 关闭
 GuiClose(*) {
     global g_Conf
-    if (g_Conf["Config"]["RunInBackground"] != "1")
+    if (CfgGet("Config", "RunInBackground", "1") != "1")
         ExitRunZ()
 }
 
@@ -225,7 +225,7 @@ DisplaySearchResult(result) {
 
     DisplayControlText(result)
 
-    if (g_CurrentCommandList.Length = 1 && g_Conf.Get("Config", "RunIfOnlyOne", "0") = "1")
+    if (g_CurrentCommandList.Length = 1 && CfgGet("Config", "RunIfOnlyOne", "0") = "1")
         RunCommand(g_CurrentCommand)
 
     if ((g_SkinConf.Has("ShowCurrentCommand") ? g_SkinConf["ShowCurrentCommand"] : "1") = "1") {
@@ -247,7 +247,7 @@ WM_MOUSEMOVE(wParam, lParam, msg, hwnd) {
     if (wParam = 1)
         PostMessage(0xA1, 2, , , "A")
 
-    if (g_Conf["Config"]["ChangeCommandOnMouseMove"] != "1")
+    if (CfgGet("Config", "ChangeCommandOnMouseMove", "0") != "1")
         return -1
 
     MouseGetPos(, &mouseY, , &classnn)
@@ -281,7 +281,7 @@ WM_ACTIVATE(wParam, lParam, msg, hwnd) {
         return
     else if (wParam <= 0) {
         if (!WinExist("RunZ.ahk")) {
-            if (!IsSet(g_Conf) || !IsObject(g_Conf) || g_Conf.Get("Config", "KeepInputText", "1") != "1") {
+            if (!IsSet(g_Conf) || !IsObject(g_Conf) || CfgGet("Config", "KeepInputText", "1") != "1") {
                 try g_InputEdit.Value := ""
             }
             HideOrExit()
@@ -422,7 +422,7 @@ InitMainGui() {
     global g_Conf, g_SkinConf, g_WindowName, g_MainGui
     global g_InputEdit, g_DisplayEdit, g_CommandEdit
 
-    _topOpt := (g_Conf["Config"]["WindowAlwaysOnTop"] = "1") ? " +AlwaysOnTop" : ""
+    _topOpt := (CfgGet("Config", "WindowAlwaysOnTop", "0") = "1") ? " +AlwaysOnTop" : ""
     g_MainGui := Gui("+ToolWindow" _topOpt (g_SkinConf["HideTitle"] = "1" ? " -Caption" : ""), g_WindowName)
     g_MainGui.BackColor := g_SkinConf["BackgroundColor"]
 
@@ -476,11 +476,11 @@ InitMainGui() {
         WinSetRegion("0-0 w" border * 2 + g_SkinConf["WidgetWidth"] + 0 " h" windowHeight
             . " r" g_SkinConf["RoundCorner"] + 0 "-" g_SkinConf["RoundCorner"] + 0, g_WindowName)
 
-    ; 窗口消息与设置
-    if (g_Conf["Config"]["SwitchToEngIME"])
+    ; 窗口消息与设置 (原 truthy 语义: "0" 亦生效, 缺键抛错; 此处缺键回默认仍生效)
+    if (CfgGet("Config", "SwitchToEngIME", "0") != "")
         SwitchToEngIME()
 
-    if (g_Conf["Config"]["ExitIfInactivate"])
+    if (CfgGet("Config", "ExitIfInactivate", "1") != "")
         OnMessage(0x06, WM_ACTIVATE)
 
     OnMessage(0x0200, WM_MOUSEMOVE)

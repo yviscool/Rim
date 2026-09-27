@@ -554,7 +554,7 @@ SI_NoteInput(input) {
     try {
         if !SI_Enabled()
             return
-        if (g_Conf["Config"]["SaveHistory"] != "1")
+        if (CfgGet("Config", "SaveHistory", "1") != "1")
             return
     } catch {
         return
@@ -574,7 +574,7 @@ SI_NoteInput(input) {
         hist.InsertAt(1, input)
         maxn := 100
         try {
-            maxn := g_Conf.Get("SmartInput", "MaxHist", "100") + 0
+            maxn := Integer(CfgGet("SmartInput", "MaxHist", "100"))
         } catch {
         }
         if (maxn < 10)
@@ -592,7 +592,7 @@ SI_ScheduleValidate() {
         return
     delay := 300
     try {
-        delay := g_Conf.Get("SmartInput", "ValidateDelay", "300") + 0
+        delay := Integer(CfgGet("SmartInput", "ValidateDelay", "300"))
     } catch {
     }
     if (delay < 50)

@@ -12,13 +12,26 @@ T(key, *) => key
 Benchmark_Main()
 ExitApp(0)
 
+; 确定性伪随机 (LCG, 数据集构建专用): Random() 每次跑不同, 门禁准确率会抖;
+; 此处固定种子保证同源集逐位一致, 计时抖动仍保留 (那才是 P95 要量的).
+global Bench_Seed := 0
+Bench_Srand(s) {
+    global Bench_Seed
+    Bench_Seed := s
+}
+Bench_Rand() {
+    global Bench_Seed
+    Bench_Seed := (Bench_Seed * 1103515245 + 12345) & 0x7FFFFFFF
+    return Bench_Seed / 2147483648.0
+}
+
 ; 模拟辅助：生成直线或平滑曲线轨迹点
 Benchmark_MakeLine(x1, y1, x2, y2, n := 20, noise := 0) {
     pts := []
     Loop n {
         t := (A_Index - 1) / Max(1, n - 1)
-        nx := noise ? ((Random(0, 100) / 100.0 - 0.5) * noise) : 0
-        ny := noise ? ((Random(0, 100) / 100.0 - 0.5) * noise) : 0
+        nx := noise ? ((Bench_Rand() - 0.5) * noise) : 0
+        ny := noise ? ((Bench_Rand() - 0.5) * noise) : 0
         pts.Push(Tpl_Pt(x1 + (x2 - x1) * t + nx, y1 + (y2 - y1) * t + ny))
     }
     return pts
@@ -85,6 +98,68 @@ Bench_Pct(st, p) {
     return st[Max(1, Ceil(n * p))]
 }
 
+; 旋转轨迹 (holdout 合成集专用: 与训练抖动/缩放族正交, 测跨变换泛化; 非用户数据)
+Benchmark_RotateTrajectory(pts, deg := 12.0) {
+    if (pts.Length = 0)
+        return []
+    bb := Tpl_BBox(pts)
+    cx := (bb[1] + bb[3]) / 2.0
+    cy := (bb[2] + bb[4]) / 2.0
+    rad := deg * 3.14159265 / 180.0
+    co := Cos(rad)
+    si := Sin(rad)
+    out := []
+    for _, p in pts {
+        dx := p.x - cx
+        dy := p.y - cy
+        out.Push(Tpl_Pt(cx + dx * co - dy * si, cy + dx * si + dy * co))
+    }
+    return out
+}
+
+; 单样本求值 (主集/holdout/外部集共用; 含分段计时, 纯逻辑无落盘)
+Benchmark_EvalOne(item) {
+    label := item.label
+    up := StrUpper(label)
+    canon := (up = "U" || up = "R" || up = "D" || up = "L") ? "LETTER_" . up : up
+    t0 := A_TickCount
+    dirStr := GestureRecognizer.DirectionChain(item.pts, 6)
+    t1 := A_TickCount
+    candidates := GestureEngine.CollectCandidates(dirStr, item.pts)
+    t2 := A_TickCount
+    decision := GestureEngine.SelectCandidate(candidates, "explorer.exe", "CabinetWClass", "Test")
+    t3 := A_TickCount
+    selectedName := IsObject(decision.selected) ? decision.selected.name : ""
+    reason := decision.reason
+    selUp := StrUpper(selectedName)
+    isMatch := (selUp = up) || (selUp = canon) || (canon != up && selUp = "LETTER_" . up)
+    if (!isMatch) {
+        if ((up = "DR_UR" && selUp = "V") || (up = "V" && selUp = "DR_UR"))
+            isMatch := true
+        else if ((up = "UR_DR" && selUp = "INVV") || (up = "INVV" && selUp = "UR_DR"))
+            isMatch := true
+        else if ((up = "D_R" && (selUp = "L" || selUp = "LETTER_L")) || ((up = "L" || up = "LETTER_L") && selUp = "D_R"))
+            isMatch := true
+    }
+    top2 := ""
+    try {
+        if (decision.candidates.Length >= 2)
+            top2 := decision.candidates[2].name . "=" . Round(decision.candidates[2].score, 1)
+    }
+    topScore := 0
+    secScore := 0
+    try {
+        if (IsObject(decision.selected)) {
+            topScore := decision.selected.score
+            secScore := (decision.candidates.Length > 1) ? decision.candidates[2].score : 0
+        }
+    }
+    return Map("label", label, "up", up, "selected", selectedName, "reason", reason,
+        "match", isMatch, "top2", top2, "topScore", topScore, "secScore", secScore,
+        "ms", t3 - t0, "msDir", t1 - t0, "msCollect", t2 - t1, "msSelect", t3 - t2,
+        "decision", decision)
+}
+
 ; 给已有轨迹加随机扰动与比例缩放
 Benchmark_JitterTrajectory(pts, scaleX := 1.0, scaleY := 1.0, jitter := 2.0) {
     if (pts.Length = 0)
@@ -96,15 +171,16 @@ Benchmark_JitterTrajectory(pts, scaleX := 1.0, scaleY := 1.0, jitter := 2.0) {
     for _, p in pts {
         dx := (p.x - cx) * scaleX
         dy := (p.y - cy) * scaleY
-        jx := jitter ? ((Random(0, 100) / 100.0 - 0.5) * jitter) : 0
-        jy := jitter ? ((Random(0, 100) / 100.0 - 0.5) * jitter) : 0
+        jx := jitter ? ((Bench_Rand() - 0.5) * jitter) : 0
+        jy := jitter ? ((Bench_Rand() - 0.5) * jitter) : 0
         out.Push(Tpl_Pt(cx + dx + jx, cy + dy + jy))
     }
     return out
 }
 
-; 构建评测集
+; 构建评测集 (集首固定种子, 跨轮/跨机器一致)
 Benchmark_BuildDataset() {
+    Bench_Srand(20260927)
     dataset := []
     rawDefs := SPTpl_RawDefs()
 
@@ -237,55 +313,31 @@ Benchmark_Main() {
         Loop rounds {
             rnd := A_Index
             for item in dataset {
-                label := item.label
-                up := StrUpper(label)
-                canon := (up = "U" || up = "R" || up = "D" || up = "L") ? "LETTER_" . up : up
-                pts := item.pts
-
-                t0 := A_TickCount
-                dirStr := GestureRecognizer.DirectionChain(pts, 6)
-                t1 := A_TickCount
-                candidates := GestureEngine.CollectCandidates(dirStr, pts)
-                t2 := A_TickCount
-                decision := GestureEngine.SelectCandidate(candidates, "explorer.exe", "CabinetWClass", "Test")
-                t3 := A_TickCount
+                r := Benchmark_EvalOne(item)
+                label := r["label"]
                 if (rnd > 1) {
-                    times.Push(t3 - t0)
-                    tDir.Push(t1 - t0)
-                    tCollect.Push(t2 - t1)
-                    tSelect.Push(t3 - t2)
+                    times.Push(r["ms"])
+                    tDir.Push(r["msDir"])
+                    tCollect.Push(r["msCollect"])
+                    tSelect.Push(r["msSelect"])
                 }
                 if (rnd = 1)
                     continue
                 if (rnd > 2)
                     continue
                 sIdx++
-                FileAppend("Evaluated " . sIdx . "/" . total . " (" . item.desc . ") -> " . (IsObject(decision.selected) ? decision.selected.name : "REJECT") . "`n", logPath)
+                FileAppend("Evaluated " . sIdx . "/" . total . " (" . item.desc . ") -> " . (r["selected"] != "" ? r["selected"] : "REJECT") . "`n", logPath)
 
-                selectedName := IsObject(decision.selected) ? decision.selected.name : ""
-                reason := decision.reason
+                selectedName := r["selected"]
+                reason := r["reason"]
+                isMatch := r["match"]
 
                 if (!confusion.Has(label))
                     confusion[label] := Map()
 
-                selUp := StrUpper(selectedName)
-                isMatch := (selUp = up) || (selUp = canon) || (canon != up && selUp = "LETTER_" . up)
-                if (!isMatch) {
-                    if ((up = "DR_UR" && selUp = "V") || (up = "V" && selUp = "DR_UR"))
-                        isMatch := true
-                    else if ((up = "UR_DR" && selUp = "INVV") || (up = "INVV" && selUp = "UR_DR"))
-                        isMatch := true
-                    else if ((up = "D_R" && (selUp = "L" || selUp = "LETTER_L")) || ((up = "L" || up = "LETTER_L") && selUp = "D_R"))
-                        isMatch := true
-                }
-
                 predLabel := selectedName = "" ? "(REJECT:" . reason . ")" : selectedName
                 confusion[label][predLabel] := confusion[label].Get(predLabel, 0) + 1
-                top2 := ""
-                try {
-                    if (decision.candidates.Length >= 2)
-                        top2 := decision.candidates[2].name . "=" . Round(decision.candidates[2].score, 1)
-                }
+                top2 := r["top2"]
                 if (selectedName = "") {
                     rejected++
                     errors.Push({desc: item.desc, expected: label, actual: predLabel, reason: reason, score: 0, margin: 0, top2: top2})
@@ -293,16 +345,85 @@ Benchmark_Main() {
                     correct++
                 } else {
                     misclassified++
-                    topScore := decision.selected.score
-                    secScore := (decision.candidates.Length > 1) ? decision.candidates[2].score : 0
                     errors.Push({desc: item.desc, expected: label, actual: selectedName, reason: "wrong_winner",
-                        score: topScore, margin: topScore - secScore, top2: top2})
+                        score: r["topScore"], margin: r["topScore"] - r["secScore"], top2: top2})
                 }
             }
         }
     } catch Error as e {
         FileAppend("CRASH in Step 5: " . e.Message . " line=" . e.Line . " file=" . e.File . "`nStack:`n" . e.Stack . "`n", logPath)
         ExitApp(1)
+    }
+
+    ; Step 5b: holdout 合成集 (旋转 ±12°, 与训练抖动/缩放族正交; 非用户数据,
+    ; 仅测跨变换泛化, 不进门禁不计时)
+    holdCorrect := 0
+    holdTotal := 0
+    holdMis := []
+    try {
+        rawDefs := SPTpl_RawDefs()
+        for _, hl in ["R", "L", "D", "U", "V", "G", "B", "P"] {
+            if (!rawDefs.Has(hl))
+                continue
+            basePts := Benchmark_ParseCoords(rawDefs[hl])
+            if (basePts.Length < 3)
+                continue
+            for _, dg in [-12.0, 12.0] {
+                hr := Benchmark_EvalOne({label: hl, pts: Benchmark_RotateTrajectory(basePts, dg), desc: hl . "_rot" . dg})
+                holdTotal++
+                if (hr["selected"] = "")
+                    holdMis.Push(hr["label"] . " rot" . dg . " REJECT:" . hr["reason"])
+                else if (hr["match"])
+                    holdCorrect++
+                else
+                    holdMis.Push(hr["label"] . " rot" . dg . " -> " . hr["selected"])
+            }
+        }
+        FileAppend("Step 5b: holdout rotation set (" . holdTotal . " samples, " . holdCorrect . " correct).`n", logPath)
+    } catch Error as e {
+        FileAppend("Step 5b SKIPPED: " . e.Message . "`n", logPath)
+    }
+
+    ; Step 5c: 外部独立集 (真机手写优先; gesture_user_test.txt / gesture_user_local.txt,
+    ; 行格式 label | x1,y1 x2,y2 ... ; ;注释/空行跳过; 缺失即跳过不断言)
+    indepCorrect := 0
+    indepTotal := 0
+    indepMis := []
+    indepSrc := ""
+    try {
+        for _, fn in [A_ScriptDir . "\gesture_user_test.txt", A_ScriptDir . "\gesture_user_local.txt"] {
+            if (!FileExist(fn))
+                continue
+            indepSrc := fn
+            content := FileRead(fn, "UTF-8")
+            if (SubStr(content, 1, 1) = Chr(0xFEFF))
+                content := SubStr(content, 2)
+            Loop Parse, content, "`n", "`r" {
+                ln := Trim(A_LoopField)
+                if (ln = "" || SubStr(ln, 1, 1) = ";")
+                    continue
+                bar := InStr(ln, "|")
+                if (!bar)
+                    continue
+                lab := Trim(SubStr(ln, 1, bar - 1))
+                pts := Benchmark_ParseCoords(Trim(SubStr(ln, bar + 1)))
+                if (lab = "" || pts.Length < 3)
+                    continue
+                ir := Benchmark_EvalOne({label: lab, pts: pts, desc: "user:" . lab})
+                indepTotal++
+                if (ir["selected"] = "")
+                    indepMis.Push(lab . " REJECT:" . ir["reason"])
+                else if (ir["match"])
+                    indepCorrect++
+                else
+                    indepMis.Push(lab . " -> " . ir["selected"])
+            }
+            if (indepTotal > 0)
+                break
+        }
+        FileAppend("Step 5c: independent set " . indepSrc . " (" . indepTotal . " samples, " . indepCorrect . " correct).`n", logPath)
+    } catch Error as e {
+        FileAppend("Step 5c SKIPPED: " . e.Message . "`n", logPath)
     }
 
     acc := Round(correct / total * 100, 1)
@@ -327,6 +448,9 @@ Benchmark_Main() {
     }
     warnLo := 30
 
+    holdAcc := holdTotal > 0 ? Round(holdCorrect / holdTotal * 100, 1) : 0
+    indepAcc := indepTotal > 0 ? Round(indepCorrect / indepTotal * 100, 1) : 0
+
     rpt := "====================================================`n"
     rpt .= "RIM GESTURE RECOGNITION BENCHMARK REPORT`n"
     rpt .= "====================================================`n"
@@ -334,6 +458,11 @@ Benchmark_Main() {
     rpt .= "Correct:         " . correct . " (" . acc . "%)`n"
     rpt .= "Rejected:        " . rejected . " (" . rejRate . "%)`n"
     rpt .= "Misclassified:   " . misclassified . " (" . misRate . "%)`n"
+    rpt .= "Holdout (rot):   " . holdCorrect . "/" . holdTotal . " (" . holdAcc . "%) [synthetic, cross-transform]`n"
+    if (indepTotal > 0)
+        rpt .= "Independent:     " . indepCorrect . "/" . indepTotal . " (" . indepAcc . "%) [" . indepSrc . "]`n"
+    else
+        rpt .= "Independent:     none (add samples to tools/gesture_user_test.txt)`n"
     rpt .= "P50 Eval:        " . p50 . "ms`n"
     rpt .= "P95 Eval:        " . p95 . "ms (gate <= " . gate . "ms)`n"
     rpt .= "P99 Eval:        " . p99 . "ms`n"
@@ -365,6 +494,22 @@ Benchmark_Main() {
     rpt .= "metric p99_ms=" . p99 . "`n"
     rpt .= "metric max_ms=" . mx . "`n"
     rpt .= "metric gate_ms=" . gate . "`n"
+    rpt .= "metric holdout_total=" . holdTotal . "`n"
+    rpt .= "metric holdout_correct=" . holdCorrect . "`n"
+    rpt .= "metric holdout_accuracy=" . holdAcc . "`n"
+    rpt .= "metric indep_total=" . indepTotal . "`n"
+    rpt .= "metric indep_correct=" . indepCorrect . "`n"
+    rpt .= "metric indep_accuracy=" . indepAcc . "`n"
+    if (holdMis.Length > 0) {
+        rpt .= "--- HOLDOUT MISSES ---`n"
+        for _, m in holdMis
+            rpt .= m . "`n"
+    }
+    if (indepMis.Length > 0) {
+        rpt .= "--- INDEPENDENT MISSES ---`n"
+        for _, m in indepMis
+            rpt .= m . "`n"
+    }
     rpt .= "====================================================`n"
     FileAppend(rpt, outPath, "UTF-8")
     ; P0-2: 双写统一路径 (仓库根 benchmark_out.txt 供 CI 解析, 与 tools 内报告同内容)

@@ -78,12 +78,18 @@ jobs:
           if ($p95 -gt 50) { Write-Host "P95 gate failed: $p95 ms"; exit 1 }
           $a = [regex]::Match($txt, "metric accuracy=([\d\.]+)")
           if ([double]$a.Groups[1].Value -lt 90) { Write-Host "accuracy below 90"; exit 1 }
+      - name: Config-service gate (no direct g_Conf.Get/Set outside allowlist)
+        run: |
+          $allow = '(ConfigSchema|ConfigTxn|I18n\.ahk|Plugin\.ahk|VimCfg_Save|VimCfg_TabsMisc)'
+          $bad = Select-String -Path "Core\*.ahk","Core\Gesture\*.ahk","Plugins\*.ahk","Gui\*.ahk","Rim.ahk" -Pattern 'g_Conf\.(Get|Set)\(' | Where-Object { $_.Path -notmatch $allow }
+          if ($bad) { $bad | ForEach-Object { Write-Host "$($_.Path):$($_.LineNumber): $($_.Line.Trim())" }; exit 1 }
+          Write-Host "config-service-gate-ok"
       - name: Probe include-order + worktree baseline (P0-1 gate)
         run: |
           & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut tools/probe_include_order.ahk
           if ($LASTEXITCODE -ne 0) { exit 1 }
           if ((Get-Content probe_include_order.out.txt -Raw).Trim() -ne "include-order-ok") { exit 1 }
-          foreach ($p in @("probe_input_safety", "probe_action_protocol", "probe_plugin_v2", "probe_config_txn", "probe_search_index", "probe_window_index", "probe_observability", "probe_training_loop", "probe_desktop_matrix", "probe_fallback_url", "probe_command_alias", "probe_alias_wire", "probe_dotted_action", "probe_fallback_eq", "probe_dead_refs", "probe_ini_roundtrip", "probe_dialog_input", "probe_prefix_passthrough", "probe_keycodec", "probe_vim_modes")) {
+          foreach ($p in @("probe_input_safety", "probe_action_protocol", "probe_plugin_v2", "probe_config_txn", "probe_search_index", "probe_window_index", "probe_observability", "probe_training_loop", "probe_desktop_matrix", "probe_fallback_url", "probe_command_alias", "probe_alias_wire", "probe_dotted_action", "probe_fallback_eq", "probe_dead_refs", "probe_ini_roundtrip", "probe_dialog_input", "probe_prefix_passthrough", "probe_keycodec", "probe_vim_modes", "probe_input_guards", "probe_logtrace", "probe_cross_layer")) {
             & "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe" /ErrorStdOut "tools/$p.ahk"
             if ($LASTEXITCODE -ne 0) { Write-Host "$p FAILED"; exit 1 }
           }

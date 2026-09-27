@@ -327,9 +327,7 @@ Cmd_FileOpenInTC(arg := "") {
         return
     tc := ""
     try {
-        global g_Conf
-        if (IsObject(g_Conf) && g_Conf.HasSection("Config"))
-            tc := g_Conf.Get("Config", "TCPath", "")
+        tc := CfgGet("Config", "TCPath", "")
     }
     if (tc != "" && FileExist(tc))
         Run(tc ' /O /A /T /L="' target '"')

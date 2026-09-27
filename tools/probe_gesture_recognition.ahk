@@ -5,6 +5,7 @@ T(k, params*) {
     return k
 }
 
+#Include ..\Core\ConfigSchema.ahk
 #Include ..\Core\Gesture.ahk
 #Include ..\Core\GestureTemplate.ahk
 #Include ..\Core\GestureSPData.ahk

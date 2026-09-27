@@ -3,6 +3,7 @@
 
 ; 冒烟探针: Command Registry 与通用指令测试
 #Include ..\Core\I18n.ahk
+#Include ..\Core\ConfigSchema.ahk
 #Include ..\Core\Context.ahk
 #Include ..\Core\Command.ahk
 #Include ..\Core\Execution.ahk

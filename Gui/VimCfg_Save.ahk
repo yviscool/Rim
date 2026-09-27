@@ -189,7 +189,7 @@ VimCfg_PreviewSave(dirty) {
         pos := InStr(sk, Chr(1))
         sec := SubStr(sk, 1, pos - 1)
         old := ""
-        try old := g_Conf.Get(sec, d["key"], "")
+        try old := CfgGet(sec, d["key"], "")
         secIsNew := false
         try secIsNew := !g_Conf.HasSection(sec)
         scope := VimCfg_ItemScope(sec, d["key"], d["del"], secIsNew)
@@ -265,12 +265,13 @@ VimCfg_DoSave(dirty) {
             old := ""
             try {
                 had := g_Conf.HasKey(sec, d["key"])
-                old := g_Conf.Get(sec, d["key"], "")
+                old := CfgGet(sec, d["key"], "")
             }
             undo.Push(Map("sec", sec, "key", d["key"], "had", had, "val", old))
             if (d["del"])
                 g_Conf.DeleteKey(sec, d["key"])
             else
+                ; 事务内内存同步必须直写: 走 CfgSet 会提前广播 (发布在 DoSave 末尾统一做)
                 g_Conf.Set(sec, d["key"], d["val"])
             if (sec = "Config" && d["key"] = "Language" && !d["del"])
                 newLang := d["val"]

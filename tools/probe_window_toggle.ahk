@@ -2,6 +2,7 @@
 #Warn All, Off
 
 #Include ..\Core\Common.ahk
+#Include ..\Core\Plugin.ahk
 #Include ..\Plugins\General.ahk
 
 global g_Gesture := Map("startHwnd", 0, "startContext", "")

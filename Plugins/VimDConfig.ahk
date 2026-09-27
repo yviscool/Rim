@@ -322,10 +322,7 @@ VimDConfig_EditFile(editPath, line := 1) {
         , "everedit", "-n$line $file", "notepad++", "-n$line $file", "EmEditor", "-l $line $file"
         , "uedit32", "$file/$line", "Editplus", "$file -cursor $line", "textpad", "$file($line)"
         , "pspad", "$file /$line", "ConTEXT", "$file /g1:$line", "scite", "$file -goto:$line")
-    editor := ""
-    try {
-        editor := g_Conf.Get("Config", "Editor", "")
-    }
+    editor := CfgGet("Config", "Editor", "")
     if (editor = "" || !FileExist(editor)) {
         try {
             Run(editPath)

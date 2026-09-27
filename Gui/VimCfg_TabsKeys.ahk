@@ -563,7 +563,7 @@ VimCfg_PluginReload() {
             if (pname = "" || seen.Has(pname))
                 continue
             seen[pname] := true
-            on := g_Conf.Get("Plugins", pname, "1") != "0"
+            on := CfgGet("Plugins", pname, "1") != "0"
             rows.Push(Map("key", pname, "on", on))
         }
         for k, v in g_Conf.GetSection("Plugins") {
@@ -654,15 +654,15 @@ VimCfg_TCLoad() {
     global g_VimCfg, g_Conf
     if !g_VimCfg.Has("tc_path") || !IsObject(g_Conf)
         return
-    tcPath := g_Conf.Get("TotalCommander_Config", "TCPath", "")
+    tcPath := CfgGet("TotalCommander_Config", "TCPath", "")
     if (tcPath = "")
-        tcPath := g_Conf.Get("Config", "TCPath", "")
+        tcPath := CfgGet("Config", "TCPath", "")
     try g_VimCfg["tc_path"].Value := tcPath
-    try g_VimCfg["tc_ini"].Value := g_Conf.Get("TotalCommander_Config", "TCINI", "")
-    try g_VimCfg["tc_savemark"].Value := g_Conf.Get("TotalCommander_Config", "SaveMark", "1") = "1" ? 1 : 0
-    try g_VimCfg["tc_iconsize"].Value := g_Conf.Get("TotalCommander_Config", "MenuIconSize", "20")
-    try g_VimCfg["tc_asdlg"].Value := g_Conf.Get("TotalCommander_Config", "AsOpenFileDialog", "0") = "1" ? 1 : 0
-    try g_VimCfg["tc_exclude"].Value := g_Conf.Get("TotalCommander_Config", "OpenFileDialogExclude", "")
+    try g_VimCfg["tc_ini"].Value := CfgGet("TotalCommander_Config", "TCINI", "")
+    try g_VimCfg["tc_savemark"].Value := CfgGet("TotalCommander_Config", "SaveMark", "1") = "1" ? 1 : 0
+    try g_VimCfg["tc_iconsize"].Value := CfgGet("TotalCommander_Config", "MenuIconSize", "20")
+    try g_VimCfg["tc_asdlg"].Value := CfgGet("TotalCommander_Config", "AsOpenFileDialog", "0") = "1" ? 1 : 0
+    try g_VimCfg["tc_exclude"].Value := CfgGet("TotalCommander_Config", "OpenFileDialogExclude", "")
 }
 
 VimCfg_TCBrowsePath(*) {
@@ -685,7 +685,7 @@ VimCfg_TCBrowseIni(*) {
 
 VimCfg_PutDirty(sec, key, val) {
     global g_Conf
-    if (g_Conf.Get(sec, key, "") != val)
+    if (CfgGet(sec, key, "") != val)
         VimCfg_MarkDirty(sec, key, val)
 }
 

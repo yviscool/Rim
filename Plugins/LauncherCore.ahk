@@ -109,12 +109,7 @@ AhkRun() {
     input := CoreInput(T("core.prompt_ahk"), T("core.title_ahk"))
     if (input = "")
         return
-    debugMode := "0"
-    try {
-        debugMode := g_Conf.Get("Config", "DebugMode", "0")
-    } catch {
-        debugMode := "0"
-    }
+    debugMode := CfgGet("Config", "DebugMode", "0")
     if (debugMode != "1") {
         errMsg := ""
         try {

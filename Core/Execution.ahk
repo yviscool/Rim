@@ -37,6 +37,13 @@ RunCommand(originCmd) {
 
     ParseArg()
 
+    ; 单链起点 (DebugMode=1 才落盘): 后续 ExecuteAction/手势经 g_LogSid 续写
+    try {
+        global g_LogSid
+        g_LogSid := LogTrace_Begin("run " . SubStr(originCmd, 1, 60))
+    } catch {
+    }
+
     g_UseDisplay := false
     g_DisableAutoExit := true
     g_ExecInterval := 0
@@ -69,16 +76,11 @@ RunCommand(originCmd) {
         ExecuteAction(cmdType "|" cmd, g_Arg)
     }
 
-    ; 保存历史 (P1-4: CfgGet 统一入口; 对齐原版: 仅 fresh 命令拼 g_Arg, 重放历史不再叠加)
-    saveHist := "1"
-    try saveHist := CfgGet("Config", "SaveHistory", "1")
-    catch {
-        try saveHist := g_Conf["Config"]["SaveHistory"]
-    }
+    ; 保存历史 (P1-4: CfgGet 统一入口, 永不抛错; 对齐原版: 仅 fresh 命令拼 g_Arg, 重放历史不再叠加)
+    saveHist := CfgGet("Config", "SaveHistory", "1")
     histSize := 100
     try histSize := Integer(CfgGet("Config", "HistorySize", "100"))
     catch {
-        try histSize := g_Conf["Config"]["HistorySize"] + 0
     }
     if (saveHist = "1" && cmd != "DisplayHistoryCommands") {
         isFresh := (cmdKey != "" && splitedOriginCmd.Length = 4) || (cmdKey = "" && splitedOriginCmd.Length = 3)
@@ -98,27 +100,15 @@ RunCommand(originCmd) {
     }
 
     ; 自动排名
-    autoRank := "1"
-    try autoRank := CfgGet("Config", "AutoRank", "1")
-    catch {
-        try autoRank := g_Conf["Config"]["AutoRank"]
-    }
+    autoRank := CfgGet("Config", "AutoRank", "1")
     if (autoRank = "1")
         ChangeRank(originCmd)
 
     g_DisableAutoExit := false
 
     ; RunOnce
-    runOnce := "1"
-    keepInput := "1"
-    try runOnce := CfgGet("Config", "RunOnce", "0")
-    catch {
-        try runOnce := g_Conf["Config"]["RunOnce"]
-    }
-    try keepInput := CfgGet("Config", "KeepInputText", "1")
-    catch {
-        try keepInput := g_Conf["Config"]["KeepInputText"]
-    }
+    runOnce := CfgGet("Config", "RunOnce", "0")
+    keepInput := CfgGet("Config", "KeepInputText", "1")
     if (runOnce = "1" && !g_UseDisplay) {
         if (keepInput != "1")
             ClearInput()
@@ -199,9 +189,9 @@ OpenPath(filePath) {
     if (!FileExist(filePath))
         return
     if (IsObject(g_Conf) && g_Conf.HasSection("Config")) {
-        sec := g_Conf["Config"]
-        if (sec.Has("TCPath") && sec["TCPath"] != "" && FileExist(sec["TCPath"])) {
-            Run(sec["TCPath"] ' /O /A /L="' filePath '"')
+        tc := CfgGet("Config", "TCPath", "")
+        if (tc != "" && FileExist(tc)) {
+            Run(tc ' /O /A /L="' filePath '"')
             return
         }
     }
@@ -228,6 +218,11 @@ ExecuteAction(action := "", actionArg := "", source := "") {
             parsed := ActionParse(action, source)
             if (!parsed["ok"])
                 try RimLog("WARN", "ActionParse " . parsed["code"] . " src=" . source . " raw=" . SubStr(String(action), 1, 80))
+        }
+        try {
+            global g_LogSid
+            if (IsSet(g_LogSid) && g_LogSid)
+                LogTrace(g_LogSid, "exec", SubStr(String(action), 1, 60))
         }
         ExecuteAction_Body(action, actionArg)
     } finally {

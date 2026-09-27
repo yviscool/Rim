@@ -15,6 +15,7 @@ Conf/TCFileMarks.ini
 benchmark_out.txt
 tools/benchmark_report.txt
 tools/benchmark_run.log
+tools/gesture_user_local.txt
 # 草稿与探针 (不进仓库)
 zz_*
 debug_*

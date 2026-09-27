@@ -4,6 +4,7 @@
 ; 冒烟探针: Unified Plugin Architecture (统一插件系统测试)
 #Include ..\Lib\EasyIni.ahk
 #Include ..\Core\I18n.ahk
+#Include ..\Core\ConfigSchema.ahk
 #Include ..\Core\Context.ahk
 #Include ..\Core\Plugin.ahk
 #Include ..\Core\Command.ahk

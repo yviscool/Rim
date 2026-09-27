@@ -22,6 +22,7 @@ FileAppend("=== Smoke Test: Audit Fixes Verification ===`n", "*")
 
 #Include ..\Core\Common.ahk
 #Include ..\Core\I18n.ahk
+#Include ..\Core\ConfigSchema.ahk
 #Include ..\Core\Config.ahk
 #Include ..\Core\Context.ahk
 #Include ..\Core\Command.ahk

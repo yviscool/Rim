@@ -12,12 +12,12 @@ SaveAutoConf() {
     if (!IsSet(g_Conf) || !IsObject(g_Conf))
         return
 
-    if (g_Conf["Config"]["SaveInputText"] = "1") {
+    if (CfgGet("Config", "SaveInputText", "0") = "1") {
         g_AutoConf.DeleteKey("Auto", "InputText")
         g_AutoConf.AddKey("Auto", "InputText", g_CurrentInput)
     }
 
-    if (g_Conf["Config"]["SaveHistory"] = "1") {
+    if (CfgGet("Config", "SaveHistory", "1") = "1") {
         g_AutoConf.DeleteSection("History")
         g_AutoConf.AddSection("History")
         for index, element in g_HistoryCommands {
@@ -50,7 +50,10 @@ SaveAutoConf() {
 LoadHistoryCommands() {
     global g_Conf, g_AutoConf, g_HistoryCommands
 
-    historySize := g_Conf["Config"]["HistorySize"] + 0
+    historySize := 100
+    try historySize := Integer(CfgGet("Config", "HistorySize", "100"))
+    catch {
+    }
     index := 0
     for key, value in g_AutoConf["History"] {
         if (StrLen(value) > 0) {

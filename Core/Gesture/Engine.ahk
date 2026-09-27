@@ -97,6 +97,14 @@ class GestureEngine {
         action := res[1]
         layer := res[2]
 
+        try {
+            global g_LogSid
+            g_LogSid := LogTrace_Begin("gesture " . gesture)
+            if (g_LogSid)
+                LogTrace(g_LogSid, "resolve", "layer=" . layer)
+        } catch {
+        }
+
         GestureEngine.stats.total++
         GestureEngine.stats.lastPattern := gesture
 
@@ -224,13 +232,39 @@ class GestureEngine {
         if (ranked.Length = 0)
             return {selected: "", candidates: candidates, reason: "unbound"}
 
-        ; 优先级: 插件/应用层优先
+        ; 优先级: 插件/应用层优先, 但须进分差带 —— 全局高置信不得被应用低置信劫持
+        ; (浏览器 J(76) 劫 DL(88) 开下载页即此; 分差超 margin 按分走, 带内应用优先保覆盖语义)
+        minMarginGate := 6.0
+        try {
+            if (g_Gesture.Has("margin") && g_Gesture["margin"] > 0)
+                minMarginGate := g_Gesture["margin"] + 0.0
+        }
         appRanked := []
         for _, candidate in ranked {
             if (candidate.layer != "global" && candidate.layer != "全局") ; i18n:protocol (Registry 层名 vs INI 全局层 ID, 存储协议)
                 appRanked.Push(candidate)
         }
-        evalPool := (appRanked.Length > 0) ? appRanked : ranked
+        evalPool := ranked
+        if (appRanked.Length > 0 && appRanked.Length < ranked.Length) {
+            bestGlobal := ""
+            for _, candidate in ranked {
+                if (candidate.layer = "global" || candidate.layer = "全局") {
+                    if (!IsObject(bestGlobal) || candidate.score > bestGlobal.score)
+                        bestGlobal := candidate
+                }
+            }
+            if (IsObject(bestGlobal)) {
+                gated := []
+                for _, candidate in ranked {
+                    if (candidate.layer = "global" || candidate.layer = "全局")
+                        gated.Push(candidate)
+                    else if (candidate.score >= bestGlobal.score - minMarginGate)
+                        gated.Push(candidate)
+                }
+                if (gated.Length > 0)
+                    evalPool := gated
+            }
+        }
 
         best := evalPool[1]
         second := ""
@@ -843,14 +877,14 @@ class GestureEngine {
                 appName := SubStr(sectionName, StrLen(g_GestureAppPrefix) + 1)
                 if (Trim(appName) = "")
                     continue
-                exe := g_Conf.Get(sectionName, "set_file", "")
-                cls := g_Conf.Get(sectionName, "set_class", "")
-                title := g_Conf.Get(sectionName, "set_title", "")
-                titleRx := g_Conf.Get(sectionName, "set_title_regex", "")
-                ownerCls := g_Conf.Get(sectionName, "set_owner_class", "")
-                ctrlCls := g_Conf.Get(sectionName, "set_ctrl_class", "")
-                ctrlTitle := g_Conf.Get(sectionName, "set_ctrl_title", "")
-                noglobal := (g_Conf.Get(sectionName, "noglobal", "0") = "1") ? 1 : 0
+                exe := CfgGet(sectionName, "set_file", "")
+                cls := CfgGet(sectionName, "set_class", "")
+                title := CfgGet(sectionName, "set_title", "")
+                titleRx := CfgGet(sectionName, "set_title_regex", "")
+                ownerCls := CfgGet(sectionName, "set_owner_class", "")
+                ctrlCls := CfgGet(sectionName, "set_ctrl_class", "")
+                ctrlTitle := CfgGet(sectionName, "set_ctrl_title", "")
+                noglobal := (CfgGet(sectionName, "noglobal", "0") = "1") ? 1 : 0
                 mp := Map()
                 for rawKey, rawAction in section {
                     key := Trim(rawKey)

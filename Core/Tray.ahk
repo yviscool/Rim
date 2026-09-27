@@ -11,7 +11,7 @@ BuildTrayMenu() {
     if ((g_SkinConf.Has("ShowTrayIcon") ? g_SkinConf["ShowTrayIcon"] : "1") != "1")
         return false
     A_TrayMenu.Delete()
-    if (g_Conf.Get("Config", "RunInBackground", "1") = "1") {
+    if (CfgGet("Config", "RunInBackground", "1") = "1") {
         A_TrayMenu.Add(T("tray.show"), ActivateRunZ)
         A_TrayMenu.Default := T("tray.show")
         A_TrayMenu.ClickCount := 1

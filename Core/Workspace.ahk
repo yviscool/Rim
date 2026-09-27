@@ -186,9 +186,7 @@ class RimWorkspace {
             rightPath := ws.TCRight != "" ? ws.TCRight : root
             tcPath := ""
             try {
-                global g_Conf
-                if (IsObject(g_Conf) && g_Conf.HasSection("Config"))
-                    tcPath := g_Conf.Get("Config", "TCPath", "")
+                try tcPath := CfgGet("Config", "TCPath", "")
             }
             if (tcPath != "" && FileExist(tcPath)) {
                 args := '/O /A /T'

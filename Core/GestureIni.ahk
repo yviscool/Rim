@@ -294,7 +294,7 @@ GesturePkg_Import(path, overwrite := false) {
                     skipped++
                     continue
                 }
-                try g_Conf.Set(sectionName, GestureConf_KeyExact(sectionName, _k), _v)
+                try CfgSet(sectionName, GestureConf_KeyExact(sectionName, _k), _v)
                 catch {
                 }
                 if (has)
@@ -342,7 +342,7 @@ GestureStore_SetGesture(layer, gesture, action) {
     sec := GestureStore_LayerSection(layer)
     if (!GestureIni_Upsert(g_ConfFile, sec, gesture, action))
         return false
-    try g_Conf.Set(sec, GestureConf_KeyExact(sec, gesture), action)
+    try CfgSet(sec, GestureConf_KeyExact(sec, gesture), action)
     catch {
     }
     GestureEngine.ReloadLayers()
@@ -359,7 +359,7 @@ GestureStore_SetDefinition(name, method) {
         return false
     if (!GestureIni_UpsertVerified(g_ConfFile, GestureSec_Defs(), name, method))
         return false
-    try g_Conf.Set(GestureSec_Defs(), GestureConf_KeyExact(GestureSec_Defs(), name), method)
+    try CfgSet(GestureSec_Defs(), GestureConf_KeyExact(GestureSec_Defs(), name), method)
     catch {
     }
     GestureEngine.ReloadLayers()
@@ -486,7 +486,7 @@ GestureStore_SetGestureDesc(layer, gesture, desc) {
     }
     if (!GestureIni_UpsertVerified(g_ConfFile, sec, id, desc))
         return false
-    try g_Conf.Set(sec, GestureConf_KeyExact(sec, id), desc)
+    try CfgSet(sec, GestureConf_KeyExact(sec, id), desc)
     catch {
     }
     return true
@@ -505,7 +505,7 @@ GestureStore_DelGestureDesc(layer, gesture) {
 
 Gesture_GetGestureDesc(layer, gesture) {
     global g_Conf
-    try return g_Conf.Get(GestureSec_Desc(), GestureDescId(layer, gesture), "")
+    try return CfgGet(GestureSec_Desc(), GestureDescId(layer, gesture), "")
     catch {
     }
     return ""
@@ -524,7 +524,7 @@ GestureStore_SetAppMatch(appName, exe, cls, title := "", titleRx := "", noglobal
             continue
         if (!GestureIni_Upsert(g_ConfFile, sec, _k, _v))
             return false
-        try g_Conf.Set(sec, _k, _v)
+        try CfgSet(sec, _k, _v)
         catch {
         }
     }
@@ -532,7 +532,7 @@ GestureStore_SetAppMatch(appName, exe, cls, title := "", titleRx := "", noglobal
         nv := (noglobal = "1" || noglobal = 1) ? "1" : "0"
         if (!GestureIni_Upsert(g_ConfFile, sec, "noglobal", nv))
             return false
-        try g_Conf.Set(sec, "noglobal", nv)
+        try CfgSet(sec, "noglobal", nv)
         catch {
         }
     }
@@ -569,7 +569,7 @@ GestureStore_SetTemplateSamples(name, samples) {
     val := joined
     if (!GestureIni_Upsert(g_ConfFile, "GestureTemplates", name, val, true))
         return false
-    try g_Conf.Set("GestureTemplates", name, val)
+    try CfgSet("GestureTemplates", name, val)
     catch {
     }
     try Tpl_LoadAll()

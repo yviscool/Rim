@@ -23,6 +23,7 @@ FileAppend("=== Smoke Test: Gesture Subsystem Decoupling ===`n", "*")
 try {
     #Include ..\Core\Common.ahk
     #Include ..\Core\I18n.ahk
+    #Include ..\Core\ConfigSchema.ahk
     #Include ..\Core\Gesture.ahk
     Assert(true, "Gesture modules loaded successfully")
 } catch Error as e {

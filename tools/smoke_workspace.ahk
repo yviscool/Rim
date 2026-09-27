@@ -4,6 +4,7 @@
 ; 冒烟探针: Workspace Engine 与 Window Tiling 测试
 #Include ..\Lib\EasyIni.ahk
 #Include ..\Core\I18n.ahk
+#Include ..\Core\ConfigSchema.ahk
 #Include ..\Core\Context.ahk
 #Include ..\Core\Command.ahk
 #Include ..\Core\Window.ahk

@@ -133,7 +133,7 @@ SI_BlockedPure(text) {
     if RegExMatch(text, "i)(password|passwd|pwd|token|secret|apikey|api_key|creditcard|ssn|身份证|密码|口令)") ; i18n:protocol (隐私黑名单功能词, 非 UI)
         return true
     try {
-        extra := Trim(g_Conf.Get("SmartInput", "PrivacyExtra", ""))
+        extra := Trim(CfgGet("SmartInput", "PrivacyExtra", ""))
         if (extra != "" && InStr(StrLower(text), StrLower(extra)))
             return true
     } catch {
@@ -145,7 +145,7 @@ SI_BlockedPure(text) {
 
 SI_Enabled() {
     try {
-        return g_Conf.Get("SmartInput", "Enabled", "1") = "1"
+        return CfgGet("SmartInput", "Enabled", "1") = "1"
     } catch {
         return true
     }

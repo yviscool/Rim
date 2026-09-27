@@ -64,9 +64,9 @@ VimCfg_BuildSpecsTab(g, title, specs, storeKey, rowH := 32) {
             x := 25
         else
             x := 450
-        cur := ""
-        if IsObject(g_Conf)
-            cur := g_Conf.Get(sp["sec"], sp["key"], "")
+    cur := ""
+    if IsObject(g_Conf)
+        cur := CfgGet(sp["sec"], sp["key"], "")
         if (sp["type"] = "bool") {
             ctl := g.Add("CheckBox", "x" x " y" y " w400", sp["label"])
             try ctl.Value := cur = "1" ? 1 : 0
@@ -202,7 +202,7 @@ VimCfg_SpecChanged(sp) {
         g_VimCfg["specErr"][sk] := errmsg
     } else if (g_VimCfg.Has("specErr") && g_VimCfg["specErr"].Has(sk))
         g_VimCfg["specErr"].Delete(sk)
-    if (g_Conf.Get(sp["sec"], sp["key"], "") != val)
+    if (CfgGet(sp["sec"], sp["key"], "") != val)
         VimCfg_MarkDirty(sp["sec"], sp["key"], val)
     else if (g_VimCfg["dirty"].Has(sk))
         g_VimCfg["dirty"].Delete(sk)
@@ -228,7 +228,7 @@ VimCfg_CollectSpecsTab(storeKey) {
                 }
             }
             ; auto 保持: ini 里是 auto 且用户没换选项时不误写成具体语言
-            if (g_Conf.Get(sp["sec"], sp["key"], "") = "auto") {
+            if (CfgGet(sp["sec"], sp["key"], "") = "auto") {
                 curDn := ""
                 for l in I18nAvailable() {
                     if (l = I18nGetLang())
@@ -241,7 +241,7 @@ VimCfg_CollectSpecsTab(storeKey) {
                 }
             }
             if (val = "")
-                val := g_Conf.Get(sp["sec"], sp["key"], "auto")
+                val := CfgGet(sp["sec"], sp["key"], "auto")
         } else if (sp["type"] = "skin") {
             try val := ctl.Text
         } else if (sp["type"] = "choice") {
@@ -251,7 +251,7 @@ VimCfg_CollectSpecsTab(storeKey) {
         } else {
             try val := Trim(ctl.Value)
         }
-        if (g_Conf.Get(sp["sec"], sp["key"], "") != val)
+        if (CfgGet(sp["sec"], sp["key"], "") != val)
             VimCfg_MarkDirty(sp["sec"], sp["key"], val)
     }
 }

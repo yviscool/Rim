@@ -30,6 +30,43 @@ DialogShouldPassthrough(winClass, ctrlClass, ctrlNN) {
     return false
 }
 
+; IME 组字判定 (WinAPI 直调, 失败一律回假):
+; 有组字串 (GCS_COMPSTR 非空) 即组字中. headless/无 IME/控制台/提权窗恒回假.
+ImeComposing() {
+    try {
+        hwndA := WinExist("A")
+        if (!hwndA)
+            return false
+        hImc := DllCall("imm32\ImmGetContext", "Ptr", hwndA, "Ptr")
+        if (!hImc)
+            return false
+        len := 0
+        try len := DllCall("imm32\ImmGetCompositionStringW", "Ptr", hImc, "UInt", 0x0008, "Ptr", 0, "UInt", 0, "Int")
+        catch {
+            len := 0
+        }
+        try DllCall("imm32\ImmReleaseContext", "Ptr", hwndA, "Ptr", hImc)
+        catch {
+        }
+        return len > 0
+    } catch {
+    }
+    return false
+}
+
+; 自家进程判定 (纯逻辑可单测): 进程路径等于自身解释器/编译体即自家窗口
+; (配置中心/手势UI/QR 等子窗, SelfWinTitle 只保主窗, 这里兜全)
+IsSelfProcessPath(p) {
+    if (p = "")
+        return false
+    try {
+        mine := A_IsCompiled ? A_ScriptFullPath : A_AhkPath
+        return p = mine
+    } catch {
+    }
+    return false
+}
+
 ; 多键前缀预检 (KeyHandler 前缀分支调用, 纯逻辑可单测):
 ; BeforeActionDo("", win) 为真即应透传. 存在理由: 前缀键 (g/<C-w>/空格前缀等)
 ; 走不到动作期回调, 会被 KeyTemp 吞掉出提示菜单 (Explorer 重命名框按 g 即此;
@@ -481,6 +518,29 @@ class VimEngine {
                     return
                 }
             }
+        }
+
+        ; 自家进程守卫: 配置中心/手势UI等子窗一律透传 ([global] 字母映射不再劫自家编辑框)
+        try {
+            _selfPath := ""
+            try _selfPath := WinGetProcessPath("A")
+            catch {
+            }
+            if (_selfPath != "" && IsSelfProcessPath(_selfPath)) {
+                Send(this.ConvertFromVim(vimKey, true))
+                return
+            }
+        } catch {
+        }
+
+        ; IME 组字保护: 组字中全透传 (提交/取消走原生语义), 组字结束自动恢复分发.
+        ; 仅映射窗按键走到这里 (未命中窗零经过); 查询失败/无 IME 回退旧行为.
+        try {
+            if (ImeComposing()) {
+                Send(this.ConvertFromVim(vimKey, true))
+                return
+            }
+        } catch {
         }
 
         ; 文件对话框输入保护: #32770 且焦点在输入控件 (文件名框等) 时直接透传,

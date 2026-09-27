@@ -33,6 +33,9 @@ Main() {
     Check("dialog-protocol", InStr(ctx, "#32770") > 0)
     ; 终端身份确定性
     Check("terminal-id", InStr(ctx, "CASCADIA_HOSTING_WINDOW_CLASS") > 0)
+    ; 输入守卫接线存在 (IME 组字/自家进程, 真机行为见 probe_input_guards + 手工 10-12)
+    Check("ime-guard", InStr(eng, "ImeComposing()") > 0)
+    Check("self-guard", InStr(eng, "IsSelfProcessPath(_selfPath)") > 0)
     ; checklist 落盘
     list := "DESKTOP MATRIX checklist (manual, 真机打勾):`n"
     list .= "[ ] Explorer 重命名/搜索栏输入态`n"
@@ -43,6 +46,9 @@ Main() {
     list .= "[ ] 提权窗 (管理员) 只读透传`n"
     list .= "[ ] 睡眠唤醒后钩子/定时器存活`n"
     list .= "[ ] 双屏 + 125%/150% DPI 菜单位置`n"
+    list .= "[ ] 中文 IME 组字中映射键不碎词`n"
+    list .= "[ ] 提权窗按键只读透传`n"
+    list .= "[ ] 自家配置窗编辑框无劫持`n"
     out := A_ScriptDir . "\..\probe_desktop_matrix.out.txt"
     try FileDelete(out)
     catch {

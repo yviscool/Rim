@@ -5,7 +5,9 @@ Total Samples:   99
 Correct:         99 (100.0%)
 Rejected:        0 (0.0%)
 Misclassified:   0 (0.0%)
-P50 Eval:        15ms
+Holdout (rot):   14/14 (100.0%) [synthetic, cross-transform]
+Independent:     none (add samples to tools/gesture_user_test.txt)
+P50 Eval:        16ms
 P95 Eval:        16ms (gate <= 50ms)
 P99 Eval:        31ms
 Max Eval:        32ms
@@ -18,7 +20,7 @@ NOTE: train/test same-source (template-generated samples); 100% does not imply u
 B: B=5
 D: D=3 LETTER_D=4
 DR_UR: V=3
-D_R: LETTER_L=3
+D_R: D_R=1 LETTER_L=2
 G: G=4
 InvV: INVV=1
 J: J=4
@@ -45,9 +47,15 @@ metric correct=99
 metric accuracy=100.0
 metric rejected=0
 metric misclassified=0
-metric p50_ms=15
+metric p50_ms=16
 metric p95_ms=16
 metric p99_ms=31
 metric max_ms=32
 metric gate_ms=50
+metric holdout_total=14
+metric holdout_correct=14
+metric holdout_accuracy=100.0
+metric indep_total=0
+metric indep_correct=0
+metric indep_accuracy=0
 ====================================================

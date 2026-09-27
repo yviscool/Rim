@@ -6,6 +6,7 @@ T(key, *) {
 }
 
 #Include ..\Lib\EasyIni.ahk
+#Include ..\Core\ConfigSchema.ahk
 #Include ..\Core\Gesture.ahk
 #Include ..\Core\GestureTemplate.ahk
 #Include ..\Core\GestureSPData.ahk

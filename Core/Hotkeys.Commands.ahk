@@ -53,15 +53,15 @@ ReindexFiles(*) {
 }
 
 EditConfig(*) {
-    if (g_Conf["Config"]["Editor"] != "")
-        Run(g_Conf["Config"]["Editor"] ' "' g_ConfFile '"')
+    if (CfgGet("Config", "Editor", "") != "")
+        Run(CfgGet("Config", "Editor", "") ' "' g_ConfFile '"')
     else
         Run(g_ConfFile)
 }
 
 EditAutoConfig(*) {
-    if (g_Conf["Config"]["Editor"] != "")
-        Run(g_Conf["Config"]["Editor"] ' "' g_AutoConfFile '"')
+    if (CfgGet("Config", "Editor", "") != "")
+        Run(CfgGet("Config", "Editor", "") ' "' g_AutoConfFile '"')
     else
         Run(g_AutoConfFile)
 }
@@ -250,8 +250,8 @@ DisplayCopyAll(*) {
 }
 
 ChangePath(*) {
-    UpdateSendTo(g_Conf["Config"]["CreateSendToLnk"], true)
-    UpdateStartupLnk(g_Conf["Config"]["CreateStartupLnk"], true)
+    UpdateSendTo(CfgGet("Config", "CreateSendToLnk", "0"), true)
+    UpdateStartupLnk(CfgGet("Config", "CreateStartupLnk", "0"), true)
 }
 
 WatchUserFileList(*) {

@@ -456,19 +456,19 @@ VimdCheckHotKey() {
                 continue
             ; TTOTAL_CMD: 插件硬编码先注册, ini 再编译覆盖 (用户定制/Shift 档生效;
             ; 原先整段跳过导致 ini 改键全部无声失效, 且 <S-Q>/<S-O> 等 Shift 映射丢失)
-            setClass := g_Conf.Get(sectionName, "set_class", "")
-            setFile := g_Conf.Get(sectionName, "set_file", "")
+            setClass := CfgGet(sectionName, "set_class", "")
+            setFile := CfgGet(sectionName, "set_file", "")
             if (setClass = "" && setFile = "")
                 continue
             ; 单窗 vim 持久开关: 本节 vim_enable=0 则整节不编译进 vim (两层一起停, 重启仍有效; Win+W 只管临时)
-            if (Trim(g_Conf.Get(sectionName, "vim_enable", "1")) = "0")
+            if (Trim(CfgGet(sectionName, "vim_enable", "1")) = "0")
                 continue
             g_VimEngine.SetWin(sectionName, setClass, setFile)
-            try g_VimEngine.GetWin(sectionName).SetTimeOut(Integer(g_Conf.Get(sectionName, "set_time_out", "800")))
-            try g_VimEngine.GetWin(sectionName).MaxCount := Integer(g_Conf.Get(sectionName, "set_max_count", "99"))
+            try g_VimEngine.GetWin(sectionName).SetTimeOut(Integer(CfgGet(sectionName, "set_time_out", "800")))
+            try g_VimEngine.GetWin(sectionName).MaxCount := Integer(CfgGet(sectionName, "set_max_count", "99"))
             try {
-                if (g_Conf.Get(sectionName, "enable_show_info", "") != "")
-                    g_VimEngine.GetWin(sectionName).ShowInfo := g_Conf.Get(sectionName, "enable_show_info", "1") = "1"
+                if (CfgGet(sectionName, "enable_show_info", "") != "")
+                    g_VimEngine.GetWin(sectionName).ShowInfo := CfgGet(sectionName, "enable_show_info", "1") = "1"
             }
             for _k, _v in section {
                 if (SubStr(_k, 1, 4) = "set_" || SubStr(_k, 1, 7) = "enable_")

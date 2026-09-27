@@ -414,7 +414,7 @@ Tpl_LoadAll() {
     g_Templates := Map()
     try {
         if (IsSet(g_Conf) && IsObject(g_Conf) && g_Conf.HasSection("Gesture")) {
-            th := g_Conf.Get("Gesture", "TemplateThreshold", "")
+            th := CfgGet("Gesture", "TemplateThreshold", "")
             if (th != "" && th + 0 > 0)
                 g_TplThreshold := th + 0
         }

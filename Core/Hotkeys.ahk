@@ -58,7 +58,7 @@ PrevPage(*) {
 
 ActivateRunZ(*) {
     g_MainGui.Show()
-    if (g_Conf["Config"]["SwitchToEngIME"] = "1")
+    if (CfgGet("Config", "SwitchToEngIME", "0") = "1")
         SwitchToEngIME()
     Loop 5 {
         Sleep(50)
@@ -73,7 +73,7 @@ ActivateRunZ(*) {
 
 ToggleWindow(*) {
     if WinActive(g_WindowName) {
-        if (g_Conf["Config"]["KeepInputText"] != "1")
+        if (CfgGet("Config", "KeepInputText", "1") != "1")
             g_InputEdit.Value := ""
         g_MainGui.Hide()
     } else {
@@ -94,7 +94,7 @@ ClickFunction(*) {
         g_InputEdit.Focus()
         Send("{End}")
     }
-    if (g_Conf["Config"]["ClickToRun"] = "1")
+    if (CfgGet("Config", "ClickToRun", "1") = "1")
         RunCommand(g_CurrentCommand)
 }
 
@@ -135,10 +135,10 @@ TabFunction(*) {
 
 EscFunction(*) {
     ToolTip()
-    if (g_Conf["Config"]["ClearInputWithEsc"] = "1" && g_CurrentInput != "")
+    if (CfgGet("Config", "ClearInputWithEsc", "0") = "1" && g_CurrentInput != "")
         ClearInputLabel()
     else {
-        if (g_Conf["Config"]["KeepInputText"] != "1")
+        if (CfgGet("Config", "KeepInputText", "1") != "1")
             g_InputEdit.Value := ""
         HideOrExit()
     }
@@ -158,7 +158,7 @@ HideOrExit(*) {
         }
         return
     }
-    if (g_Conf["Config"]["RunInBackground"] = "1")
+    if (CfgGet("Config", "RunInBackground", "1") = "1")
         g_MainGui.Hide()
     else
         ExitRunZ()
