@@ -323,8 +323,10 @@ MatchResult(Haystack, Needle) {
         return InStr(Haystack, Needle)
 }
 
-; 过滤结果
+; 过滤结果 (空 needle = 不过滤, 原样返回; v2 InStr 空 needle 会抛错)
 FilterResult(text, needle) {
+    if (Trim(String(needle)) = "")
+        return text
     result := ""
     Loop Parse, text, "`n", "`r" {
         if (!InStr(A_LoopField, " | ") && MatchResult(A_LoopField, needle))
@@ -403,8 +405,7 @@ TryEvalInput(input) {
         val := EvalExpression(input)
         if (val = "" || InStr(val, "错误")) ; i18n:protocol (MonsterEval 错误哨兵, 引擎零 T() 依赖)
             return ""
-        if (val + 0 = 0)
-            return ""
+        ; 注意: 结果 0 是合法答案 (5-5/sin(0)), 不得丢弃; 非数字非错误串引擎不会产出
         return input " = " val
     } catch {
         return ""

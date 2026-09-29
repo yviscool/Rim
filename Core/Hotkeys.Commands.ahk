@@ -326,39 +326,73 @@ WatchUserFileList(*) {
     }
 }
 
+; 保存结果为参数: 纯计算部分 (显示文本 + 当前行 → {arg, pipe}; 无 GUI 副作用, 可单测).
+; 旧式 (裸 StrSplit[][2]/[3]) 在空行/短行/空列表上抛错, 且 "file | " 前缀分支在统一行后已死.
+SaveResultAsArg_Compute(result, hide2, curCmd) {
+    result := String(result)
+    arg := ""
+    pipe := ""
+    if (hide2) {
+        Loop Parse, result, "`n", "`r" {
+            fld := Trim(A_LoopField)
+            if (fld = "")
+                continue
+            pipe .= SubStr(fld, 1, 2) "| placeholder | " . (StrLen(fld) >= 5 ? SubStr(fld, 5) : "") . "`n"
+        }
+    } else {
+        pipe := result
+    }
+
+    ; 文件行取路径 (经 Registry, 列表行统一 command|<id>)
+    fp := ""
+    try fp := GetFilePathFromCmd(curCmd)
+    catch {
+    }
+    if (fp != "")
+        arg .= fp
+    else if (!InStr(result, " | ")) {
+        arg .= StrReplace(result, "`n", " ")
+        arg := StrReplace(arg, "`r")
+    } else {
+        Loop Parse, result, "`n", "`r" {
+            fld := Trim(A_LoopField)
+            if (fld = "" || !InStr(fld, " | "))
+                continue
+            segs := StrSplit(fld, " | ")
+            if (hide2) {
+                if (segs.Length >= 2)
+                    arg .= Trim(segs[2]) " "
+            } else {
+                if (segs.Length >= 3)
+                    arg .= Trim(segs[3]) " "
+            }
+        }
+    }
+    return Map("arg", Trim(String(arg)), "pipe", pipe)
+}
+
 SaveResultAsArg(*) {
     global g_Arg, FullPipeArg, g_DisplayEdit, g_CurrentCommand, g_SkinConf
     global g_InputEdit, g_CommandFilter
     g_Arg := ""
-    result := g_DisplayEdit.Value
-
-    if (g_SkinConf["HideCol2"] = "1") {
-        FullPipeArg := ""
-        Loop Parse, result, "`n", "`r" {
-            FullPipeArg .= SubStr(A_LoopField, 1, 2) "| placeholder | " SubStr(A_LoopField, 5) "`n"
-        }
-    } else {
-        FullPipeArg := result
+    result := ""
+    try result := String(g_DisplayEdit.Value)
+    catch {
+        return
+    }
+    hide2 := false
+    try hide2 := g_SkinConf["HideCol2"] = "1"
+    catch {
     }
 
-    if (InStr(g_CurrentCommand, "file | ") = 1)
-        g_Arg .= StrSplit(g_CurrentCommand, " | ")[2]
-    else if (!InStr(result, " | ")) {
-        g_Arg .= StrReplace(result, "`n", " ")
-        g_Arg := StrReplace(g_Arg, "`r")
-    } else {
-        if (g_SkinConf["HideCol2"] = "1") {
-            Loop Parse, result, "`n", "`r" {
-                g_Arg .= Trim(StrSplit(A_LoopField, " | ")[2]) " "
-            }
-        } else {
-            Loop Parse, result, "`n", "`r" {
-                g_Arg .= Trim(StrSplit(A_LoopField, " | ")[3]) " "
-            }
-        }
+    computed := ""
+    try computed := SaveResultAsArg_Compute(result, hide2, g_CurrentCommand)
+    catch {
+        return
     }
+    g_Arg := computed["arg"]
+    FullPipeArg := computed["pipe"]
 
-    g_Arg := Trim(g_Arg)
     g_InputEdit.Value := "|"
     g_InputEdit.Focus()
     Send("{End}")

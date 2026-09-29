@@ -30,7 +30,7 @@ RunCommand(originCmd) {
     global g_UseDisplay, g_DisableAutoExit, g_ExecInterval, g_PipeArg
     global g_HistoryCommands, g_Conf
     global g_CurrentInput, g_AutoConf
-    global g_LastExecLabel, g_LastExecCb, FullPipeArg, g_Arg
+    global g_LastExecCb, FullPipeArg, g_Arg
 
     if (originCmd = "")
         return
@@ -131,13 +131,8 @@ RunCommand(originCmd) {
         HideOrExit()
     }
 
-    ; 间隔执行 (闭包对象; 本构建 SetTimer 忌字符串名/Func())
-    ; legacy function 命令 (ShutdownTimer 倒计时/Calc 实时) 经同一 function| 入口重进, 与单次语义一致
-    if (g_ExecInterval > 0 && cmdType = "function") {
-        g_LastExecCb := (*) => ExecuteAction("function|" . cmd, GetRunArg())
-        g_LastExecLabel := cmd
-        try SetTimer(g_LastExecCb, g_ExecInterval)
-    }
+    ; 注: 间隔执行已死 (g_ExecInterval 在入口清零, 唯一写入者 SystemState 跑在 command 分支,
+    ; 此处 cmdType=function 永不成立; Calc 实时靠重执行不靠 timer). 整块删除, 不留僵尸 timer.
 
     g_PipeArg := ""
     FullPipeArg := ""

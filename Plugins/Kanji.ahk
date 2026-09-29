@@ -48,12 +48,18 @@ KanjiToTraditional() {
 }
 
 ; s2t=true 简→繁, false 繁→简 (对齐原版 Kanji(s,r))
+; 映射表相对模块自身定位 (探针/子目录运行不失联; 见 AGENTS.md 错误 19)
+KanjiTablePath() {
+    SplitPath(A_LineFile, , &dir)
+    return dir . "\..\Lib\Kanji\Kanji.txt"
+}
+
 Kanji_Convert(s, s2t := false) {
     static s2tMap := Map(), t2sMap := Map(), loaded := false
     if (!loaded) {
         loaded := true
         try {
-            raw := FileRead(A_ScriptDir "\Lib\Kanji\Kanji.txt", "UTF-8")
+            raw := FileRead(KanjiTablePath(), "UTF-8")
             for field in StrSplit(Trim(raw), " ") {
                 field := Trim(field)
                 if (StrLen(field) < 2)

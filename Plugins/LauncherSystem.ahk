@@ -28,13 +28,13 @@ class LauncherSystemPlugin extends RimPlugin {
     RimCommand.Register("DecreaseVolume", "DecreaseVolume", MakeLegacyCmd("DecreaseVolume"), Map("Category", "System", "Description", T("cmd.LauncherSystem.DecreaseVolume"), "Keywords", "DecreaseVolume volumedown"))
     RimCommand.Register("SystemState", "SystemState", MakeLegacyCmd("SystemState"), Map("Category", "System", "Description", T("cmd.LauncherSystem.SystemState"), "Keywords", "SystemState top"))
     RimCommand.Register("KillProcess", "KillProcess", MakeLegacyCmd("KillProcess"), Map("Category", "System", "Description", T("cmd.LauncherSystem.KillProcess"), "Keywords", "KillProcess", "Args", [Map("name", "进程名", "required", true, "help", "空格分隔多个, 空参不再静默假成功")]))
-    RimCommand.Register("SendToClip", "SendToClip", MakeLegacyCmd("SendToClip"), Map("Category", "System", "Description", T("cmd.LauncherSystem.SendToClip"), "Keywords", "SendToClip"))
+    RimCommand.Register("SendToClip", "SendToClip", MakeLegacyCmd("SendToClip"), Map("Category", "System", "Description", T("cmd.LauncherSystem.SendToClip"), "Keywords", "SendToClip", "Args", [Map("name", "文本", "required", true, "help", "空参会清空剪切板，已拦截")]))
     RimCommand.Register("ListWindow", "ListWindow", MakeLegacyCmd("ListWindow"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ListWindow"), "Keywords", "ListWindow"))
     RimCommand.Register("ActivateWindow", "ActivateWindow", MakeLegacyCmd("ActivateWindow"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ActivateWindow"), "Keywords", "ActivateWindow"))
     RimCommand.Register("ListRunningService", "ListRunningService", MakeLegacyCmd("ListRunningService"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ListRunningService"), "Keywords", "ListRunningService"))
     RimCommand.Register("ListAllService", "ListAllService", MakeLegacyCmd("ListAllService"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ListAllService"), "Keywords", "ListAllService"))
-    RimCommand.Register("ShowService", "ShowService", MakeLegacyCmd("ShowService"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ShowService"), "Keywords", "ShowService"))
-    RimCommand.Register("ShowProcess", "ShowProcess", MakeLegacyCmd("ShowProcess"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ShowProcess"), "Keywords", "ShowProcess"))
+    RimCommand.Register("ShowService", "ShowService", MakeLegacyCmd("ShowService"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ShowService"), "Keywords", "ShowService", "Args", [Map("name", "名称", "required", false, "help", "空参列全部")]))
+    RimCommand.Register("ShowProcess", "ShowProcess", MakeLegacyCmd("ShowProcess"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ShowProcess"), "Keywords", "ShowProcess", "Args", [Map("name", "名称", "required", false, "help", "空参无输出")]))
 
     ; --- 旧 Backward-compat 别名已删 (Clipboard/EmptyTrash/Shutdown/Restart/Suspend/Hibernate/MonitorOff/Top/VolumeUp/VolumeDown/ProcessList/Sleep/CancelTimer), 关键词并入主体 ---
 
@@ -43,8 +43,8 @@ class LauncherSystemPlugin extends RimPlugin {
     RimCommand.Register("VolumeMute", "VolumeMute", MakeLegacyCmd("VolumeMute"), Map("Category", "System", "Description", T("cmd.LauncherSystem.VolumeMute"), "Keywords", "VolumeMute"))
 
     ; --- 定时关机/重启 (单例: Windows 同一时间只允许一个 pending shutdown) ---
-    RimCommand.Register("ShutdownTimer", "ShutdownTimer", MakeLegacyCmd("ShutdownTimer"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ShutdownTimer"), "Keywords", "ShutdownTimer"))
-    RimCommand.Register("RestartTimer", "RestartTimer", MakeLegacyCmd("RestartTimer"), Map("Category", "System", "Description", T("cmd.LauncherSystem.RestartTimer"), "Keywords", "RestartTimer"))
+    RimCommand.Register("ShutdownTimer", "ShutdownTimer", MakeLegacyCmd("ShutdownTimer"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ShutdownTimer"), "Keywords", "ShutdownTimer", "Args", [Map("name", "时长", "required", false, "help", "30 / 1h30m / 90s / 22:30，空参查状态")]))
+    RimCommand.Register("RestartTimer", "RestartTimer", MakeLegacyCmd("RestartTimer"), Map("Category", "System", "Description", T("cmd.LauncherSystem.RestartTimer"), "Keywords", "RestartTimer", "Args", [Map("name", "时长", "required", false, "help", "30 / 1h30m / 90s / 22:30，空参查状态")]))
     RimCommand.Register("CancelShutdown", "CancelShutdown", MakeLegacyCmd("CancelShutdown"), Map("Category", "System", "Description", T("cmd.LauncherSystem.CancelShutdown"), "Keywords", "CancelShutdown canceltimer"))
 
     ; --- Invented cmd/file shortcuts (GUI 程序必须用 file，直接 Run；用 cmd 会走 `cmd /C xxx & pause` 多弹一个终端) ---

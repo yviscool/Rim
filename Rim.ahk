@@ -113,7 +113,6 @@ global g_UseResultFilter := false
 global g_UseRealtimeExec := false
 global g_ExcludedCommandsObj := Map()
 global g_ExecInterval := -1
-global g_LastExecLabel := ""
 global g_LastExecCb := ""
 global g_PipeArg := ""
 global g_CommandFilter := ""

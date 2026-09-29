@@ -39,9 +39,9 @@ RegisterMiscUrls() {
 
 RegisterMiscTools() {
     ; 功能命令直注 RimCommand (无别名表; 旧 SearchOn*/Dictionary/CNY 别名已删, 关键词保留可搜)
-    RimCommand.Register("Translate", "Translate", MakeLegacyCmd("TranslateWord"), Map("Category", "Tool", "Description", T("cmd.Misc.Translate"), "Keywords", "Translate dictionary"))
-    RimCommand.Register("En2Cn", "En2Cn", MakeLegacyCmd("EnToCn"), Map("Category", "Tool", "Description", T("cmd.Misc.En2Cn"), "Keywords", "En2Cn"))
-    RimCommand.Register("Cn2En", "Cn2En", MakeLegacyCmd("CnToEn"), Map("Category", "Tool", "Description", T("cmd.Misc.Cn2En"), "Keywords", "Cn2En"))
+    RimCommand.Register("Translate", "Translate", MakeLegacyCmd("TranslateWord"), Map("Category", "Tool", "Description", T("cmd.Misc.Translate"), "Keywords", "Translate dictionary", "Args", [Map("name", "词语", "required", false, "help", "空参弹输入框")]))
+    RimCommand.Register("En2Cn", "En2Cn", MakeLegacyCmd("EnToCn"), Map("Category", "Tool", "Description", T("cmd.Misc.En2Cn"), "Keywords", "En2Cn", "Args", [Map("name", "词语", "required", false, "help", "空参弹输入框")]))
+    RimCommand.Register("Cn2En", "Cn2En", MakeLegacyCmd("CnToEn"), Map("Category", "Tool", "Description", T("cmd.Misc.Cn2En"), "Keywords", "Cn2En", "Args", [Map("name", "词语", "required", false, "help", "空参弹输入框")]))
     RimCommand.Register("Calc", "Calc", MakeLegacyCmd("CalcExpression"), Map("Category", "Tool", "Description", T("cmd.Misc.Calc"), "Keywords", "Calc"))
     RimCommand.Register("Eval", "Eval", MakeLegacyCmd("EvalExpression"), Map("Category", "Tool", "Description", T("cmd.Misc.Eval"), "Keywords", "Eval"))
     RimCommand.Register("ClipShow", "ClipShow", MakeLegacyCmd("Misc_ShowClipboard"), Map("Category", "Tool", "Description", T("cmd.Misc.ClipShow"), "Keywords", "ClipShow"))
@@ -56,8 +56,8 @@ RegisterMiscTools() {
     RimCommand.Register("CurrencyRate", "CurrencyRate", MakeLegacyCmd("CurrencyRate"), Map("Category", "Tool", "Description", T("cmd.Misc.CurrencyRate"), "Keywords", "CurrencyRate"))
     RimCommand.Register("ShowIp", "ShowIp", MakeLegacyCmd("ShowIp"), Map("Category", "Tool", "Description", T("cmd.Misc.ShowIp"), "Keywords", "ShowIp"))
     RimCommand.Register("Wifi", "Wifi", MakeLegacyCmd("WifiShow"), Map("Category", "Tool", "Description", T("cmd.Misc.Wifi"), "Keywords", "Wifi"))
-    RimCommand.Register("Dns", "Dns", MakeLegacyCmd("DnsShow"), Map("Category", "Tool", "Description", T("cmd.Misc.Dns"), "Keywords", "Dns"))
-    RimCommand.Register("Ping", "Ping", MakeLegacyCmd("PingShow"), Map("Category", "Tool", "Description", T("cmd.Misc.Ping"), "Keywords", "Ping"))
+    RimCommand.Register("Dns", "Dns", MakeLegacyCmd("DnsShow"), Map("Category", "Tool", "Description", T("cmd.Misc.Dns"), "Keywords", "Dns", "Args", [Map("name", "域名", "required", false, "help", "空参弹输入框")]))
+    RimCommand.Register("Ping", "Ping", MakeLegacyCmd("PingShow"), Map("Category", "Tool", "Description", T("cmd.Misc.Ping"), "Keywords", "Ping", "Args", [Map("name", "主机", "required", false, "help", "空参弹输入框")]))
     RimCommand.Register("PubIp", "PubIp", MakeLegacyCmd("PubIpShow"), Map("Category", "Tool", "Description", T("cmd.Misc.PubIp"), "Keywords", "PubIp"))
     RimCommand.Register("Env", "Env", MakeLegacyCmd("EnvShow"), Map("Category", "Tool", "Description", T("cmd.Misc.Env"), "Keywords", "Env"))
     RimCommand.Register("Calendar", "Calendar", MakeLegacyCmd("Calendar"), Map("Category", "Tool", "Description", T("cmd.Misc.Calendar"), "Keywords", "Calendar"))
