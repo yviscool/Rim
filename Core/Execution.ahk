@@ -35,6 +35,15 @@ RunCommand(originCmd) {
     if (originCmd = "")
         return
 
+    ; 规范记录拆包: 历史回放行自带权威参数, 全类型一致, 不再按 type 特判.
+    ; 回放时输入框是旧查询 (不可信), 记录内参数优先于 ParseArg 结果
+    histRec := HistSplit(originCmd)
+    if (histRec["has"]) {
+        originCmd := histRec["el"]
+        if (originCmd = "")
+            return
+    }
+
     ParseArg()
 
     ; 单链起点 (DebugMode=1 才落盘): 后续 ExecuteAction/手势经 g_LogSid 续写
@@ -49,7 +58,6 @@ RunCommand(originCmd) {
     g_ExecInterval := 0
 
     parsed := CmdLine_Parse(originCmd)
-    splitedOriginCmd := parsed["parts"]
     if (parsed["len"] < 2)
         return
 
@@ -57,37 +65,30 @@ RunCommand(originCmd) {
     ;   四段式 "key | type | cmd | desc" (来自 [Commands])
     ;   三段式 "type | cmd | desc" (插件/文件列表/回退命令)
     ;   两段式 "file | path" (文件列表)
-    cmdKey := parsed["key"]
+    ; 历史回放行已在入口拆包 (HistSplit), 此处只见干净元素 + g_Arg
     cmdType := parsed["type"]
     cmd := parsed["cmd"]
     cmdDesc := parsed["desc"]
 
-    if (cmdType = "function") {
-        ; 历史条目会把旧 g_Arg 追加在末尾: legacy 为第 4 段, 四段式为第 5 段
-        if (cmdKey != "") {
-            if (splitedOriginCmd.Length >= 5)
-                g_Arg := splitedOriginCmd[5]
-        } else if (splitedOriginCmd.Length >= 4)
-            g_Arg := splitedOriginCmd[4]
+    ; 回放权威参数: 覆盖 ParseArg 从残留输入框读出的不可信值 (全类型一致)
+    if (histRec["has"] && Trim(histRec["arg"]) != "")
+        g_Arg := Trim(histRec["arg"])
 
+    if (cmdType = "function") {
         ExecuteAction("function|" cmd, g_Arg)
     }
     else {
         ExecuteAction(cmdType "|" cmd, g_Arg)
     }
 
-    ; 保存历史 (P1-4: CfgGet 统一入口, 永不抛错; 对齐原版: 仅 fresh 命令拼 g_Arg, 重放历史不再叠加)
+    ; 保存历史 (规范记录: 元素与参数分栏存储, 回放/还原按位拆回, 与类型无关)
     saveHist := CfgGet("Config", "SaveHistory", "1")
     histSize := 100
     try histSize := Integer(CfgGet("Config", "HistorySize", "100"))
     catch {
     }
     if (saveHist = "1" && cmd != "DisplayHistoryCommands") {
-        isFresh := (cmdKey != "" && splitedOriginCmd.Length = 4) || (cmdKey = "" && splitedOriginCmd.Length = 3)
-        if (g_Arg != "" && isFresh)
-            g_HistoryCommands.InsertAt(1, originCmd " | " g_Arg)
-        else if (originCmd != "")
-            g_HistoryCommands.InsertAt(1, originCmd)
+        g_HistoryCommands.InsertAt(1, HistPack(originCmd, g_Arg))
 
         if (g_HistoryCommands.Length > histSize)
             g_HistoryCommands.Pop()

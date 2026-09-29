@@ -601,6 +601,22 @@ if (menuOpen && g_TCLastCmd != 572)
 
 ### 错误 33：`Hotkey(x, "Off")` 不去常驻 —— Off 的钩子照样吊住进程
 
+### 错误 34：历史参数拼在 `" | "` 里 —— 类型白名单一漏，全链丢参
+
+```ahk
+; ❌ 实测翻车 (shutdowntimer 30 重启后 Tab/Alt+Up 只剩裸名, 历史回车重放空参执行, Rank 劈成两半)：
+;   ecfb4b3 把池行统一成 command|id|label, 但历史用裸串拼参 (originCmd " | " g_Arg)，
+;   读侧靠 file/function/cmd/url/run 五类型白名单拆参 —— command 全漏：
+;   SI_HistoryInputOfPure 还原丢参、RunCommand 回放只给 function 恢复 g_Arg、
+;   RankKeyOfElement 只给 function 剥参。smoke_si 全是 function 用例，CI 一路绿灯。
+; ✅ 历史一律走规范记录 (Core/SmartInputPure.ahk HistPack/HistSplit, Chr(1) 分栏)：
+;   写时 Execution.ahk:91 Pack，读时还原/回放/排名/显示按位拆回，与类型无关；
+;   禁止手写 " | " 拼参，禁止读侧备类型白名单。新 kind (combo 等) 零改动接入。
+;   锁死探针：tools/probe_shutdowntimer_hist.ahk (还原+落盘+重启e2e) +
+;   tools/probe_hist_replay.ahk (真 RunCommand→ExecuteAction→RimCommand 回放)。
+```
+
+
 ```ahk
 ; ❌ 实测翻车 (不变量探针 verify_nohook 本应自然退出, 却 hang 45s 超时)：
 ;   v2 里 Off 只是禁用, 钩子对象还在, 脚本照样 persistent；只有从未注册才自然退出。

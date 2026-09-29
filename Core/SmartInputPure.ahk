@@ -60,9 +60,10 @@ SI_PrevWordPure(full, prefixLen) {
     return ""
 }
 
-; 历史元素/命令元素 → 可搜索核心 (与 SearchTargetKey 同一文法, 必须同步改)
+; 池元素 → 可搜索核心 (与 SearchTargetKey 同一文法, 必须同步改)
+;   注意: 历史行一律先经 HistSplit 拆包再进此函数, 此处只见干净元素, 不处理参数
 ;   真四段式 key|type|cmd|desc (parts[2] 是类型词) → key
-;   历史 legacy 三段 + 参数 (parts[2] 是命令名) → parts[2], 绝不能取 parts[1]
+;   三段式 type|cmd|desc → cmd
 SI_CoreOfPure(element) {
     parts := StrSplit(element, " | ")
     if (parts.Length >= 4
@@ -160,42 +161,44 @@ SI_InputHistAll() {
     }
 }
 
+; ---------------- 历史规范记录 (结构化, 参数边界与类型无关) ----------------
+; 写时归一: HistPack(元素, 参数) 把参数钉在 Chr(1) 之后, 读时 HistSplit 按位拆回.
+; 旧式 (裸串拼 " | arg") 已退役: 读侧不再备类型白名单, 新类型零改动接入.
+; 无包装旧行视为无参条目 (自然降级, 下次执行即被新格式顶掉).
+
+HistPack(el, arg := "") {
+    el := String(el)
+    arg := Trim(String(arg))
+    el := StrReplace(el, Chr(1), "")
+    arg := StrReplace(arg, Chr(1), "")
+    if (arg != "")
+        return el . Chr(1) . arg
+    return el
+}
+
+HistSplit(line) {
+    line := String(line)
+    pos := InStr(line, Chr(1))
+    if (pos > 0)
+        return Map("el", SubStr(line, 1, pos - 1), "arg", SubStr(line, pos + 1), "has", true)
+    return Map("el", line, "arg", "", "has", false)
+}
+
 SI_HistoryCores() {
     out := []
     try {
         for _i, element in g_HistoryCommands
-            out.Push(SI_CoreOfPure(element))
+            out.Push(SI_CoreOfPure(HistSplit(element)["el"]))
     } catch {
     }
     return out
 }
 ; 历史条目 → 用户当初的输入态 (含参还原, 供 Alt+UpDown/ghost 整句复现)
-;   legacy 三段 + 参数 ("function | X | desc | arg") → "X arg"
-;   真四段 + 参数 ("key | type | cmd | desc | arg") → "key arg"
-;   无参条目 → 与 CoreOfPure 同值; file 三段 desc/arg 歧义, 保守只取文件名
+;   规范记录 ("el" . Chr(1) . "arg") → "核 arg"; 无参/旧行 → 与 CoreOfPure 同值
 SI_HistoryInputOfPure(element) {
-    parts := StrSplit(element, " | ")
-    if (parts.Length >= 5
-        && (parts[2] == "file" || parts[2] == "function" || parts[2] == "cmd" || parts[2] == "url" || parts[2] == "run")) {
-        arg := Trim(parts[5])
-        i := 6
-        while (i <= parts.Length) {
-            arg .= " | " . Trim(parts[i])
-            i++
-        }
-        if (arg != "")
-            return Trim(parts[1]) . " " . arg
-        return Trim(parts[1])
-    }
-    if (parts.Length == 4) {
-        if (parts[2] == "file" || parts[2] == "function" || parts[2] == "cmd" || parts[2] == "url" || parts[2] == "run")
-            return Trim(parts[1])
-        if (parts[1] == "file" || parts[1] == "function" || parts[1] == "cmd" || parts[1] == "url" || parts[1] == "run") {
-            arg4 := Trim(parts[4])
-            if (arg4 != "")
-                return Trim(parts[2]) . " " . arg4
-            return Trim(parts[2])
-        }
-    }
-    return SI_CoreOfPure(element)
+    rec := HistSplit(element)
+    core := SI_CoreOfPure(rec["el"])
+    if (rec["has"] && Trim(rec["arg"]) != "")
+        return core . " " . Trim(rec["arg"])
+    return core
 }

@@ -183,8 +183,9 @@ DisplayHistoryCommands(*) {
             result .= Chr(g_FirstChar + index - 1) . " | "
         }
 
-        ; 原版格式: c1 | c2 | c3 #arg: c4 (v1 越界取空, v2 用安全取值)
-        _hp := StrSplit(element, " | ")
+        ; 规范记录显示: 参数栏按位拆出 (与类型无关); 无包装旧行退化为整行元素, _h4 自然承接旧参
+        _rec := HistSplit(element)
+        _hp := StrSplit(_rec["el"], " | ")
         _h1 := _hp.Length >= 1 ? _hp[1] : ""
         _h2 := _hp.Length >= 2 ? _hp[2] : ""
         _h3 := _hp.Length >= 3 ? _hp[3] : ""
@@ -193,6 +194,8 @@ DisplayHistoryCommands(*) {
             Loop _hp.Length - 4
                 _h4 .= " | " . _hp[4 + A_Index]
         }
+        if (_rec["has"])
+            _h4 := _rec["arg"]
         result .= _h1 " | " _h2 " | " _h3 . " " . T("hist.argsep") . " " . _h4 "`n"
         g_CurrentCommandList.Push(element)
     }
@@ -200,8 +203,10 @@ DisplayHistoryCommands(*) {
     DisplayControlText(result)
 }
 
-; 从命令中取文件路径 (兼容四段式 key|file|path|desc 与三段式 file|path|desc)
+; 从命令中取文件路径 (兼容四段式 key|file|path|desc 与三段式 file|path|desc;
+; 规范记录先剥参数栏, file 带参回放同样定位到路径)
 GetFilePathFromCmd(cmd) {
+    cmd := HistSplit(cmd)["el"]
     parts := StrSplit(cmd, " | ")
     if (parts.Length >= 4 && (parts[2] = "file" || parts[2] = "function" || parts[2] = "cmd" || parts[2] = "url" || parts[2] = "run"))
         return parts[3]

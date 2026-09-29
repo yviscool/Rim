@@ -374,11 +374,10 @@ FallbackJoin(key, value) {
 ; 存储 [Rank] key = visits|YYYYMMDD (旧裸整数读作 visits|未知日期, 按今天计, 迁移无断层);
 ; 半衰期默认 14 天, [Config] RankHalfLife 可调; 精确桶永远优先, 此处只排非精确桶与加载合并
 RankKeyOfElement(element) {
-    splitedCmd := StrSplit(element, " | ")
-    if (splitedCmd.Length >= 5)
-        return splitedCmd[1] " | " splitedCmd[2] " | " splitedCmd[3] " | " splitedCmd[4]
-    else if (splitedCmd.Length >= 4 && splitedCmd[1] = "function")
-        return splitedCmd[1] " | " splitedCmd[2] " | " splitedCmd[3]
+    ; 规范记录先剥参数栏: 参数边界与类型无关, 此处之后只见干净元素, 永不分流
+    rec := HistSplit(element)
+    if (rec["has"])
+        return rec["el"]
     return element
 }
 

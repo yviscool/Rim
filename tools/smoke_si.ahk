@@ -47,8 +47,12 @@ SI_Check("core-func", SI_CoreOfPure("function | Calc | 计算器") == "Calc")
 SI_Check("core-file3", SI_CoreOfPure("file | D:\soft\QQMusic.exe | 音乐") == "QQMusic")
 SI_Check("core-file2", SI_CoreOfPure("file | D:\soft\WeChat.exe") == "WeChat")
 SI_Check("core-run", SI_CoreOfPure("run | git status | desc") == "git status")
-SI_Check("core-histarg", SI_CoreOfPure("function | CancelShutdown | 取消定时关机 | 30m") == "CancelShutdown")
-SI_Check("core-histarg2", SI_CoreOfPure("function | ShutdownTimer | 定时关机 shutdown timer | 1h30m") == "ShutdownTimer")
+SI_Check("core-command", SI_CoreOfPure("command | ShutdownTimer | 定时关机") == "ShutdownTimer")
+
+; ---- 历史核 (规范记录先拆包, 参数栏永不进核) ----
+g_HistoryCommands := [HistPack("command | ShutdownTimer | 定时关机", "30"), "command | ShowIp | 本机IP"]
+SI_Check("histcores-unpack", SI_HistoryCores()[1] == "ShutdownTimer" && SI_HistoryCores()[2] == "ShowIp")
+g_HistoryCommands := []
 
 ; ---- 隐私 ----
 SI_Check("blocked-token", SI_BlockedPure("export token=abc123") == true)
@@ -71,12 +75,13 @@ SI_Check("exact-no", SI_IsExactHit("function | CancelShutdown | 取消定时关�
 SI_Check("exact-partial", SI_IsExactHit("function | ShutdownTimer | 定时关机", "shutdown") == false)
 SI_Check("exact-empty", SI_IsExactHit("function | ShutdownTimer | x", "") == false)
 
-; ---- 历史输入态还原 (含参) ----
-SI_Check("histinput-witharg", SI_HistoryInputOfPure("function | ShutdownTimer | 定时关机 shutdown timer | 30") == "ShutdownTimer 30")
-SI_Check("histinput-witharg2", SI_HistoryInputOfPure("function | CancelShutdown | 取消定时关机 | 30m") == "CancelShutdown 30m")
+; ---- 历史输入态还原 (规范记录 HistPack, 含参; 无包装旧行视为无参) ----
+SI_Check("histinput-witharg", SI_HistoryInputOfPure(HistPack("function | ShutdownTimer | 定时关机 shutdown timer", "30")) == "ShutdownTimer 30")
+SI_Check("histinput-command-arg", SI_HistoryInputOfPure(HistPack("command | ShutdownTimer | 定时关机", "30")) == "ShutdownTimer 30")
+SI_Check("histinput-witharg2", SI_HistoryInputOfPure(HistPack("function | CancelShutdown | 取消定时关机", "30m")) == "CancelShutdown 30m")
 SI_Check("histinput-noarg", SI_HistoryInputOfPure("function | CancelShutdown | 取消定时关机") == "CancelShutdown")
 SI_Check("histinput-4part", SI_HistoryInputOfPure("qq | file | D:\soft\qq.exe | desc") == "qq")
-SI_Check("histinput-4partarg", SI_HistoryInputOfPure("qq | file | D:\soft\qq.exe | desc | 123") == "qq 123")
+SI_Check("histinput-4partarg", SI_HistoryInputOfPure(HistPack("qq | file | D:\soft\qq.exe | desc", "123")) == "qq 123")
 SI_Check("histinput-file3", SI_HistoryInputOfPure("file | D:\soft\QQ.exe | 音乐") == "QQ")
 
 ; ---- 命令头拆分 (框留整句/搜命令头) ----

@@ -42,9 +42,10 @@ SI_FindGhost(prefix) {
     global g_CurrentCommandList
     cands := []
     ; 1. 列表头优先: 回车跑的就是它, ghost 与执行目标永远一致 (精确置顶后更稳定)
+    ;    列表可装历史规范记录 (DisplayHistoryCommands 原样入列), 先剥参数栏再取核
     try {
         if (g_CurrentCommandList.Length > 0) {
-            headCore := SI_CoreOfPure(g_CurrentCommandList[1])
+            headCore := SI_CoreOfPure(HistSplit(g_CurrentCommandList[1])["el"])
             if (headCore != "")
                 cands.Push(headCore)
         }
@@ -55,7 +56,7 @@ SI_FindGhost(prefix) {
         for _i, element in g_CurrentCommandList {
             if (_i > 30)
                 break
-            cands.Push(SI_CoreOfPure(element))
+            cands.Push(SI_CoreOfPure(HistSplit(element)["el"]))
         }
     } catch {
     }
