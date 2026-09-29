@@ -36,7 +36,7 @@ Assert(RimContext.CheckIsInput("DirectUIHWND", "DirectUIHWND1", "CabinetWClass")
 Assert(RimContext.CheckIsInput("Button", "Button1", "Notepad") == false, "non-input-button")
 Assert(RimContext.CheckIsInput("SysListView32", "SysListView321", "CabinetWClass") == false, "non-input-listview")
 
-; 4. Provider 机制测试
+; 4. Provider v1 协议: Map{capture, canHandle, capabilities}
 testDir := "C:\TestFolder"
 testFile := "C:\TestFolder\test.txt"
 mockProvider(c) {
@@ -44,15 +44,42 @@ mockProvider(c) {
     c.SelectedFile := testFile
     c.SelectedFiles := [testFile]
 }
-RimContext.RegisterProvider("mockapp", mockProvider)
+mockCanHandle(c) {
+    return c.Class = "CabinetWClass"
+}
+RimContext.RegisterProvider("mockapp", Map("capture", mockProvider, "canHandle", mockCanHandle,
+    "capabilities", Map("current_directory", "mock", "selected_files", "multi")))
 Assert(RimContext.Providers.Has("mockapp"), "provider-registered")
+Assert(RimContext.CapabilitiesOf("mockapp")["selected_files"] = "multi", "provider-capabilities")
+Assert(RimContext.CapabilitiesOf("nosuchapp").Count = 0, "provider-capabilities-miss")
 
 mockCtx := RimContext()
 mockCtx.AppId := "mockapp"
-RimContext.Providers["mockapp"](mockCtx)
+mockCtx.Class := "CabinetWClass"
+Assert(RimContext.ApplyProvider(mockCtx) == true, "provider-applied")
 Assert(mockCtx.CurrentDir == testDir, "provider-current-dir")
 Assert(mockCtx.SelectedFile == testFile, "provider-selected-file")
 Assert(mockCtx.SelectedFiles.Length == 1, "provider-selected-files-len")
+
+; canHandle 为假跳过 (窗类不对不进 COM), 静默不炸
+mockCtx2 := RimContext()
+mockCtx2.AppId := "mockapp"
+mockCtx2.Class := "Notepad"
+Assert(RimContext.ApplyProvider(mockCtx2) == false, "provider-gated")
+Assert(mockCtx2.CurrentDir == "", "provider-gated-norun")
+
+; 未注册 AppId / 空 AppId 直接返回 false
+mockCtx3 := RimContext()
+mockCtx3.AppId := "nope"
+Assert(RimContext.ApplyProvider(mockCtx3) == false, "provider-miss")
+
+; 错形注册直接抛 (无旧裸函数形兼容)
+threw := false
+try RimContext.RegisterProvider("badapp", mockProvider)
+catch {
+    threw := true
+}
+Assert(threw == true, "provider-shape-enforced")
 
 ; 5. 全局 Capture / GetActiveContext
 activeCtx := GetActiveContext()

@@ -14,7 +14,10 @@ class TotalCommanderPlugin extends RimPlugin {
     static Description => "Total Commander 深度整合 (双栏文件管理、Vim 模式、标记系统、原生菜单联动)"
 
     static RegisterContext() {
-        try RimContext.RegisterProvider("totalcommander", TC_ContextProvider)
+        try RimContext.RegisterProvider("totalcommander", Map("capture", TC_ContextProvider,
+            "canHandle", TC_CanHandle,
+            "capabilities", Map("current_directory", "active-panel-path",
+                "selected_files", "single-first-only", "selected_file", "first-only")))
     }
 
     static RegisterCommands() {
@@ -683,6 +686,14 @@ TC_PreKeyFilter(vimKey, win) {
     return false
 }
 
+
+TC_CanHandle(ctx) {
+    try cls := String(ctx.Class)
+    catch {
+        return false
+    }
+    return cls = "TTOTAL_CMD"
+}
 
 TC_ContextProvider(ctx) {
     try {

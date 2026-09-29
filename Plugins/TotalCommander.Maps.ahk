@@ -898,9 +898,4 @@ TotalCommander_Keymaps(engine) {
     ; 原先每弹一次绑 36 个热键, 钩子抖动窗口内 arriving 的快速第二键可能丢失,
     ; 且弹出路径变长. 弹/关不再绑/解 (TC_MenuBindKeys/UnbindKeys 保留备用)
     TC_MenuBindKeys()
-
-    ; 注册上下文提供者
-    try {
-        RimContext.RegisterProvider("totalcommander", TC_ContextProvider)
-    }
 }

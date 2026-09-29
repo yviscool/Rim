@@ -58,6 +58,10 @@ global g_TestPluginFlags := Map(
     "exited", false
 )
 
+MockAppCapture(c) {
+    c.CurrentDir := "C:\MockDir"
+}
+
 class MockPlugin extends RimPlugin {
     static Name => "MockFeature"
     static Title => "Mock Test Feature"
@@ -71,7 +75,8 @@ class MockPlugin extends RimPlugin {
     static RegisterContext() {
         global g_TestPluginFlags
         g_TestPluginFlags["context"] := true
-        RimContext.RegisterProvider("mockapp", (hwnd) => Map("appId", "mockapp", "currentDir", "C:\MockDir"))
+        RimContext.RegisterProvider("mockapp", Map("capture", MockAppCapture,
+            "capabilities", Map("current_directory", "mock")))
     }
 
     static RegisterCommands() {
@@ -107,6 +112,8 @@ Assert(g_TestPluginFlags["inited"] == true, "lifecycle-init-executed")
 RimPluginManager.RegisterAllContexts()
 Assert(g_TestPluginFlags["context"] == true, "lifecycle-context-executed")
 Assert(RimContext.Providers.Has("mockapp"), "context-provider-registered-by-plugin")
+Assert(RimContext.CapabilitiesOf("explorer")["selected_files"] = "multi", "context-explorer-capabilities")
+Assert(RimContext.CapabilitiesOf("totalcommander")["selected_files"] = "single-first-only", "context-tc-capabilities")
 
 RimPluginManager.RegisterAllCommands()
 Assert(g_TestPluginFlags["commands"] == true, "lifecycle-commands-executed")

@@ -20,12 +20,46 @@ class RimContext {
     SelectedFile := ""
     SelectedFiles := []
 
-    ; 全局上下文提供者注册表 (AppId -> Func(ctx))
+    ; 全局上下文提供者注册表 (AppId -> {capture, canHandle, capabilities})
+    ; v1 协议: provider 必须是 Map, 含可调用 capture; 可选 canHandle(ctx)→bool、
+    ; capabilities Map (能力自述, 供 AI/新功能机读). 形状不对直接抛, 不兼容旧裸函数形.
     static Providers := Map()
 
-    ; 注册特定应用的上下文扩展提供者 (例如 TC、Explorer、VSCode 等提供路径/选中项)
-    static RegisterProvider(appId, providerFunc) {
-        RimContext.Providers[StrLower(appId)] := providerFunc
+    ; 注册特定应用的上下文扩展提供者 (如 TC、Explorer 提供路径/选中项)
+    static RegisterProvider(appId, provider) {
+        if (!IsObject(provider) || !provider.Has("capture"))
+            throw Error("RimContext.RegisterProvider needs Map{capture[, canHandle, capabilities]}: " . String(appId))
+        cap := provider["capture"]
+        if (!IsObject(cap) || !HasMethod(cap, "Call"))
+            throw Error("RimContext.RegisterProvider capture not callable: " . String(appId))
+        entry := Map("capture", cap, "canHandle", "", "capabilities", Map())
+        if (provider.Has("canHandle")) {
+            ch := provider["canHandle"]
+            if (IsObject(ch) && HasMethod(ch, "Call"))
+                entry["canHandle"] := ch
+            else
+                throw Error("RimContext.RegisterProvider canHandle not callable: " . String(appId))
+        }
+        if (provider.Has("capabilities")) {
+            caps := provider["capabilities"]
+            if (!IsObject(caps))
+                throw Error("RimContext.RegisterProvider capabilities not a Map: " . String(appId))
+            entry["capabilities"] := caps
+        }
+        RimContext.Providers[StrLower(appId)] := entry
+    }
+
+    ; 能力自述查询 (机读; 未注册返回空 Map, 永不抛错)
+    static CapabilitiesOf(appId) {
+        try {
+            if (RimContext.Providers.Has(StrLower(appId))) {
+                caps := RimContext.Providers[StrLower(appId)]["capabilities"]
+                if (IsObject(caps))
+                    return caps
+            }
+        } catch {
+        }
+        return Map()
     }
 
     ; 获取当前活动窗口（或指定窗口）的上下文快照
@@ -82,16 +116,9 @@ class RimContext {
         ; 判断是否处于输入态 (可编辑文本控件)
         ctx.IsInput := RimContext.CheckIsInput(ctx.ControlClass, ctx.Control, ctx.Class)
 
-        ; 尝试通过注册的 Provider 丰富路径与选中项信息
-        ; (失败记日志不静默: provider 炸了否则连响都不响, 见 P0 审计)
-        if (ctx.AppId != "" && RimContext.Providers.Has(StrLower(ctx.AppId))) {
-            try {
-                RimContext.Providers[StrLower(ctx.AppId)](ctx)
-            } catch as e {
-                try RimLog("CTX_PROVIDER_FAIL", StrLower(ctx.AppId), e)
-                catch {
-                }
-            }
+        ; 尝试通过注册的 Provider 丰富路径与选中项信息 (单点, 可单测)
+        try RimContext.ApplyProvider(ctx)
+        catch {
         }
 
         ; 如果当前没有获取到路径，且是 #32770 对话框，尝试从通用对话框提取
@@ -106,6 +133,38 @@ class RimContext {
         catch {
         }
         return ctx
+    }
+
+    ; 对单个 ctx 执行其 AppId 的 provider (canHandle 先行, 失败记日志; 单点可单测)
+    static ApplyProvider(ctx) {
+        appId := ""
+        try appId := StrLower(String(ctx.AppId))
+        catch {
+            return false
+        }
+        if (appId = "" || !RimContext.Providers.Has(appId))
+            return false
+        entry := RimContext.Providers[appId]
+        if (!IsObject(entry) || !IsObject(entry["capture"]) || !HasMethod(entry["capture"], "Call"))
+            return false
+        can := true
+        if (IsObject(entry["canHandle"]) && HasMethod(entry["canHandle"], "Call")) {
+            try can := !!entry["canHandle"].Call(ctx)
+            catch {
+                can := false
+            }
+        }
+        if (!can)
+            return false
+        try {
+            entry["capture"].Call(ctx)
+            return true
+        } catch as e {
+            try RimLog("CTX_PROVIDER_FAIL", appId, e)
+            catch {
+            }
+            return false
+        }
     }
 
     ; 判定是否为输入框控件

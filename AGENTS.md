@@ -697,3 +697,12 @@ if (menuOpen && g_TCLastCmd != 572)
 ;   冻结比名 (SI_NameOf)；整句零命中退化搜命令头 (SearchCollectMatches + SI_HeadPure)，
 ;   参数照进 g_Arg。锁死探针：probe_search_e2e headmatch/freeze/alias 三组。
 ```
+
+## 十二、Context Provider v1 协议 (2026-09-29)
+
+```ahk
+; 注册形态只认 Map{capture, canHandle?, capabilities?}，错形直接抛，无旧裸函数形。
+; Explorer/TC 双注册点已合并为 RegisterContext 一处 (Keymaps 尾部复本已删)。
+; canHandle 先行 (窗类不对跳过，不进 COM)；CapabilitiesOf(appId) 机读能力自述。
+; 调用单点 RimContext.ApplyProvider (Capture 内调)，探针直测门控与回填。
+```

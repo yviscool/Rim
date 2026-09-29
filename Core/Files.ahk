@@ -159,14 +159,11 @@ LoadFiles(loadRank := true) {
                 AddCommand(Trim(_line))
         }
 
-    ; 注册表审计 (只记不删): 动作不可达条目 (空 Action 且非 file/url 直达) 进 error.log,
-    ; 另全量 id 快照 Rim.pool.log 供取证
+    ; 注册表审计 (只记不删): 动作不可达条目进 error.log; 正常零字节, 不写快照
     try {
         _dead := []
-        _dump := ""
         if (IsSet(RimCommand) && IsObject(RimCommand)) {
             for _id, _cmd in RimCommand.Registry {
-                _dump .= _id . "`n"
                 try {
                     _act := String(_cmd.Action)
                     _k := StrLower(String(_cmd.Kind))
@@ -175,9 +172,6 @@ LoadFiles(loadRank := true) {
                 } catch {
                 }
             }
-        }
-        try FileAppend(_dump, A_ScriptDir . "\Rim.pool.log")
-        catch {
         }
         if (_dead.Length > 0) {
             _msg := "POOL_AUDIT dead-action=" . _dead.Length

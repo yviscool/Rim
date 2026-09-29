@@ -10,7 +10,10 @@ class ExplorerPlugin extends RimPlugin {
     static Description => "Windows 资源管理器增强 (Vim 模式、路径提取、TC联动)"
 
     static RegisterContext() {
-        try RimContext.RegisterProvider("explorer", Explorer_ContextProvider)
+        try RimContext.RegisterProvider("explorer", Map("capture", Explorer_ContextProvider,
+            "canHandle", Explorer_CanHandle,
+            "capabilities", Map("current_directory", "active-window-path",
+                "selected_files", "multi", "selected_file", "first-of-selection")))
     }
 
     static RegisterCommands() {
@@ -125,11 +128,6 @@ Explorer_Keymaps(engine) {
     ; 模式切换
     engine.MapKey("i", "<Gen_InsertMode>", "CabinetWClass", "normal")
     engine.MapKey("<Esc>", "<Gen_NormalMode>", "CabinetWClass", "insert")
-
-    ; 注册上下文提供者
-    try {
-        RimContext.RegisterProvider("explorer", Explorer_ContextProvider)
-    }
 }
 
 ; 输入框/树/菜单内透传原键 (对齐原版 Explorer_ForceInsertMode)
@@ -198,6 +196,14 @@ Explorer_GetSelectedFile() {
 }
 
 ; Explorer 上下文提供者
+Explorer_CanHandle(ctx) {
+    try cls := String(ctx.Class)
+    catch {
+        return false
+    }
+    return cls = "CabinetWClass" || cls = "ExploreWClass"
+}
+
 Explorer_ContextProvider(ctx) {
     p := Explorer_GetPath()
     if (p != "")
