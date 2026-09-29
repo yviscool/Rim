@@ -402,7 +402,12 @@ class GestureEngine {
                             if (ActionCallDotted(fn))
                                 return
                         }
+                        ; 点式已判死: 不落 %fn%() (必报 Variable not found)
+                        return
                     }
+                    ; 运行时前检 (与 probe_dead_refs 同词表): 未知名字直接吞掉, 不抛错
+                    if (IsSet(ActionIsCallable) && !ActionIsCallable(fn))
+                        return
                     %fn%()
                 }
             }

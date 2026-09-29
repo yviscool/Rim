@@ -314,12 +314,18 @@ A_LoopFileFullPath
 
 ### 错误 14：`IsFunc` 检查不存在的函数
 ```ahk
-; ⚠️ v2 中 IsFunc("NonExist") 返回 0，不会报错
-; 但某些情况下可能触发变量未赋值警告
-; 建议用 try 包裹
+; ❌ 实测证伪 (2026-09-28)：本构建 IsFunc("Type") 直接抛
+;   "This global variable has not been assigned a value"，IsFunc 根本不存在，
+;   不存在"返回 0"一说。以下四处已批量改掉：VimCfg_Save.ahk:11、
+;   Execution.ahk:371、Gesture/Engine.ahk:409、ActionProtocol.ahk:131
+; ✅ 静态已知名的存在性检查
+if IsSet(MyFunc) {
+; ✅ 动态字符串名字的存在性检查（双解引用取 Func 对象）
 try {
-    if IsFunc("MyFunc")
-        MyFunc()
+    ref := %fn%
+    ok := Type(ref) = "Func"
+} catch {
+    ok := false
 }
 ```
 

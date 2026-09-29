@@ -933,10 +933,10 @@ class StatsBallObj {
         if (this.topText = "" || A_TickCount - this.lastTopTick >= 5000) {
             try {
                 rows := StatsBall_TopProcs(3)
-                t := ""
+                topTxt := ""
                 for _, r in rows
-                    t .= r.exe . "  " . Round(r.ws / 1048576) . "MB`n"
-                this.topText := (t = "") ? T("statsball.top_empty") : t
+                    topTxt .= r.exe . "  " . Round(r.ws / 1048576) . "MB`n"
+                this.topText := (topTxt = "") ? T("statsball.top_empty") : topTxt
                 this.lastTopTick := A_TickCount
             } catch {
             }

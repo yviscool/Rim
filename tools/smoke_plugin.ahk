@@ -9,6 +9,25 @@
 #Include ..\Core\Plugin.ahk
 #Include ..\Core\Command.ahk
 #Include ..\Core\Execution.ahk
+; 生产环境桩 (对齐 Rim.ahk:421 与 class Rim; 缺了会导致插件注册期 PLUGIN_ERR,
+; 见 2026-09-28 fresh-repro: LauncherSystem:52 / TC:709 在 harness 下误报)
+class RimConfigStub {
+    Get(sec, key, def := "") {
+        return def
+    }
+}
+class Rim {
+    static config := RimConfigStub()
+}
+
+; 命令池全局 (对齐 Rim.ahk:94-95; 缺了 LauncherCompat.AddCommand 即 PLUGIN_ERR)
+global g_Commands := []
+global g_CommandAlias := Map()
+
+RegisterCommand(name, type, content, description := "") {
+    LauncherCompat.AddCommand(name, type, content, description)
+}
+
 #Include ..\Plugins\Explorer.ahk
 #Include ..\Plugins\LauncherSystem.ahk
 #Include ..\Plugins\TotalCommander.ahk
@@ -96,7 +115,7 @@ Assert(RimCommand.Get("mock.hello") != "", "command-registered-by-plugin")
 Assert(RimCommand.Get("explorer.open_tc") != "", "explorer-cmd-registered")
 Assert(RimCommand.Get("tc.open") != "", "tc-cmd-registered")
 
-mockEngine := { SetAction: (*)=>0, MapKey: (*)=>0, RegisterWin: (*)=>0, SetBeforeActionDoForWin: (*)=>0 }
+mockEngine := { SetWin: (*)=>0, SetAction: (*)=>0, MapKey: (*)=>0, SetMode: (*)=>0, RegisterWin: (*)=>0, SetBeforeActionDoForWin: (*)=>0, SetPreKeyFilterForWin: (*)=>0, RegisterPrefixActionHandler: (*)=>0, RegisterActionValidator: (*)=>0 }
 RimPluginManager.RegisterAllKeymaps(mockEngine)
 Assert(g_TestPluginFlags["keymaps"] == true, "lifecycle-keymaps-executed")
 
@@ -126,5 +145,6 @@ try {
     Assert(false, "plugin-sandbox-leaked-error")
 }
 
+try FileDelete(A_ScriptDir . "\..\smoke_plugin.out.txt")
 FileAppend("smoke-plugin-ok`n", A_ScriptDir . "\..\smoke_plugin.out.txt")
 ExitApp(0)

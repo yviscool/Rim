@@ -327,6 +327,16 @@ ExecuteAction_Body(action := "", actionArg := "") {
             url := "http://" . url
         Run(url)
     }
+    else if (SubStr(action, 1, 6) = "combo|") {
+        ; 手势 combo 起臂兜底 (与 GestureEngine.ComboArm 同语义, 统一入口可达)
+        try {
+            if (IsSet(GestureEngine) && IsObject(GestureEngine)) {
+                GestureEngine.ComboArm(action)
+                return
+            }
+        } catch {
+        }
+    }
     else if (SubStr(action, 1, 9) = "function|") {
         global g_Arg
         rest := SubStr(action, 10)
@@ -343,10 +353,28 @@ ExecuteAction_Body(action := "", actionArg := "") {
         ; 点式静态方法 ("Class.Method", 见 ActionProtocol.ActionCallDotted):
         ; %fn%() 不支持点式, 模板默认动作全死于此. 先点式, 再裸名.
         if (InStr(fn, ".")) {
-            try {
-                if (ActionCallDotted(fn, fnArg))
-                    return
+            dottedOk := false
+            try dottedOk := ActionCallDotted(fn, fnArg)
+            catch {
+                dottedOk := false
             }
+            if (dottedOk)
+                return
+            ; 点式已判死: 不再落到 %fn%() (必报 Variable not found), 直接记未知函数
+            try RimLog("UNKNOWN_FUNCTION", action . " fn=" . fn)
+            catch {
+            }
+            return
+        }
+        ; 运行时前检 (与 probe_dead_refs 同词表): 未知名字直接记错返回, 不抛 Variable not found
+        try {
+            if (IsSet(ActionIsCallable) && !ActionIsCallable(fn)) {
+                try RimLog("UNKNOWN_FUNCTION", action . " fn=" . fn)
+                catch {
+                }
+                return
+            }
+        } catch {
         }
         if (fnArg != "") {
             try {

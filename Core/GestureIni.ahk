@@ -79,7 +79,11 @@ GestureIni_FindKey(lines, from, to, key, caseSense := false) {
 }
 
 ; ---- upsert: 有则改该行, 无则插入到 section 尾, 无 section 则尾部追加 ----
+; 与 CfgTxn 管线串行化: 整盘事务进行中直接返回 false (调用方计 skipped, 下次重试), 不交错写盘
 GestureIni_Upsert(path, section, key, value, caseSense := false) {
+    global g_CfgTxnActive
+    if (IsSet(g_CfgTxnActive) && g_CfgTxnActive)
+        return false
     text := GestureIni_ReadText(path)
     if (text = "" && !FileExist(path))
         return false
@@ -133,7 +137,11 @@ GestureIni_UpsertVerified(path, section, key, value, caseSense := false) {
 }
 
 ; ---- 删除 key 行, 返回是否删到 ----
+; 与 Upsert 同理: 事务进行中返回 false, 不交错写盘
 GestureIni_Delete(path, section, key, caseSense := false) {
+    global g_CfgTxnActive
+    if (IsSet(g_CfgTxnActive) && g_CfgTxnActive)
+        return false
     text := GestureIni_ReadText(path)
     if (text = "")
         return false

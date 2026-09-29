@@ -45,7 +45,7 @@ Rim 采用严格的单向依赖 6 层架构模型，杜绝模块间的循环依�
 
 ## 二、统一插件架构契约 (`Core/Plugin.ahk`)
 
-全插件经 `RimPlugin` 六阶段直注：命令进 `RimCommand`（`RegisterCommands`，字符串动作或闭包，无别名表），Vim 映射经 `engine.SetWin/SetAction/MapKey`（`RegisterKeymaps(engine)`），手势经 `GestureRegistry`，上下文经 `RimContext`。无白名单、无字符串分发、无双轨。`OnExitAll` 由进程退出回调触发，见 `Rim.ahk Rim_OnExit`。新增插件 checklist：
+全插件经 `RimPlugin` 六阶段直注：命令进 `RimCommand`（`RegisterCommands`，字符串动作或闭包）＋命令别名首胜表 `g_CommandAlias[content]=name`（`Core/Command.ahk`，`probe_command_alias/alias_wire` 锁死：删注册名即删别名）；`function|X` 引用三形态（裸函数/点式静态/`ActionCallDotted`/`<SP_*>` 运行时注册，`probe_dead_refs/dotted_action` 锁死：删函数先 grep 全仓引用），Vim 映射经 `engine.SetWin/SetAction/MapKey`（`RegisterKeymaps(engine)`），手势经 `GestureRegistry`，上下文经 `RimContext`。无白名单、无双轨。`OnExitAll` 由进程退出回调触发，见 `Rim.ahk Rim_OnExit`。新增插件 checklist：
 
 ### 1. 生命周期阶段 (Lifecycle Phases)
 
@@ -207,8 +207,8 @@ Core/Gesture.ahk (主门面 Facade, 保持向后兼容 API 与全局 Map)
 6. 睡眠唤醒后钩子仍在（`LowLevelHooksTimeout` 200ms 零冻结），托盘图标不 Doppelganger。
 
 ### 4. CI 门禁现状
-- 已有：`i18n_audit --check` ＋ `smoke_parse/register/si/command/context/plugin/workspace/gesture/audit_fixes`（见 `.github/workflows/i18n.yml`）。
-- 待补（本轮脚本已就绪，工作流文件等脏区落地后加两行）：`probe_gesture_store/unified/fix` 进 `smoke` job；`benchmark_gesture.ahk` P95 门禁（>50ms 即非 0 退出，A_TickCount 量子约 15.6ms，50ms 防抖动误杀，本地基线 16ms）。
+- 已有（见 `.github/workflows/i18n.yml`，`audit` + `smoke` 双 job）：`i18n_audit --check` ＋ `smoke_parse/register/si/command/context/plugin/workspace/gesture/audit_fixes` ＋分发不变量（`probe_nohook/global_hook/terminal/vim_hotkeys/gesture_state`）＋手势（store/unified/fix/ui/ui_geometry＋50 条负样本）＋ `benchmark_gesture.ahk` P95 门禁（>50ms 非 0 退出，accuracy<90 失败）＋配置服务门禁（`g_Conf.Get/Set` 白名单外直调即失败）＋ `probe_include_order` 与 ~23 个契约探针（`config_txn/schema`、`dead_refs`、`ini_roundtrip`、`alias_wire` 等，exit 码判，`*.out.txt` 仅辅助）。
+- 真机项（`probe_desktop_matrix` 后 11 条 `[ ]`）仍需人手勾选，机器门恒过不代表回归通过。
 
 ### 5. 排序 frecency（指数半衰）
 - 公式：`score = min(visits,25) × 0.5^(daysSinceUse/半衰期)`，精确桶永远第一，非精确桶内前缀子桶优先、同分保注册序。

@@ -49,5 +49,6 @@ Assert(engine.ConvertFromVim("<WIN-D>") = "#D", "conv-win-full")
 Assert(engine.ConvertFromVim("<LCTRL-C>") = "<^C", "conv-lctrl-full")
 Assert(engine.ConvertFromVim("<RSHIFT-T>") = ">+T", "conv-rshift-full")
 
+try FileDelete(A_ScriptDir . "\..\probe_terminal.out.txt")
 FileAppend("probe-terminal-ok`n", A_ScriptDir . "\..\probe_terminal.out.txt")
 ExitApp(0)

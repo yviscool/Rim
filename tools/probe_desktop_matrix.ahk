@@ -60,7 +60,7 @@ Main() {
         FileAppend(txt, out, "UTF-8")
         ExitApp(1)
     }
-    FileAppend("desktop-matrix-ok`n" . list, out, "UTF-8")
+    FileAppend("desktop-matrix-ok [machine-only; below 11 manual items are UNCHECKED, see docs/desktop-matrix.md]`n" . list, out, "UTF-8")
     ExitApp(0)
 }
 

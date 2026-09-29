@@ -5,7 +5,35 @@
 ; 入口见 VimConfigUI.ahk, 加载顺序见 Rim.ahk (Gui 组, ConfigSchema 之后)
 ; ==================== 保存层 (纯函数, 可单测) ====================
 ; final: Map, key = sec Chr(1) key, value = {val: "...", del: true/false}
+; 单写器: final→setMap 适配后走 CfgTxn_WriteTmp/VerifyTmp (与 CfgTxn_SaveIni 同实现);
+; 老直写实现保留为无 ConfigTxn 上下文时的回落 (仅探针外 exotic 引用会走到)
 VimCfg_WriteIni(path, final) {
+    if (IsSet(CfgTxn_WriteTmp) && IsSet(CfgTxn_VerifyTmp)) {
+        setMap := Map()
+        for sk, d in final {
+            pos := InStr(sk, Chr(1))
+            sec := SubStr(sk, 1, pos - 1)
+            if (!setMap.Has(sec))
+                setMap[sec] := Map()
+            setMap[sec][d["key"]] := Map("val", d["val"], "del", d["del"])
+        }
+        tmp := path . ".rimtmp"
+        CfgTxn_WriteTmp(path, tmp, setMap)
+        try {
+            CfgTxn_VerifyTmp(tmp, setMap)
+        } catch {
+            try FileDelete(tmp)
+            catch {
+            }
+            throw
+        }
+        FileMove(tmp, path, 1)
+        return
+    }
+    VimCfg_WriteIniLegacy(path, final)
+}
+
+VimCfg_WriteIniLegacy(path, final) {
     lines := ReadFileLines(path)
     out := []
     cur := ""
@@ -238,10 +266,28 @@ VimCfg_PreviewOK(*) {
 
 ; ==================== 事务保存: 备份→写盘→内存+undo→广播→按需重启 ====================
 ; 原子语义: 广播失败则用备份整盘回滚 (内存重载 + 旧值重广播), 不留半吊子状态
+; 文件相与 CfgTxn_SaveIni 同 writer/verifier (CfgTxn_WriteTmp/VerifyTmp), 重入由 g_CfgTxnActive 串行化
 VimCfg_DoSave(dirty) {
+    global g_CfgTxnActive
+    if (IsSet(g_CfgTxnActive) && g_CfgTxnActive) {
+        try MsgBox(T("cfg.save_failed", "txn busy"), T("cfg.title"), 16)
+        catch {
+        }
+        return
+    }
+    g_CfgTxnActive := true
+    try {
+        VimCfg_DoSaveBody(dirty)
+    } finally {
+        g_CfgTxnActive := false
+    }
+}
+
+VimCfg_DoSaveBody(dirty) {
     global g_VimCfg, g_Conf, g_AutoConf, g_CfgSelfWriteTick, g_VimEngine
     path := A_ScriptDir "\Conf\rim.ini"
     backup := VimCfg_BackupIni(path)
+    ; 单管线文件相 (WriteIni 内走 txn writer/verifier, 删键吞行)
     try {
         VimCfg_WriteIni(path, dirty)
     } catch as e {

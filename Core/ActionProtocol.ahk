@@ -3,7 +3,7 @@
 ; === Core/ActionProtocol.ahk - 统一动作协议 v2 ===
 ; P1-5: 结构化动作对象 + 字符串边界兼容层
 ; 形态: Map{kind, target, arg, source, raw}
-; kind: run|file|dir|cmd|url|command|function|key|plugin|legacy|unknown
+; kind: run|file|dir|cmd|url|command|function|key|plugin|legacy|combo|unknown
 ; 错误码: OK/EMPTY/UNKNOWN_KIND/UNKNOWN_COMMAND/RECURSION/VALIDATE_FAIL/HANDLER_FAIL
 ; 字符串协议冻结为 ABI, 只增不改; 双向兜底保留但收敛到 ActionDispatch 一处
 
@@ -18,7 +18,7 @@ ActionParse(raw, source := "") {
     parts := StrSplit(r, "|", , 2)
     kind := StrLower(Trim(parts[1]))
     target := parts.Length >= 2 ? Trim(parts[2]) : ""
-    valid := Map("run", 1, "file", 1, "dir", 1, "cmd", 1, "url", 1, "command", 1, "function", 1, "key", 1, "plugin", 1, "legacy", 1)
+    valid := Map("run", 1, "file", 1, "dir", 1, "cmd", 1, "url", 1, "command", 1, "function", 1, "key", 1, "plugin", 1, "legacy", 1, "combo", 1)
     if (!valid.Has(kind)) {
         if (InStr(r, "|"))
             return Map("ok", false, "code", "UNKNOWN_KIND", "kind", kind, "target", target, "arg", "", "source", source, "raw", raw, "msg", "unknown kind: " . kind)
@@ -66,6 +66,19 @@ ActionDispatch(actMap, actionArg := "") {
         }
         return Map("ok", false, "code", "UNKNOWN_COMMAND", "msg", "unknown function: " . fn)
     }
+    if (kind = "combo") {
+        ; 手势 combo 起臂 (如 combo|zoom): 与 Gesture/Engine.ahk ComboArm 同语义,
+        ; 统一入口不再报 UNKNOWN_KIND, 无手势引擎时降级为 OK_DEFER
+        try {
+            if (IsSet(GestureEngine) && IsObject(GestureEngine)) {
+                GestureEngine.ComboArm(kind . "|" . target)
+                return Map("ok", true, "code", "OK", "msg", "")
+            }
+        } catch as ex {
+            return Map("ok", false, "code", "HANDLER_FAIL", "msg", ex.Message)
+        }
+        return Map("ok", true, "code", "OK_DEFER", "msg", "defer to ExecuteAction_Body")
+    }
     return Map("ok", true, "code", "OK_DEFER", "msg", "defer to ExecuteAction_Body")
 }
 
@@ -87,6 +100,41 @@ ActionLastTrace() {
         }
     }
     return RTrim(out, " <- ")
+}
+
+; 运行时前检: 与 probe_dead_refs 同词表语义 (裸函数/点式/Registry 三形态),
+; 未知名字直接判 false, 调用方记 UNKNOWN_FUNCTION, 不再靠 %fn%() 抛 "Variable not found"
+ActionIsCallable(fn) {
+    fn := Trim(String(fn))
+    if (fn = "" || InStr(fn, "`n") || InStr(fn, "|") || InStr(fn, " "))
+        return false
+    if (InStr(fn, ".")) {
+        parts := StrSplit(fn, ".")
+        if (parts.Length != 2 || parts[1] = "" || parts[2] = "")
+            return false
+        try {
+            clsRef := %parts[1]%
+            if (IsObject(clsRef) && HasMethod(clsRef, parts[2]))
+                return true
+        } catch {
+        }
+        return false
+    }
+    try {
+        if (IsSet(RimCommand) && IsObject(RimCommand) && IsObject(RimCommand.Registry)) {
+            if (RimCommand.Registry.Has(fn) || RimCommand.Registry.Has("legacy." . fn))
+                return true
+        }
+    } catch {
+    }
+    ; 裸函数名: 双解引用取 Func 对象 (IsFunc 在此构建不存在, 调用即抛, 实测锤实)
+    try {
+        ref := %fn%
+        if (Type(ref) = "Func")
+            return true
+    } catch {
+    }
+    return false
 }
 
 ; 点式静态调用: "Class.Method" (+可选参数). %fn%() 不支持点式 (实测 Variable not found),

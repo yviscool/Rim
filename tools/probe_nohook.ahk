@@ -27,5 +27,6 @@ engine.MapKey("g3", "<Gen_Tab3>", "General", "normal")
 Assert(engine.GetWin("General").modeList["normal"].keymapList.Has("3"), "general-keeps-data-3")
 Assert(engine.GetWin("General").KeyList.Has("j"), "general-keeps-keylist-j")
 
+try FileDelete(A_ScriptDir . "\..\probe_nohook.out.txt")
 FileAppend("probe-nohook-ok`n", A_ScriptDir . "\..\probe_nohook.out.txt")
 ; 故意无 ExitApp: 自然退出=零钩子=通过; 常驻 hang=失败.

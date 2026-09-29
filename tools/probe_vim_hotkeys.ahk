@@ -17,5 +17,6 @@ for _, raw in ["<c-u>", "<CTRL-U>", "<lctrl-r>", "<S-F>", "<Enter>"] {
     } catch
         ExitApp(2)
 }
+try FileDelete(A_ScriptDir . "\..\probe_vim_hotkeys.out.txt")
 FileAppend("probe-vim-hotkeys-ok`n", A_ScriptDir . "\..\probe_vim_hotkeys.out.txt")
 ExitApp(0)

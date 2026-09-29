@@ -102,12 +102,14 @@ tools/        Localization audit and smoke-test scripts
 
 ## Development and Checks
 
-The CI workflow audits localization coverage and runs AutoHotkey parse and plugin-registration smoke tests on Windows. To run the same checks locally:
+The CI workflow (`.github/workflows/i18n.yml`, jobs `audit` + `smoke`) gates on: localization coverage (`i18n_audit --check`), parse smoke (`smoke_parse`), hybrid register parity (`smoke_register`, en zero-missing), SmartInput/command/context/plugin/workspace/gesture/audit probes, dispatch invariants (`probe_nohook/global_hook/terminal/vim_hotkeys/gesture_state`), gesture store/unified/fix/ui probes, gesture benchmark (P95≤50ms, accuracy≥90), a config-service gate (no direct `g_Conf.Get/Set` outside the allowlist), include-order plus ~23 contract probes (exit code decides, `*.out.txt` is supplementary). To run the same checks locally:
 
 ```powershell
 python tools/i18n_audit.py audit --check
 & "$env:ProgramFiles\AutoHotkey\v2\AutoHotkey64.exe" /ErrorStdOut tools/smoke_parse.ahk
 & "$env:ProgramFiles\AutoHotkey\v2\AutoHotkey64.exe" /ErrorStdOut tools/smoke_register.ahk
+& "$env:ProgramFiles\AutoHotkey\v2\AutoHotkey64.exe" /ErrorStdOut tools/smoke_plugin.ahk
+& "$env:ProgramFiles\AutoHotkey\v2\AutoHotkey64.exe" /ErrorStdOut tools/probe_config_txn.ahk
 ```
 
 To add an integration, place it in `Plugins/`, register its actions or commands using the existing plugin patterns, and include it from `Rim.ahk`. Keep UI strings in `Lang/en.ini` and `Lang/zh-CN.ini`; run the localization audit after changing translated strings.

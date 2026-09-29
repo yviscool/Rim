@@ -12,5 +12,6 @@ g_Gesture["startHwnd"] := 123
 GestureHook.ClearStartContext()
 if (g_Gesture["phase"] != "idle" || g_Gesture["points"].Length != 0 || g_Gesture["dirs"].Length != 0 || g_Gesture["gesture"] != "")
     ExitApp(1)
+try FileDelete(A_ScriptDir . "\..\probe_gesture_state.out.txt")
 FileAppend("probe-gesture-state-ok`n", A_ScriptDir . "\..\probe_gesture_state.out.txt")
 ExitApp(0)

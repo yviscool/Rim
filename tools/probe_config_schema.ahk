@@ -7,6 +7,7 @@ FileEncoding "UTF-8"
 #Include ..\Core\I18n.ahk
 #Include ..\Core\Common.ahk
 #Include ..\Core\ConfigSchema.ahk
+#Include ..\Core\ConfigTxn.ahk
 #Include ..\Gui\VimConfigUI.ahk
 #Include ..\Gui\VimCfg_Save.ahk
 #Include ..\Gui\VimCfg_Schema.ahk
@@ -37,7 +38,7 @@ class ConfStub2 {
 ; ---- 语言固定英文, 断言 label/help 零缺键 (缺键时 T 回落 key 本身) ----
 I18nSetLang("en", false)
 
-Check("schema-count-37", g_CfgSchema.Length = 37)
+Check("schema-count-48", g_CfgSchema.Length = 48)
 seen := Map()
 dupFound := false
 typeOk := true
@@ -192,5 +193,6 @@ if (g_ProbeFails > 0) {
     FileAppend("FAIL total=" . g_ProbeFails . "`n", "*")
     ExitApp(1)
 }
+try FileDelete(A_ScriptDir . "\..\probe_config_schema.out.txt")
 FileAppend("probe-config-schema-ok`n", A_ScriptDir . "\..\probe_config_schema.out.txt")
 ExitApp(0)

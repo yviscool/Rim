@@ -63,8 +63,15 @@ class MD5 {
             Sleep 100
 
             if FileExist(resultFile) {
-                Loop read, resultFile {
-                    line := Trim(A_LoopReadLine)
+                content := ""
+                try content := FileRead(resultFile, "UTF-8")
+                catch {
+                    content := ""
+                }
+                ; 显式 UTF-8 + Loop Parse (禁 Loop read 裸读, 见 AGENTS 错误 16;
+                ; certutil 输出纯 ASCII, 此处为文法合规)
+                Loop Parse, content, "`n", "`r" {
+                    line := Trim(A_LoopField)
                     if (RegExMatch(line, "^[0-9a-f]{32}$")) {
                         FileDelete tempFile
                         FileDelete resultFile

@@ -540,11 +540,11 @@ TotalCommander_Keymaps(engine) {
     engine.SetMode("normal", "TCQuickSearch")
 
     ; 设置 BeforeActionDo 回调 (仅 TTOTAL_CMD 窗, 对齐原版; 全局注册会误伤其它窗口)
-    Rim.vim.SetBeforeActionDoForWin("TTOTAL_CMD", TC_BeforeActionDo)
-    Rim.vim.SetPreKeyFilterForWin("TTOTAL_CMD", TC_PreKeyFilter)
-    Rim.vim.RegisterPrefixActionHandler("cm_", TC_HandleCmAction)
-    Rim.vim.RegisterActionValidator("cm_", TC_ValidateCmAction)
-    Rim.vim.RegisterPrefixActionHandler("tccmd|", (action) => (TC_Run(SubStr(action, 7)), true))
+    engine.SetBeforeActionDoForWin("TTOTAL_CMD", TC_BeforeActionDo)
+    engine.SetPreKeyFilterForWin("TTOTAL_CMD", TC_PreKeyFilter)
+    engine.RegisterPrefixActionHandler("cm_", TC_HandleCmAction)
+    engine.RegisterActionValidator("cm_", TC_ValidateCmAction)
+    engine.RegisterPrefixActionHandler("tccmd|", (action) => (TC_Run(SubStr(action, 7)), true))
 
     ; === 基础动作 ===
     engine.SetAction("<TC_NormalMode>", T("act.TotalCommander.TC_NormalMode"))

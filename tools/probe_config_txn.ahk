@@ -101,6 +101,18 @@ Main() {
     Check("txn-validate-block", !res2["ok"] && res2["stage"] = "validate")
     back2 := FileRead(tmp, "UTF-8")
     Check("txn-no-halfwrite", InStr(back2, "HistorySize=120") > 0)
+    ; del 混合单: upsert+删键同事务, 删键行消失、upsert 精确落本段、他段不动
+    try FileDelete(tmp)
+    catch {
+    }
+    FileAppend("[Config]`nHistorySize=120`nOldGone=1`n`n[Gui]`nSkin=New`n", tmp, "UTF-8")
+    delMap := Map("Config", Map("HistorySize", Map("val", "130", "del", false), "OldGone", Map("val", "", "del", true)))
+    res3 := CfgTxn_SaveIni(tmp, delMap)
+    back3 := FileRead(tmp, "UTF-8")
+    Check("txn-del-ok", res3["ok"])
+    Check("txn-del-upsert", InStr(back3, "HistorySize=130") > 0)
+    Check("txn-del-gone", !InStr(back3, "OldGone"))
+    Check("txn-del-sec-kept", InStr(back3, "[Gui]") > 0 && InStr(back3, "Skin=New") > 0)
     try FileDelete(tmp)
     catch {
     }

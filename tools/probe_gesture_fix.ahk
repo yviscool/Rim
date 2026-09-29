@@ -20,7 +20,7 @@ T(k, params*) {
 ; 模态错误框会挂起探针: 转存档 + 非 0 退出
 Probe_OnError(e, mode) {
     try FileAppend("FAIL|unhandled: " . e.Message . " @line=" . e.Line . " what=" . e.What . "`n"
-        , A_ScriptDir . "\probe_gesture_fix.out.txt")
+        , A_ScriptDir . "\..\probe_gesture_fix.out.txt")
     catch {
     }
     ExitApp(3)
@@ -32,14 +32,14 @@ global g_Fails := 0
 Chk(name, cond) {
     global g_Fails
     if (cond) {
-        FileAppend("OK|" . name . "`n", A_ScriptDir . "\probe_gesture_fix.out.txt")
+        FileAppend("OK|" . name . "`n", A_ScriptDir . "\..\probe_gesture_fix.out.txt")
     } else {
-        FileAppend("FAIL|" . name . "`n", A_ScriptDir . "\probe_gesture_fix.out.txt")
+        FileAppend("FAIL|" . name . "`n", A_ScriptDir . "\..\probe_gesture_fix.out.txt")
         g_Fails++
     }
 }
 
-try FileDelete(A_ScriptDir . "\probe_gesture_fix.out.txt")
+try FileDelete(A_ScriptDir . "\..\probe_gesture_fix.out.txt")
 catch {
 }
 
@@ -147,8 +147,8 @@ try {
 Chk("soak-trail-50", trailOk)
 
 if (g_Fails > 0) {
-    FileAppend("RESULT|FAIL|" . g_Fails . "`n", A_ScriptDir . "\probe_gesture_fix.out.txt")
+    FileAppend("RESULT|FAIL|" . g_Fails . "`n", A_ScriptDir . "\..\probe_gesture_fix.out.txt")
     ExitApp(1)
 }
-FileAppend("RESULT|PASS`n", A_ScriptDir . "\probe_gesture_fix.out.txt")
+FileAppend("RESULT|PASS`n", A_ScriptDir . "\..\probe_gesture_fix.out.txt")
 ExitApp(0)

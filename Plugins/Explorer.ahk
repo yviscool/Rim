@@ -56,7 +56,7 @@ if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
 Explorer_Keymaps(engine) {
     ; 窗名与 ini [CabinetWClass] 对齐 (原 custom ini 即如此), 避免孤儿窗
     engine.SetWin("CabinetWClass", "CabinetWClass", "explorer.exe")
-    g_VimEngine.SetBeforeActionDoForWin("CabinetWClass", Explorer_ForceInsertMode)
+    engine.SetBeforeActionDoForWin("CabinetWClass", Explorer_ForceInsertMode)
 
     ; 注册动作
     engine.SetAction("<Exp_Back>", T("act.Explorer.Exp_Back"))

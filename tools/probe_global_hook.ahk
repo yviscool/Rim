@@ -27,5 +27,6 @@ try {
 }
 Assert(ok, "global-hook-registered")
 
+try FileDelete(A_ScriptDir . "\..\probe_global_hook.out.txt")
 FileAppend("probe-global-hook-ok`n", A_ScriptDir . "\..\probe_global_hook.out.txt")
 ExitApp(0)
