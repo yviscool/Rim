@@ -671,3 +671,29 @@ if (menuOpen && g_TCLastCmd != 572)
 ;   对 url/run/cmd 三段行优先别名, Search 搜索串尾补别名。删注册名即删别名，
 ;   同契约 1 先 grep。
 ```
+
+### 错误 35：`disp["ok"]` 为真不等于已执行 —— OK_DEFER 必须落到 Body
+
+```ahk
+; ❌ 实测翻车 (文件/网址回车静默死, 零日志)：ActionDispatch 对 run|file|key|dir|cmd|url
+;   返回 ok=true + code=OK_DEFER ("无人可接, 交给 Body")；ExecuteAction 错判 ok 即 return，
+;   Body 永不到达，Run() 从未被调用。命令 (OK) 正常、文件全灭，极易误判为数据问题。
+; ✅ ExecuteAction 只认 code = "OK" / "HANDLER_FAIL" 才跳过 Body；
+;   OK_DEFER / UNKNOWN_COMMAND 必须下坠。锁死探针: probe_action_protocol
+;   defer-run-body/defer-file-body (不存在目标 → RUN_FAILED，证明 Body 跑了)。
+; ✅ 教训: 统一入口的"已接管"与"已执行"是两个状态，合并判断前先读 code 表；
+;   静默死 bug 一律先加临时追踪 (ENTER/RUN/DISPATCH/BODYFILE 四段)，定位后删除，
+;   不要靠走读猜 (本次走读三次全错，追踪一次命中)。
+```
+
+### 错误 36：别名只进搜索串不进 Name —— "Google koa.js" 整句搜不出
+
+```ahk
+; ❌ 实测翻车 (搜 Google koa.js 直接掉回退列表, 输空格即散)：
+;   C2 收编把 url 行 Name 写成整串 content，注册别名 (Google) 只补进搜索串尾；
+;   ShouldFreezeInput 比的是核 (id)，别名永远对不上头 → 空格不冻结；
+;   整句含参无头拆分 → 零命中 → 回退。Tab/回车/Alt+数字全错位。
+; ✅ 收编时别名优先 (IngestRow: Name := alias ?? content，表就绪于插件注册之后)；
+;   冻结比名 (SI_NameOf)；整句零命中退化搜命令头 (SearchCollectMatches + SI_HeadPure)，
+;   参数照进 g_Arg。锁死探针：probe_search_e2e headmatch/freeze/alias 三组。
+```

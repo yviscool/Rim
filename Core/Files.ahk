@@ -73,164 +73,34 @@ ResolveSearchDir(dir) {
     return dir
 }
 
-; 添加命令到全局列表
+; 收编行进 Registry (池已死: 唯一入口, 返回 id; 首注胜, 重复收编覆盖幂等)
 AddCommand(element) {
-    global g_Commands, g_CommandObjects, g_SkinConf, g_Conf, g_CommandSet
-
-    ; 幂等去重: Set O(1) 代替线性扫 O(n) (池数千条时启动平方爆炸);
-    ; 集合随 g_Commands 同清同建 (LoadFiles/排名合并两处重置点), 懒初始化兜底探针直调;
-    ; 键归一小写 (旧 `existing = element` 是不分大小写比较, 语义保持)
     try {
-        if (!IsSet(g_CommandSet) || !IsObject(g_CommandSet))
-            g_CommandSet := Map()
-    ; 键归一小写 (旧 `existing = element` 是不分大小写比较, 语义保持)
-        if (g_CommandSet.Has(StrLower(element)))
-            return
+        if (IsSet(RimCommand) && IsObject(RimCommand))
+            return RimCommand.IngestRow(element)
     } catch {
-        for existing in g_Commands {
-            if (existing = element)
-                return
-        }
     }
-
-    g_Commands.Push(element)
-    try g_CommandSet[StrLower(element)] := true
-    catch {
-    }
-
-    cmdObj := Map()
-    cmdObj["raw"] := element
-
-    splitedElement := StrSplit(element, " | ")
-
-    if (splitedElement[1] = "file") {
-        SplitPath(splitedElement[2], &fileName, , , &fileNameNoExt)
-
-        cmdObj["type"] := "file"
-        cmdObj["typeLabel"] := g_SkinConf.Has("HideCol2") && g_SkinConf["HideCol2"] = "1" ? "" : TypeLabel("file")
-        cmdObj["fileName"] := fileName
-        cmdObj["fileNameNoExt"] := fileNameNoExt
-        fileDir := ""
-        try SplitPath(splitedElement[2], , &fileDir)
-        cmdObj["fileDir"] := fileDir
-        cmdObj["extra"] := splitedElement.Length >= 3 ? splitedElement[3] : ""
-
-        ; 对齐原版: ShowFileExt=1 显示 fileName(带扩展名), 否则 fileNameNoExt; 绝不显示全路径
-        showExt := (CfgGet("Config", "ShowFileExt", "0") = "1")
-        if (showExt)
-            cmdObj["elementToShow"] := "file | " . fileName . (cmdObj["extra"] ? " | " . cmdObj["extra"] : "")
-        else
-            cmdObj["elementToShow"] := "file | " . fileNameNoExt . (cmdObj["extra"] ? " | " . cmdObj["extra"] : "")
-
-        cmdObj["elementToSearch"] := fileNameNoExt
-        if (cmdObj["extra"])
-            cmdObj["elementToSearch"] .= " " . cmdObj["extra"]
-        try {
-            if (CfgGet("Config", "SearchFullPath", "0") = "1")
-                cmdObj["elementToSearch"] := StrReplace(cmdObj["fileDir"], "\", " ") . " " . cmdObj["elementToSearch"]
-        }
-    } else if (CmdLine_IsFourSeg(splitedElement)) {
-        ; 四段式: key | type | cmd | desc (来自 [Commands] key=type|cmd|desc)
-        cmdKey := splitedElement[1]
-        cmdType := splitedElement[2]
-        cmdCmd := splitedElement[3]
-        extra := splitedElement[4]
-        if (splitedElement.Length > 4) {
-            Loop splitedElement.Length - 4
-                extra .= " | " . splitedElement[4 + A_Index]
-        }
-        cmdObj["key"] := cmdKey
-        cmdObj["type"] := cmdType
-        cmdObj["typeLabel"] := (g_SkinConf.Has("HideCol2") && g_SkinConf["HideCol2"] = "1") ? "" : MapTypeLabel(cmdType)
-        cmdObj["extra"] := extra
-
-        ; 显示三段式: 类型 | 别名 | 描述 (与 Search 侧一致)
-        cmdObj["elementToShow"] := cmdType . " | " . cmdKey
-        if (extra)
-            cmdObj["elementToShow"] .= " | " . extra
-
-        ; key 必须进可搜索文本, 否则别名命令(如 settings)搜不到
-        cmdObj["elementToSearch"] := cmdKey . " " . StrReplace(StrReplace(cmdCmd, "/", " "), "\", " ")
-        if (extra)
-            cmdObj["elementToSearch"] .= " " . extra
-    } else {
-        cmdObj["type"] := splitedElement[1]
-        cmdObj["typeLabel"] := (g_SkinConf.Has("HideCol2") && g_SkinConf["HideCol2"] = "1") ? "" : MapTypeLabel(splitedElement[1])
-        cmdObj["extra"] := splitedElement.Length >= 3 ? splitedElement[3] : ""
-
-        cmdObj["elementToShow"] := splitedElement[1] . " | " . splitedElement[2]
-        if (cmdObj["extra"])
-            cmdObj["elementToShow"] .= " | " . cmdObj["extra"]
-
-        cmdObj["elementToSearch"] := StrReplace(splitedElement[2], "/", " ")
-        cmdObj["elementToSearch"] := StrReplace(cmdObj["elementToSearch"], "\", " ")
-        if (cmdObj["extra"])
-            cmdObj["elementToSearch"] .= " " . cmdObj["extra"]
-    }
-
-    g_CommandObjects.Push(cmdObj)
-}
-
-; 类型标签映射 (经 TypeLabel 走语言包; 原先 Chr(0x..) 硬编码中文)
-MapTypeLabel(type) {
-    if (type = "file")
-        return TypeLabel("file")
-    else if (type = "function")
-        return TypeLabel("function")
-    else if (type = "cmd")
-        return TypeLabel("cmd")
-    else if (type = "url")
-        return TypeLabel("url")
-    else if (type = "run")
-        return TypeLabel("run")
     return ""
 }
 
-; 主加载器
+; 主加载器 (Registry 是唯一真相源: 各源经 AddCommand 收编, 排序由搜索期 frecency 实时算)
 LoadFiles(loadRank := true) {
-    global g_Commands, g_CommandObjects, g_FallbackCommands, g_ExcludedCommands
+    global g_FallbackCommands
     global g_ExcludedCommandsObj, g_AutoConf, g_Conf, g_Plugins, g_UserFileList
-    global g_SearchFileList, g_SkinConf, g_CommandSet
+    global g_SearchFileList, g_SkinConf
 
-    g_Commands := []
-    g_CommandSet := Map()
-    g_CommandObjects := []
     g_FallbackCommands := []
-    g_ExcludedCommands := ""
     g_ExcludedCommandsObj := Map()
 
-    ; 加载排名: 先收集按 frecency 排序, 待新鲜索引建成后再合并
-    ; (已从配置/插件中删除的旧条目不再复活, 避免 calc/google 类遮挡重现)
-    rankElements := []
+    ; 排除表: 权重为负的 Rank 键不再参与搜索 (键已是 rankKey 形 "command|<id>")
     if (loadRank) {
-        hl := RankHalfLife()
-        scored := []
         for command, rank in g_AutoConf["Rank"] {
             if (StrLen(command) = 0)
                 continue
             parsed := RankParseValue(rank)
-            if (parsed["visits"] >= 1) {
-                scored.Push(Map("key", command, "score", RankScoreOf(parsed["visits"], parsed["date"], hl)))
-            } else {
-                g_ExcludedCommands .= command "`n"
+            if (parsed["visits"] < 1) {
                 g_ExcludedCommandsObj[command] := true
             }
-        }
-        ; 稳定降序 (插入排序, rank 条目通常几十个; 同分保持 ini 顺序)
-        ordered := []
-        for _, it in scored {
-            pos := ordered.Length + 1
-            Loop ordered.Length {
-                if (it["score"] > ordered[A_Index]["score"]) {
-                    pos := A_Index
-                    break
-                }
-            }
-            ordered.InsertAt(pos, it)
-        }
-        for _, it in ordered {
-            ; Rank 键原样回放, 不做格式改写 (保证 ChangeRank 键稳定)
-            rankElements.Push(it["key"])
         }
     }
 
@@ -243,17 +113,12 @@ LoadFiles(loadRank := true) {
             AddCommand(key)
     }
 
-    ; 加载插件命令: 全插件经 Hybrid RegisterCommands 直注 (无 legacy 分发)
+    ; 加载插件命令: 全插件经 RegisterCommands 直注 Registry
     if (IsSet(RimPluginManager) && IsObject(RimPluginManager)) {
         RimPluginManager.RegisterAllCommands()
     }
 
-    ; 加载语义指令 (RimCommand) 与工作空间指令到全局启动池
-    if (IsSet(RimCommand) && IsObject(RimCommand)) {
-        RimCommand.PopulateAllToLauncher()
-    }
-
-    ; 加载回退命令: 全部收录 (原版按顺序, 第一项为回车默认)
+    ; 加载回退命令: 全部收录 (原版按顺序, 第一项为回车默认; 不进 Registry, 无结果时才显示)
     ; 不做 IsFunc/IsLabel 过滤 — 别名在 RunCommand 时再解析, 保证无结果时总有显示
     g_FallbackCommands := []
     if (g_Conf.HasSection("FallbackCommand")) {
@@ -294,56 +159,29 @@ LoadFiles(loadRank := true) {
                 AddCommand(Trim(_line))
         }
 
-    ; 合并排名: 仅仍存在于新鲜索引的键参与置顶, 僵尸键跳过 (下次 Ctrl+R 清理)
-    if (rankElements.Length > 0) {
-        freshSet := Map()
-        for _el in g_Commands
-            freshSet[_el] := true
-        ranked := []
-        for _re in rankElements {
-            if (freshSet.Has(_re)) {
-                ranked.Push(_re)
-                freshSet.Delete(_re)
-            }
-        }
-        if (ranked.Length > 0) {
-            rest := []
-            for _el in g_Commands {
-                if (freshSet.Has(_el))
-                    rest.Push(_el)
-            }
-            g_Commands := []
-            g_CommandObjects := []
-            g_CommandSet := Map()
-            for _el in ranked
-                AddCommand(_el)
-            for _el in rest
-                AddCommand(_el)
-        }
-    }
-
-    ; 池审计 (只记不删): 不可执行形状 (连 RunCommand 都直接返回) 进 error.log, 另全量快照 Rim.pool.log 供取证;
-    ; command 开头裸行 (如 "command | X" 无描述) 重点标出 —— 正常注册只产三段带 label 行
+    ; 注册表审计 (只记不删): 动作不可达条目 (空 Action 且非 file/url 直达) 进 error.log,
+    ; 另全量 id 快照 Rim.pool.log 供取证
     try {
-        _bad := 0
-        _bareCmd := []
+        _dead := []
         _dump := ""
-        for _el in g_Commands {
-            _dump .= _el . "`n"
-            _pp := StrSplit(_el, " | ")
-            if (_pp.Length < 2) {
-                _bad++
-                continue
+        if (IsSet(RimCommand) && IsObject(RimCommand)) {
+            for _id, _cmd in RimCommand.Registry {
+                _dump .= _id . "`n"
+                try {
+                    _act := String(_cmd.Action)
+                    _k := StrLower(String(_cmd.Kind))
+                    if (_act = "" && _k != "file" && _k != "url" && _k != "run" && _k != "cmd")
+                        _dead.Push(_id)
+                } catch {
+                }
             }
-            if (_pp[1] = "command" && _pp.Length < 3)
-                _bareCmd.Push(_el)
         }
         try FileAppend(_dump, A_ScriptDir . "\Rim.pool.log")
         catch {
         }
-        if (_bad > 0 || _bareCmd.Length > 0) {
-            _msg := "POOL_AUDIT malformed=" . _bad . " bare-command=" . _bareCmd.Length . " total=" . g_Commands.Length
-            for _, _b in _bareCmd
+        if (_dead.Length > 0) {
+            _msg := "POOL_AUDIT dead-action=" . _dead.Length
+            for _, _b in _dead
                 _msg .= " [" . SubStr(_b, 1, 60) . "]"
             try RimLog("WARN", _msg)
             catch {
@@ -492,7 +330,6 @@ ChangeRank(cmd, show := false, inc := 1) {
     if (cmdRank != 0 && cmd != "") {
         if (cmdRank < 0) {
             cmdRank := -1
-            g_ExcludedCommands .= cmd "`n"
             g_ExcludedCommandsObj[cmd] := true
             try g_AutoConf.AddKey("Rank", cmd, "-1")
             catch {

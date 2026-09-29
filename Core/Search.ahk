@@ -3,11 +3,47 @@
 
 ; === Search - 搜索逻辑 (从 RunZ Core/Search.ahk 移植) ===
 
+; 收集匹配 (Registry 唯一真相源; 返回 matchItems 数组, 每项 {idline, show, exact, row}).
+; query 为空串时返回全池 (首屏用). 调用方负责头退化与渲染.
+SearchCollectMatches(query, showExt := false, searchFull := false) {
+    global g_ExcludedCommandsObj
+    ; 同目标只展示首个命中
+    seenTargets := Map()
+    matchItems := []
+    if (IsSet(RimCommand) && IsObject(RimCommand)) {
+        for id, cmd in RimCommand.Registry {
+            row := ""
+            try row := RimCommand.SearchRow(cmd, showExt, searchFull)
+            catch {
+                continue
+            }
+            try {
+                if (IsObject(g_ExcludedCommandsObj) && g_ExcludedCommandsObj.Has(row["rankKey"]))
+                    continue
+            } catch {
+            }
+
+            if (query = "" || MatchCommand(row["search"], query)) {
+                if (seenTargets.Has(row["targetKey"]))
+                    continue
+                seenTargets[row["targetKey"]] := true
+                exactHit := false
+                try {
+                    exactHit := SI_IsExactHitRow(row, query)
+                } catch {
+                }
+                matchItems.Push(Map("idline", "command | " . row["id"], "show", row["show"], "exact", exactHit, "row", row))
+            }
+        }
+    }
+    return matchItems
+}
+
 ; 核心搜索函数
 SearchCommand(command := "", firstRun := false) {
     global g_UseDisplay, g_ExecInterval, g_PipeArg, g_CurrentInput, g_CurrentCommand
     global g_CurrentCommandList, g_FallbackCommands, g_FirstChar, g_DisplayRows
-    global g_ExcludedCommands, g_Commands, g_EnableTCMatch, g_SkinConf
+    global g_EnableTCMatch, g_SkinConf
     global g_UseResultFilter, g_UseRealtimeExec, g_InputEdit, g_DisplayEdit
     global g_WindowName, g_UseFallbackCommands, g_Arg, g_Conf, g_RowActive
     global g_ExcludedCommandsObj
@@ -16,9 +52,7 @@ SearchCommand(command := "", firstRun := false) {
     g_RowActive := false
     g_ExecInterval := -1
     result := ""
-    ; 精确去重表 (原 fullResult 字符串 InStr 扫描是 O(n²), 等价 Map 替代;
-    ; 排除表用 LoadFiles/ChangeRank 同步维护的 g_ExcludedCommandsObj)
-    seenExact := Map()
+    ; 排除表用 LoadFiles/ChangeRank 同步维护的 g_ExcludedCommandsObj (键为 rankKey 形)
     static resultToFilter := ""
     commandPrefix := SubStr(command, 1, 1)
 
@@ -30,14 +64,32 @@ SearchCommand(command := "", firstRun := false) {
         g_PipeArg := ""
 
         if (commandPrefix = ";")
+            g_CurrentCommand := g_FallbackCommands.Length >= 1 ? g_FallbackCommands[1] : ""
+        else if (g_FallbackCommands.Length >= 2)
+            g_CurrentCommand := g_FallbackCommands[2]
+        else if (g_FallbackCommands.Length >= 1)
             g_CurrentCommand := g_FallbackCommands[1]
         else
-            g_CurrentCommand := g_FallbackCommands[2]
+            g_CurrentCommand := ""
 
         g_CurrentCommandList := []
         g_CurrentCommandList.Push(g_CurrentCommand)
-        result .= Chr(g_FirstChar) ">| "
-            . StrReplace(g_CurrentCommand, "function | ", TypeLabel("function"))
+        shown := RimCommand.ShowOf(g_CurrentCommand)
+        try {
+            if ((g_SkinConf.Has("HideCol2") ? g_SkinConf["HideCol2"] : "0") = "1") {
+                for _, _tp in ["file | ", "function | ", "cmd | ", "command | ", "url | ", "run | "]
+                    shown := StrReplace(shown, _tp)
+            } else {
+                shown := StrReplace(shown, "file | ", TypeLabel("file"))
+                shown := StrReplace(shown, "function | ", TypeLabel("function"))
+                shown := StrReplace(shown, "cmd | ", TypeLabel("cmd"))
+                shown := StrReplace(shown, "command | ", TypeLabel("command"))
+                shown := StrReplace(shown, "url | ", TypeLabel("url"))
+                shown := StrReplace(shown, "run | ", TypeLabel("run"))
+            }
+        } catch {
+        }
+        result .= Chr(g_FirstChar) ">| " . shown
         DisplaySearchResult(result)
         return result
     }
@@ -86,90 +138,28 @@ SearchCommand(command := "", firstRun := false) {
 
     g_CurrentCommandList := []
     order := g_FirstChar
-    ; 已展示的执行目标 (别名/复刻行仍参与匹配保证可搜, 但同目标只展示首个命中)
-    seenTargets := Map()
     ; 命中先收集后渲染 (精确置顶需要稳定分区, 不能边扫边画)
     matchItems := []
 
-    ; P1-4+P8: 配置读出循环 (CfgGet 统一入口, 永不抛错) + 索引预热
+    ; P1-4: 配置读出 (CfgGet 统一入口, 永不抛错)
     showExt := CfgGet("Config", "ShowFileExt", "0")
     searchFull := CfgGet("Config", "SearchFullPath", "0")
-    try SearchIdx_Build(false)
-    ; 搜索所有命令
-    for index, element in g_Commands {
-        if (seenExact.Has(element))
-            continue
-        try {
-            if (IsObject(g_ExcludedCommandsObj) && g_ExcludedCommandsObj.Has(element))
-                continue
-        } catch {
-            if (InStr(g_ExcludedCommands, element "`n"))
-                continue
+    ; 搜索 Registry (唯一真相源): 行推导收敛到 RimCommand.SearchRow, 此处只做匹配/去重/收集.
+    ; 列表行统一 "command | <id>", 显示串走 row.show, 排序键走 row.rankKey.
+    ; 整句零命中且含空格时退化搜命令头 ("Google koa.js" → "Google" 命中 + 参数照进 g_Arg)
+    matchItems := SearchCollectMatches(command, showExt = "1", searchFull = "1")
+    if (matchItems.Length = 0 && InStr(command, " ")) {
+        head := ""
+        try head := SI_HeadPure(command)
+        catch {
         }
-
-        splitedElement := StrSplit(element, " | ")
-
-        if (splitedElement[1] = "file") {
-            SplitPath(splitedElement[2], &fileName, , , &fileNameNoExt)
-
-            elementToSearch := fileNameNoExt
-            extra := splitedElement.Length >= 3 ? splitedElement[3] : ""
-            if (showExt = "1")
-                elementToShow := "file | " . fileName . (extra ? " | " . extra : "")
-            else
-                elementToShow := "file | " . fileNameNoExt . (extra ? " | " . extra : "")
-
-            if (extra)
-                elementToSearch .= " " . extra
-
-            if (searchFull = "1") {
-                SplitPath(splitedElement[2], , &fileDir)
-                elementToSearch := StrReplace(fileDir, "\", " ") . " " . elementToSearch
-            }
-        } else if (CmdLine_IsFourSeg(splitedElement)) {
-            ; 四段式: key | type | cmd | desc (来自 [Commands] key=type|cmd|desc)
-            ; 显示压成三段式 类型 | 别名 | 描述, 与原版列布局一致 (别名进名字列, 照样可搜)
-            elementToShow := splitedElement[2] " | " splitedElement[1]
-            elementToSearch := splitedElement[1] " " StrReplace(StrReplace(splitedElement[3], "/", " "), "\", " ")
-
-            extra4 := splitedElement[4]
-            if (splitedElement.Length > 4) {
-                Loop splitedElement.Length - 4
-                    extra4 .= " | " . splitedElement[4 + A_Index]
-            }
-            elementToShow .= " | " extra4
-            elementToSearch .= " " extra4
-        } else {
-            elementToShow := splitedElement[1] " | " splitedElement[2]
-            elementToSearch := StrReplace(splitedElement[2], "/", " ")
-            elementToSearch := StrReplace(elementToSearch, "\", " ")
-
-            if (splitedElement.Length >= 3) {
-                elementToShow .= " | " splitedElement[3]
-                elementToSearch .= " " splitedElement[3]
-            }
+        if (head = "") {
+            sp := InStr(command, " ")
+            if (sp > 1)
+                head := SubStr(command, 1, sp - 1)
         }
-
-        ; 别名可搜: 注册名不在 content/desc 里时 (如短名), 补到搜索串尾
-        try {
-            aliasExtra := CmdAliasOf(splitedElement[2])
-            if (aliasExtra != "" && !InStr(elementToSearch, aliasExtra, false))
-                elementToSearch .= " " . aliasExtra
-        }
-
-        if (command = "" || MatchCommand(elementToSearch, command)) {
-            targetKey := SearchTargetKey(element)
-            if (seenTargets.Has(targetKey))
-                continue
-            seenTargets[targetKey] := true
-            seenExact[element] := true
-            exactHit := false
-            try {
-                exactHit := SI_IsExactHit(element, command)
-            } catch {
-            }
-            matchItems.Push(Map("element", element, "show", elementToShow, "exact", exactHit))
-        }
+        if (head != "" && StrLower(head) != StrLower(command))
+            matchItems := SearchCollectMatches(head, showExt = "1", searchFull = "1")
     }
 
     ; 精确命中置顶 (稳定分区: 精确桶在前, 桶内保持权重+注册序)
@@ -189,12 +179,12 @@ SearchCommand(command := "", firstRun := false) {
             continue
         seq++
         tgt := ""
-        try tgt := StrLower(SearchTargetKey(mi["element"]))
+        try tgt := StrLower(mi["row"]["targetKey"])
         catch {
         }
         isPre := (qlow != "" && SubStr(tgt, 1, StrLen(qlow)) = qlow) ? 1 : 0
         sc := 0.0
-        try sc := RankScoreOfElement(mi["element"])
+        try sc := RankScoreOfElement(mi["row"]["rankKey"])
         catch {
         }
         nonExact.Push(Map("mi", mi, "seq", seq, "score", sc, "pre", isPre))
@@ -204,7 +194,7 @@ SearchCommand(command := "", firstRun := false) {
     ; 前缀与旧序逐项一致; 渲染至 DisplayRows 即停, 取 rows+10 冗余)
     topK := g_DisplayRows + 10
     try {
-        ordered := SearchIdx_TopK(nonExact, topK)
+        ordered := Search_TopK(nonExact, topK)
     } catch {
         for _, it in nonExact {
             pos := ordered.Length + 1
@@ -222,8 +212,7 @@ SearchCommand(command := "", firstRun := false) {
         if (!SearchRenderItem(it["mi"], &result, &order, firstRun))
             break
     }
-
-    ; 无结果 → 先试计算器 (对齐原版: IsLabel("Calc") && Eval()!=0 → DisplayResult)
+    ; 无结果 → 先试计算器, 再回退命令
     if (result = "") {
         tryEval := TryEvalInput(command != "" ? command : g_CurrentInput)
         if (tryEval != "") {
@@ -231,17 +220,21 @@ SearchCommand(command := "", firstRun := false) {
             return tryEval
         }
         g_UseFallbackCommands := true
-        if (g_FallbackCommands.Length > 0)
-            g_CurrentCommand := g_FallbackCommands[1]
-        g_CurrentCommandList := g_FallbackCommands
-
+        g_CurrentCommandList := []
         for index, element in g_FallbackCommands {
-            if (index = 1)
-                result .= Chr(g_FirstChar - 1 + index++) . ">| " element
-            else {
-                result .= "`n"
-                result .= Chr(g_FirstChar - 1 + index++) . " | " element
+            shown := ""
+            try shown := RimCommand.ShowOf(element)
+            catch {
+                shown := element
             }
+            if (index = 1) {
+                g_CurrentCommand := element
+                result .= Chr(g_FirstChar - 1 + index++) . ">| " . shown
+            } else {
+                result .= "`n"
+                result .= Chr(g_FirstChar - 1 + index++) . " | " . shown
+            }
+            g_CurrentCommandList.Push(element)
         }
     } else {
         g_UseFallbackCommands := false
@@ -268,7 +261,8 @@ SearchCommand(command := "", firstRun := false) {
     return result
 }
 
-; 冻结判定: 空格前是当前选中命令本身才冻结输参 (新旧池形都认: 别名/文件名/四段key/三段cmd)
+; 冻结判定: 空格前是当前选中命令本身才冻结输参 (比名不比 id: 别名行按注册名冻结).
+; 当前命令可能是历史包装行 (DisplayHistoryCommands 原样入列), 先剥参数栏.
 ShouldFreezeInput(command) {
     global g_CurrentCommand
     if (g_CurrentCommand = "")
@@ -280,13 +274,25 @@ ShouldFreezeInput(command) {
     }
     if (headCore = "")
         return true
+    cur := g_CurrentCommand
     try {
-        if (StrLower(SI_CoreOfPure(g_CurrentCommand)) = headCore)
+        if (IsSet(HistSplit))
+            cur := HistSplit(g_CurrentCommand)["el"]
+    } catch {
+    }
+    try {
+        core := SI_CoreOfPure(cur)
+        if (IsSet(SI_NameOf)) {
+            try core := SI_NameOf(core)
+            catch {
+            }
+        }
+        if (StrLower(core) = headCore)
             return true
     } catch {
     }
     try {
-        pp := CmdLine_Parse(g_CurrentCommand)
+        pp := CmdLine_Parse(cur)
         if (pp["isFour"]) {
             if (StrLower(pp["key"]) = headCore)
                 return true
@@ -297,21 +303,6 @@ ShouldFreezeInput(command) {
     } catch {
     }
     return false
-}
-
-; 执行目标归一 (搜索展示去重用): 同目标只留首个命中行
-;   四段式 key|type|cmd|desc → type|cmd
-;   其余 (file/cmd/run/url/function 三段式) → type|content
-; 注意: 折叠只发生在展示侧, 匹配侧不动 —— 搜别名关键词
-; (如 top/cancelTimer) 仍能命中别名行并展示它, 只是不再刷屏
-SearchTargetKey(element) {
-    parsed := CmdLine_Parse(element)
-    parts := parsed["parts"]
-    if (parsed["isFour"])
-        return parts[2] . "|" . parts[3]
-    if (parts.Length >= 2)
-        return parts[1] . "|" . parts[2]
-    return element
 }
 
 ; 命令匹配
@@ -421,12 +412,32 @@ TryEvalInput(input) {
 }
 
 ; 单行渲染 (SearchCommand 精确分区后调用; 返回 false 表示达到截断可停)
+; 稳定 top-k: 同比较器 pre/score + 同稳定性 seq (渲染至 DisplayRows 即停, 取 rows+10 冗余)
+Search_TopK(scored, k := 50) {
+    if (k < 1)
+        return []
+    best := []
+    for _, it in scored {
+        pos := best.Length + 1
+        Loop best.Length {
+            o := best[A_Index]
+            if (it["pre"] > o["pre"] || (it["pre"] = o["pre"] && (it["score"] > o["score"] || (it["score"] = o["score"] && it["seq"] < o["seq"])))) {
+                pos := A_Index
+                break
+            }
+        }
+        best.InsertAt(Min(pos, k + 1), it)
+        if (best.Length > k)
+            best.Pop()
+    }
+    return best
+}
+
 SearchRenderItem(mi, &result, &order, firstRun) {
-    global g_CurrentCommandList, g_CurrentCommand, g_FirstChar, g_DisplayRows, g_Commands
-    element := mi["element"]
-    g_CurrentCommandList.Push(element)
+    global g_CurrentCommandList, g_CurrentCommand, g_FirstChar, g_DisplayRows
+    g_CurrentCommandList.Push(mi["idline"])
     if (order = g_FirstChar) {
-        g_CurrentCommand := element
+        g_CurrentCommand := mi["idline"]
         result .= Chr(order++) . ">| " . mi["show"]
     } else {
         result .= "`n" . Chr(order++) . " | " . mi["show"]
@@ -434,7 +445,11 @@ SearchRenderItem(mi, &result, &order, firstRun) {
     if (order - g_FirstChar >= g_DisplayRows)
         return false
     if (firstRun && (order - g_FirstChar >= g_DisplayRows - 4)) {
-        result .= "`n`n" . T("search.footer_total", g_Commands.Length)
+        total := 0
+        try total := RimCommand.Registry.Count
+        catch {
+        }
+        result .= "`n`n" . T("search.footer_total", total)
         result .= "`n`n" . T("search.footer_hint")
         return false
     }

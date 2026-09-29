@@ -5,8 +5,14 @@
 ; 锁死: shutdowntimer 30 重启后 Tab/Alt+Up 丢参; 历史回放执行丢参; Rank 分流
 ; 跑法: MSYS_NO_PATHCONV=1 "/c/Program Files/AutoHotkey/v2/AutoHotkey64.exe" /ErrorStdOut tools/probe_shutdowntimer_hist.ahk
 #Include ..\Core\SmartInput.ahk
+#Include ..\Core\Command.ahk
 #Include ..\Core\Files.ahk
 #Include ..\Lib\EasyIni.ahk
+
+RimCommand.Register("ShutdownTimer", "ShutdownTimer", (*) => 0, Map("Description", "定时关机"))
+RimCommand.Register("Calc", "Calc", (*) => 0, Map("Description", "计算器"))
+RimCommand.Register("ShowIp", "ShowIp", (*) => 0, Map("Description", "本机IP"))
+RimCommand.Register("CancelShutdown", "CancelShutdown", (*) => 0, Map("Description", "取消定时关机"))
 
 global g_ProbeFail := 0
 
@@ -46,7 +52,7 @@ ProbeCheck("histinput-command-arg", SI_HistoryInputOfPure(HistPack("command | Sh
 ProbeCheck("histinput-command-calc", SI_HistoryInputOfPure(HistPack("command | Calc | 计算器", "1 + 2")) == "Calc 1 + 2")
 ProbeCheck("histinput-function", SI_HistoryInputOfPure(HistPack("function | ShutdownTimer | 定时关机", "30")) == "ShutdownTimer 30")
 ProbeCheck("histinput-noarg", SI_HistoryInputOfPure("command | ShowIp | 本机IP") == "ShowIp")
-ProbeCheck("histinput-key4", SI_HistoryInputOfPure(HistPack("qq | file | D:\soft\qq.exe | 描述", "123")) == "qq 123")
+ProbeCheck("histinput-key4", SI_HistoryInputOfPure(HistPack("command | qq", "123")) == "qq 123")
 
 ; ---- 3. Rank 归一 (参数永不进 key, 全类型一致) ----
 ProbeCheck("rankkey-command-strip", RankKeyOfElement(HistPack("command | ShutdownTimer | 定时关机", "30")) == "command | ShutdownTimer | 定时关机", RankKeyOfElement(HistPack("command | ShutdownTimer | 定时关机", "30")))
@@ -69,10 +75,11 @@ try FileDelete(tmp)
 catch {
 }
 
-; ---- 5. 端到端: 重启前后 Alt+Up 候选池 ----
-global g_HistoryCommands := [HistPack("command | ShutdownTimer | 定时关机", "30"), HistPack("command | Calc | 计算器", "1 + 2"), "command | ShowIp | 本机IP"]
-global g_Commands := ["command | ShutdownTimer | 定时关机", "command | Calc | 计算器", "command | ShowIp | 本机IP"]
-global g_CurrentCommandList := ["command | ShutdownTimer | 定时关机", "command | CancelShutdown | 取消定时关机"]
+; ---- 5. 端到端: 重启前后 Alt+Up 候选池 (列表行统一 command|<id>, 名经 Registry 解) ----
+; 文件行走生产路径 IngestRow (直注 Register 只用于 command-kind 注册)
+RimCommand.IngestRow("file | D:\soft\QQ.exe | 音乐")
+global g_HistoryCommands := [HistPack("command | ShutdownTimer", "30"), HistPack("command | Calc", "1 + 2"), "command | ShowIp", HistPack("command | file:D:\soft\QQ.exe", "")]
+global g_CurrentCommandList := ["command | ShutdownTimer", "command | CancelShutdown"]
 
 ; 重启态: 会话 inputHist 清空, 只能靠落盘历史
 g_SI["inputHist"] := []
@@ -86,6 +93,18 @@ for _, c in mAfter {
     }
 }
 ProbeCheck("e2e-after-restart-has-arg", foundAfter, JoinArr(mAfter, ";"))
+
+; 文件历史核必须是名 (QQ) 而非 id, 否则 Alt+Up 往框里填路径垃圾
+coresAfter := SI_HistoryCores()
+hasQQ := false
+hasRawId := false
+for _, c in coresAfter {
+    if (c == "QQ")
+        hasQQ := true
+    if (c == "file:D:\soft\QQ.exe")
+        hasRawId := true
+}
+ProbeCheck("e2e-histcores-name", hasQQ && !hasRawId, JoinArr(coresAfter, ";"))
 
 ; Tab ghost 在重启态
 gh := SI_FindGhost("shut")

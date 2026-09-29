@@ -30,6 +30,17 @@ Main() {
     cw := InStr(src, "winName := this.CheckWin()", false, khPos)
     Check("wire-self", s1 > 0 && cw > 0 && s1 < cw)
     Check("wire-ime", s2 > s1 && s2 < cw)
+    ; SwitchToEngIME 开关门 + 英文模式语义 (headless 只做静态断言, 真机手工验):
+    ; GUI 初始化必须与 Hotkeys 一致用 = "1" (旧 != "" 把 "0" 也当真, 每次启动强制切布局);
+    ; 实现首选关 IME (ImmSetOpenStatus) 而非换布局 (LoadKeyboardLayout 硬编码 KLID 在 Win10/11 缺布局即停美式键盘)
+    guiSrc := FileRead(A_ScriptDir . "\..\Core\GUI.ahk", "UTF-8")
+    Check("ime-gate", InStr(guiSrc, 'CfgGet("Config", "SwitchToEngIME", "0") = "1"') > 0 && !InStr(guiSrc, 'SwitchToEngIME", "0") != ""'))
+    comSrc := FileRead(A_ScriptDir . "\..\Core\Common.ahk", "UTF-8")
+    fnPos := InStr(comSrc, "SwitchToEngIME() {")
+    immPos := InStr(comSrc, "ImmSetOpenStatus", false, fnPos)
+    retPos := InStr(comSrc, "`n                return", false, fnPos)
+    layPos := InStr(comSrc, "SwitchIME(0x", false, fnPos)
+    Check("ime-imm-first", fnPos > 0 && immPos > fnPos && retPos > immPos && layPos > retPos)
     out := A_ScriptDir . "\..\probe_input_guards.out.txt"
     try FileDelete(out)
     catch {

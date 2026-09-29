@@ -378,19 +378,25 @@ class GestureEngine {
             }
 
             try {
-                if (IsSet(VIMD_CMD)) {
-                    VIMD_CMD(actStr)
+                if (IsSet(ExecuteAction)) {
+                    ExecuteAction(actStr)
                     return
                 }
             } catch {
             }
 
-            ; 兜底派发 (当 VIMD_CMD 不存在或调用失败时直接执行)
+            ; 兜底派发 (仅统一入口缺失的探针子集可达; 生产环境 ExecuteAction 常驻, 此路不通.
+            ; 函数调用序列收敛到 ActionRunFunction, 手势旧语义: 静默判死 + 最终失败上抛)
             if (SubStr(actStr, 1, 4) = "run|" || SubStr(actStr, 1, 5) = "file|") {
                 target := SubStr(actStr, SubStr(actStr, 1, 4) = "run|" ? 5 : 6)
                 try Run(target)
             } else if (SubStr(actStr, 1, 4) = "key|") {
                 try Send(SubStr(actStr, 5))
+            } else if (IsSet(ActionRunFunction)) {
+                fn := actStr
+                if (SubStr(fn, 1, 9) = "function|")
+                    fn := SubStr(fn, 10)
+                ActionRunFunction(fn, "", actStr, true, true)
             } else {
                 try {
                     fn := actStr

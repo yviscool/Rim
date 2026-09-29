@@ -17,7 +17,6 @@ EXPECTED := [
     "Core\ConfigTxn.ahk",
     "Core\Files.ahk",
     "Core\Search.ahk",
-    "Core\SearchIndex.ahk",
     "Core\GUI.ahk",
     "Core\Context.ahk",
     "Core\WindowIndex.ahk",

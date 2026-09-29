@@ -1,16 +1,14 @@
 #Requires AutoHotkey v2.0
 #Warn All, Off
-; P8: 搜索索引探针 (预计算+token/前缀+top-k+TTL+回退一致)
+; 搜索排序探针: 稳定 top-k (pre/score/seq 比较器, 与旧插入排序逐项一致)
+; (token/前缀索引/Candidates/Build 预热已随 SearchIndex.ahk 退役: 生产零调用)
 
 T(key, *) => key
 RimLog(level, msg, err := "") {
     return
 }
 
-global g_Commands := ["run | notepad.exe |记事本", "file | C:\Windows\System32\calc.exe |计算器", "key | ctrl+s |保存", "run | mspaint.exe |画图"]
-global g_ExcludedCommands := ""
-
-#Include ..\Core\SearchIndex.ahk
+#Include ..\Core\Search.ahk
 
 fails := []
 Check(name, cond) {
@@ -20,33 +18,22 @@ Check(name, cond) {
 }
 
 Main() {
-    global fails, g_Commands, g_SearchIdx
-    n := SearchIdx_Build(true)
-    Check("built", n = 4 && g_SearchIdx["items"].Length = 4)
-    Check("norm", SearchIdx_Norm("A/B\C|D") = "a b c d")
-    c := SearchIdx_Candidates("notepad")
-    Check("candidates-hit", IsObject(c) && c.Length >= 1)
-    c2 := SearchIdx_Candidates("zzzqqq")
-    Check("candidates-miss", !IsObject(c2) || c2.Length = 0)
+    global fails
     scored := [Map("pre", 1, "score", 5.0, "seq", 3), Map("pre", 0, "score", 9.0, "seq", 1), Map("pre", 1, "score", 7.0, "seq", 2)]
-    top := SearchIdx_TopK(scored, 2)
+    top := Search_TopK(scored, 2)
     Check("topk-len", top.Length = 2)
     Check("topk-order", top[1]["score"] = 7.0 && top[2]["score"] = 5.0)
-    SearchIdx_Invalidate()
-    Check("invalidate", g_SearchIdx["built"] = 0)
-    n2 := SearchIdx_Build(false)
-    Check("rebuild", n2 = 4)
-    ; 命令数变化自动失稳重建 (不等 TTL)
-    g_Commands.Push("run | calc.exe |计算器2")
-    n3 := SearchIdx_Build(false)
-    Check("count-change-rebuild", n3 = 5)
-    g_Commands.Pop()
+    Check("topk-empty-k", Search_TopK(scored, 0).Length = 0)
     ; O(n²) 字符串去重已消除 (等价 Map 替代, 排除表用镜像 Obj; 注释提及不算)
     searchSrc := FileRead(A_ScriptDir . "\..\Core\Search.ahk", "UTF-8")
     Check("no-fullresult", !RegExMatch(searchSrc, "fullResult\s*(:=|\.=)"))
     Check("no-fullresult-instr", !RegExMatch(searchSrc, "InStr\(fullResult"))
-    Check("seenexact-wired", InStr(searchSrc, "seenExact[element] := true") > 0)
-    Check("excluded-obj", InStr(searchSrc, "g_ExcludedCommandsObj.Has(element)") > 0)
+    Check("no-gcommands-loop", !InStr(searchSrc, "for index, element in g_Commands"))
+    Check("registry-loop", InStr(searchSrc, "for id, cmd in RimCommand.Registry") > 0)
+    Check("excluded-obj", InStr(searchSrc, 'g_ExcludedCommandsObj.Has(row["rankKey"])') > 0)
+    Check("seen-targets", InStr(searchSrc, 'seenTargets[row["targetKey"]] := true') > 0)
+    Check("topk-wired", InStr(searchSrc, "Search_TopK(nonExact, topK)") > 0)
+    Check("no-searchidx", !InStr(searchSrc, "SearchIdx_"))
     scored := []
     Loop 60 {
         i := A_Index
@@ -65,7 +52,7 @@ Main() {
         ref.InsertAt(pos, it)
     }
     for _, k in [1, 5, 15, 59, 60, 200] {
-        got := SearchIdx_TopK(scored, k)
+        got := Search_TopK(scored, k)
         want := Min(k, ref.Length)
         ok := (got.Length = want)
         if (ok) {

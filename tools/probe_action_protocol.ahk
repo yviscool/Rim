@@ -3,17 +3,20 @@
 ; P1-5: 统一动作协议探针 (结构化解析+错误码+来源+循环检测)
 
 T(key, *) => key
+global g_LastRimLog := ""
 RimLog(level, msg, err := "") {
-    return
+    global g_LastRimLog
+    g_LastRimLog := level . "|" . msg
 }
 
 #Include ..\Core\ActionProtocol.ahk
+#Include ..\Core\Execution.ahk
 
 fails := []
-Check(name, cond) {
+Check(name, cond, extra := "") {
     global fails
     if (!cond)
-        fails.Push(name)
+        fails.Push(extra != "" ? name . " | got=[" . extra . "]" : name)
 }
 
 Main() {
@@ -33,7 +36,20 @@ Main() {
     g := ActionDispatch(ActionParse("command|NoSuchCmd12345", "probe"), "")
     Check("unknown-command", !g["ok"] && g["code"] = "UNKNOWN_COMMAND")
     h := ActionDispatch(ActionParse("function|NoSuchFn12345", "probe"), "")
-    Check("unknown-function", !h["ok"] && h["code"] = "UNKNOWN_COMMAND")
+    Check("unknown-function", !h["ok"] && h["code"] = "HANDLER_FAIL")
+    ; 分发层已接管死判 (记 UNKNOWN_FUNCTION, 不再下坠 Body 重试): 真执行走 probe_hist_replay
+    i := ActionDispatch(ActionParse("combo|zoom", "probe"), "")
+    Check("combo-defer-noengine", i["ok"] && i["code"] = "OK_DEFER")
+    ; OK_DEFER 必须落到 Body 真执行 (ok=true 不等于已执行):
+    ; run|/file| 指不存在目标 → Body 的 Run 抛错 → RUN_FAILED, 证明 Body 跑了.
+    ; (此断言即 Weixin 回车静默死回归: 旧接线条件 disp["ok"] 直接 return, Body 永不到达)
+    global g_LastRimLog
+    g_LastRimLog := ""
+    ExecuteAction("run|rim-nonexistent-probe-xyz123", "probe")
+    Check("defer-run-body", InStr(g_LastRimLog, "RUN_FAILED") > 0 && InStr(g_LastRimLog, "rim-nonexistent-probe-xyz123") > 0, g_LastRimLog)
+    g_LastRimLog := ""
+    ExecuteAction("file|C:\rim-nonexistent-probe-xyz123.exe", "probe")
+    Check("defer-file-body", InStr(g_LastRimLog, "RUN_FAILED") > 0, g_LastRimLog)
     ActionTracePush("run", "notepad.exe", "probe")
     Check("trace", InStr(ActionLastTrace(), "run|notepad.exe") > 0)
     out := A_ScriptDir . "\..\probe_action_protocol.out.txt"

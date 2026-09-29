@@ -91,7 +91,6 @@ global g_Arg := ""
 global FullPipeArg := ""
 ; 不能是 Rim.ahk 的子串, 否则按键绑定会有问题 (对齐原版 4 空格)
 global g_WindowName := "RunZ    "
-global g_Commands := []
 global g_CommandAlias := Map()
 global g_FallbackCommands := []
 global g_CurrentInput := ""
@@ -112,9 +111,7 @@ global g_CurrentLine := 1
 global g_UseFallbackCommands := false
 global g_UseResultFilter := false
 global g_UseRealtimeExec := false
-global g_ExcludedCommands := ""
 global g_ExcludedCommandsObj := Map()
-global g_CommandObjects := []
 global g_ExecInterval := -1
 global g_LastExecLabel := ""
 global g_LastExecCb := ""
@@ -157,8 +154,9 @@ MakeCb(name) {
 }
 
 ; vim 动作 → 闭包 (必须经工厂函数: 循环内联闭包会共享循环变量, 全变成最后一个动作!)
+; 直达统一入口 ExecuteAction
 MakeVimCb(action) {
-    return (*) => VIMD_CMD(action)
+    return (*) => ExecuteAction(action)
 }
 
 ; 菜单回调工厂: Menu 回调固定传 3 参 (ItemName, ItemPos, MenuObj),
@@ -196,7 +194,6 @@ global g_CommandArea := "Edit4"
 #Include Core\ConfigTxn.ahk
 #Include Core\Files.ahk
 #Include Core\Search.ahk
-#Include Core\SearchIndex.ahk
 #Include Core\GUI.ahk
 #Include Core\Context.ahk
 #Include Core\WindowIndex.ahk
@@ -269,7 +266,7 @@ Loop Files, pluginDir "\*.ahk" {
 Rim_CheckCoreSymbols() {
     missing := []
     for _, sym in ["MakeLegacyCmd", "LegacyDirectCall", "GetRunArg", "CmdLine_Parse",
-        "RimCommand", "RimPluginManager", "GestureEngine", "VIMD_CMD", "LoadFiles",
+        "RimCommand", "RimPluginManager", "GestureEngine", "ExecuteAction", "LoadFiles",
         "RegisterCommand", "AddCommand"] {
         ok := false
         try {
@@ -476,7 +473,7 @@ VimdCheckHotKey() {
                 _v := Trim(_v)
                 if (_v = "" || SubStr(_v, 1, 1) = ";")
                     continue
-                ; key=action[=mode] / function|... 派发到 VIMD_CMD
+                ; key=action[=mode] / function|... 派发到 ExecuteAction
                 mode := "normal"
                 if RegExMatch(_v, "^(.*)\[=(.+)\]$", &_m) {
                     _v := _m[1]

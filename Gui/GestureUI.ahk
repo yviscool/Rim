@@ -562,7 +562,7 @@ GestureMgr_OnFilter(*) {
 
 ; 由动作串派生精准含义 (无用户自定义时列表显示; 与存储无关, 跟语言走)
 ; 优先级: ①引擎已注册动作的注释 (P2 精翻, 最准) ②常见按键语义表 ③动作类型原文
-; 前缀与 Rim.ahk VIMD_CMD 派发一致: run|/key|/dir|/tccmd|/wshkey|/function|
+; 前缀与统一入口 ExecuteAction 派发一致: run|/key|/dir|/tccmd|/wshkey|/function|
 GestureMgr_DescribeAction(action) {
     global g_VimEngine
     action := Trim(action)

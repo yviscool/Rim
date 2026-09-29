@@ -60,58 +60,27 @@ SI_PrevWordPure(full, prefixLen) {
     return ""
 }
 
-; 池元素 → 可搜索核心 (与 SearchTargetKey 同一文法, 必须同步改)
-;   注意: 历史行一律先经 HistSplit 拆包再进此函数, 此处只见干净元素, 不处理参数
-;   真四段式 key|type|cmd|desc (parts[2] 是类型词) → key
-;   三段式 type|cmd|desc → cmd
+; 列表行 → 可搜索核心: "command|<id>" 取 id, 裸行取自身.
+; 名解析 (id→Name) 在应用层 SI_NameOf 做, 此处保持纯函数零依赖.
+; 历史行一律先经 HistSplit 拆包再进此函数, 此处只见干净元素, 不处理参数.
 SI_CoreOfPure(element) {
-    parts := StrSplit(element, " | ")
-    if (parts.Length >= 4
-        && (parts[2] == "file" || parts[2] == "function" || parts[2] == "cmd" || parts[2] == "url" || parts[2] == "run"))
-        return Trim(parts[1])
-    if (parts.Length >= 2 && parts[1] == "function")
+    parts := StrSplit(String(element), " | ")
+    if (parts.Length >= 2)
         return Trim(parts[2])
-    if (parts.Length >= 2 && parts[1] == "file") {
-        fn := ""
-        noext := ""
-        try {
-            SplitPath(parts[2], &fn, , , &noext)
-        } catch {
-        }
-        if (noext != "")
-            return noext
-        if (fn != "")
-            return fn
-        return Trim(parts[2])
-    }
-    if (parts.Length >= 2) {
-        core := Trim(parts[2])
-        ; 别名优先: 插件注册名 (Google) 比 content (整串 URL/路径) 更适合 ghost/冻结/精确命中.
-        ; (CmdAliasOf 见 Core/Command.ahk; 纯探针未包含时回落 content, 永不抛错)
-        try {
-            if (parts[1] == "url" || parts[1] == "run" || parts[1] == "cmd") {
-                alias := CmdAliasOf(parts[2])
-                if (alias != "")
-                    return alias
-            }
-        }
-        return core
-    }
     return Trim(element)
 }
 
-; 精确命中判定 (供 SearchCommand 置顶用): 别名核或任一段与 query 全等 (大小写不敏感)
-SI_IsExactHit(element, query) {
-    if (query == "")
+; 精确命中判定 (供 SearchCommand 置顶用): 名/id/目标/描述任一与 query 全等 (大小写不敏感).
+; 行形态为 SearchRow 产物 Map; 纯函数, 探针手拼 Map 即可测.
+SI_IsExactHitRow(row, query) {
+    if (query == "" || !IsObject(row))
         return false
-    q := StrLower(Trim(query))
+    q := StrLower(Trim(String(query)))
     if (q == "")
         return false
     try {
-        if (StrLower(SI_CoreOfPure(element)) == q)
-            return true
-        for _i, seg in StrSplit(element, " | ") {
-            if (StrLower(Trim(seg)) == q)
+        for _, k in ["name", "id", "target", "desc"] {
+            if (row.Has(k) && Trim(String(row[k])) != "" && StrLower(Trim(String(row[k]))) == q)
                 return true
         }
     } catch {
@@ -171,6 +140,9 @@ HistPack(el, arg := "") {
     arg := Trim(String(arg))
     el := StrReplace(el, Chr(1), "")
     arg := StrReplace(arg, Chr(1), "")
+    ; ini 行存储: 换行会切断行, 空格化 (粘贴多行/管道参数亦如此)
+    el := StrReplace(StrReplace(el, "`r", " "), "`n", " ")
+    arg := StrReplace(StrReplace(arg, "`r", " "), "`n", " ")
     if (arg != "")
         return el . Chr(1) . arg
     return el
@@ -187,8 +159,19 @@ HistSplit(line) {
 SI_HistoryCores() {
     out := []
     try {
-        for _i, element in g_HistoryCommands
-            out.Push(SI_CoreOfPure(HistSplit(element)["el"]))
+        for _i, element in g_HistoryCommands {
+            core := SI_CoreOfPure(HistSplit(element)["el"])
+            ; id→名 (文件行 id 含路径, 直接进 Alt+Up 池会污染输入框; 无 Registry 回落裸核)
+            try {
+                if (IsSet(RimCommand) && IsObject(RimCommand)) {
+                    rc := RimCommand.Get(core)
+                    if (IsObject(rc) && rc.Name != "")
+                        core := rc.Name
+                }
+            } catch {
+            }
+            out.Push(core)
+        }
     } catch {
     }
     return out

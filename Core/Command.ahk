@@ -13,6 +13,11 @@ class RimCommand {
     Action := ""        ; 动作: 可为闭包、函数名、或动作字符串协议
     ContextFilter := "" ; 上下文过滤函数: filter(ctx) 返回 true/false
     Keywords := ""      ; 搜索增强关键词，如 "cp path folder"
+    Args := ""          ; 参数规格: [{name, required?, help?}] 数组, 无参命令留空.
+                        ; 只有调用方 (RunCommand 校验门, Usage 命令) 才读它, 不写就当全可选.
+    Kind := ""          ; 行种类: command(注册) / file / url / run / cmd / function(收编行)
+    Target := ""        ; 执行目标: 注册=id; 收编=原 content/path
+    Name := ""          ; 显示名: 注册=id; 收编=别名/文件名/键
 
     ; 静态注册表: Id -> RimCommand 对象
     static Registry := Map()
@@ -23,6 +28,10 @@ class RimCommand {
         this.Id := id
         this.Title := title
         this.Action := action
+        this.Args := []
+        this.Kind := "command"
+        this.Target := id
+        this.Name := id
 
         if (IsObject(options)) {
             if (options.Has("Category"))
@@ -33,14 +42,29 @@ class RimCommand {
                 this.ContextFilter := options["ContextFilter"]
             if (options.Has("Keywords"))
                 this.Keywords := options["Keywords"]
+            if (options.Has("Args") && IsObject(options["Args"]))
+                this.Args := options["Args"]
+            if (options.Has("Kind") && Trim(String(options["Kind"])) != "")
+                this.Kind := StrLower(Trim(String(options["Kind"])))
+            if (options.Has("Target"))
+                this.Target := String(options["Target"])
+            if (options.Has("Name") && Trim(String(options["Name"])) != "")
+                this.Name := String(options["Name"])
         }
         if (this.Category = "")
             this.Category := "General"
+        if (this.Target = "")
+            this.Target := this.Id
+        if (this.Name = "")
+            this.Name := this.Id
     }
 
-    ; 注册指令 (幂等)
+    ; 注册指令 (幂等; Registry 是唯一真相源, 不再写字符串池)
     static Register(id, title, action, options := "") {
         cmd := RimCommand(id, title, action, options)
+        cmd.Kind := "command"
+        cmd.Target := id
+        cmd.Name := id
         RimCommand.Registry[id] := cmd
 
         cat := cmd.Category
@@ -59,19 +83,10 @@ class RimCommand {
             RimCommand.Categories[cat] := []
         RimCommand.Categories[cat].Push(cmd)
 
-        ; 同时同步注入 Launcher 命令池，使命令面板直接可搜
-        ; 池行用三段式 "command | id | label" (四段式 "id | command | id | label" 会被解析器
-        ; 误判 key=id/type=command 而跑不通, 见 RunCommand; 显示侧取 type|cmd|desc, 执行走 command|id)
-        try {
-            if (IsSet(AddCommand))
-                AddCommand(CmdLine_Format("command", id, RimCommand.MakeLabel(title, id, cmd.Description)))
-        } catch {
-        }
-
         return cmd
     }
 
-    ; 池行 label 装配 (单点, Register 与 Populate 共用, 防两处改一只):
+    ; 池行 label 装配 (展示列 Name — Desc 的右半部分):
     ; title 与 id 相同 (短名直注) 时只留描述, 不拼 "名 - 描述" 叠床架屋
     static MakeLabel(title, id, desc) {
         label := ""
@@ -84,15 +99,211 @@ class RimCommand {
         return label
     }
 
-    ; 将所有已注册指令同步注入全局 Launcher 列表 (三段式, 见 Register 注释)
-    static PopulateAllToLauncher() {
-        for id, cmd in RimCommand.Registry {
+    ; 池行收编进 Registry (LoadFiles 建池后统一调一次, 与 AddCommand 双写过渡;
+    ; 已注册 id 直接跳过 (首注胜), 保证插件直注优先于 rank/回退复刻行).
+    ; id 规则: 四段 key|type|cmd|desc → key; 三段 command|X|D → X;
+    ; 三段/两段 type|content[|desc] → type:content; 裸 key → key.
+    static IngestRow(line) {
+        line := Trim(String(line))
+        if (line = "")
+            return ""
+        parts := StrSplit(line, " | ")
+        id := ""
+        kind := ""
+        target := ""
+        name := ""
+        desc := ""
+        action := ""
+        if (parts.Length >= 4 && CmdLine_IsFourSeg(parts)) {
+            id := Trim(parts[1])
+            kind := StrLower(Trim(parts[2]))
+            target := Trim(parts[3])
+            desc := Trim(parts[4])
+            i := 5
+            while (i <= parts.Length) {
+                desc .= " | " . Trim(parts[i])
+                i++
+            }
+            name := id
+            action := kind . "|" . target
+        } else if (parts.Length >= 2 && IsActionRowKind(parts[1])) {
+            kind := StrLower(Trim(parts[1]))
+            target := Trim(parts[2])
+            desc := parts.Length >= 3 ? Trim(parts[3]) : ""
+            i := 4
+            while (i <= parts.Length) {
+                desc .= " | " . Trim(parts[i])
+                i++
+            }
+            if (kind = "command") {
+                id := target
+                name := target
+            } else if (kind = "file") {
+                id := "file:" . target
+                name := target
+                try {
+                    SplitPath(target, , , , &noext)
+                    if (noext != "")
+                        name := noext
+                } catch {
+                }
+            } else {
+                ; url/run/cmd: 名优先用注册别名 (Google) 而非整串 content —— 别名是行的一等公民,
+                ; 显示/冻结/精确命中全对名, 否则 "Google koa.js" 全链对着 URL (契约 3)
+                id := kind . ":" . target
+                name := target
+                try {
+                    if (IsSet(CmdAliasOf)) {
+                        al := CmdAliasOf(target)
+                        if (al != "")
+                            name := al
+                    }
+                } catch {
+                }
+            }
+            action := kind . "|" . target
+        } else {
+            id := Trim(parts[1])
+            kind := "command"
+            target := id
+            name := id
+            action := ""
+        }
+        if (id = "")
+            return ""
+        if (RimCommand.Registry.Has(id))
+            return id
+        cmd := RimCommand(id, name, action, Map("Category", "Ingested", "Description", desc
+            , "Kind", kind, "Target", target, "Name", name))
+        RimCommand.Registry[id] := cmd
+        return id
+    }
+
+    ; 状态行: 任意行 → 原版底部输入框 remainder 形.
+    ; file 行取完整路径 ([+ 描述]); 其余取 名[ | 描述] (4 段 origin 形为 类型|目标|描述).
+    ; 未注册/旧池形退化为旧 SubStr 逻辑 (首个 " | " 之后全文). 永不抛错.
+    static StatusOf(line) {
+        try {
+            rec := HistSplit(String(line))
+            parts := StrSplit(rec["el"], " | ")
+            if (parts.Length >= 2 && StrLower(Trim(parts[1])) = "command") {
+                cmd := RimCommand.Get(Trim(parts[2]))
+                if (IsObject(cmd)) {
+                    kind := StrLower(String(cmd.Kind))
+                    target := String(cmd.Target)
+                    if (kind = "file") {
+                        desc := ""
+                        try desc := String(cmd.Description)
+                        catch {
+                        }
+                        return desc != "" ? target . " | " . desc : target
+                    }
+                    name := String(cmd.Name)
+                    desc := ""
+                    try {
+                        if (kind = "command")
+                            desc := RimCommand.MakeLabel(cmd.Title, cmd.Id, cmd.Description)
+                        else
+                            desc := String(cmd.Description)
+                    } catch {
+                    }
+                    if (kind = "command" || target = "" || target = cmd.Id)
+                        return desc != "" ? name . " | " . desc : name
+                    return desc != "" ? kind . " | " . target . " | " . desc : kind . " | " . target
+                }
+            }
+            pos := InStr(rec["el"], " | ")
+            if (pos > 0)
+                return SubStr(rec["el"], pos + 3)
+        } catch {
+        }
+        return String(line)
+    }
+
+    ; 展示行: "command|<id>" (+历史参数栏) 经 Registry 解出 show 串;
+    ; 未注册/非命令形一律原文透传 (回退行旧池形照旧显示, 调用方做类型本地化). 永不抛错.
+    static ShowOf(line) {
+        try {
+            rec := HistSplit(line)
+            parts := StrSplit(rec["el"], " | ")
+            if (parts.Length >= 2 && StrLower(Trim(parts[1])) = "command") {
+                cmd := RimCommand.Get(Trim(parts[2]))
+                if (IsObject(cmd)) {
+                    showExt := false
+                    try showExt := CfgGet("Config", "ShowFileExt", "0") = "1"
+                    catch {
+                    }
+                    return RimCommand.SearchRow(cmd, showExt)["show"]
+                }
+            }
+        } catch {
+        }
+        return String(line)
+    }
+
+    ; 单一推导点: Registry 对象 → {id, kind, name, show, search, targetKey, rankKey}.
+    ; 与旧 Search.ahk 三分支 / 已删 AddCommand 推导逐字一致, 显示串不变, GUI 零改动.
+    ; show 永远 "kind | 名 | 描述" (command 行描述取 label 形, 与旧池行一致);
+    ; search 永远 "名 目标词 描述 [别名]" (file 行恒用无扩展名, 别名只找非 command 行).
+    static SearchRow(cmd, showExt := false, searchFull := false) {
+        id := cmd.Id
+        kind := cmd.Kind != "" ? StrLower(cmd.Kind) : "command"
+        name := cmd.Name != "" ? cmd.Name : id
+        target := cmd.Target != "" ? cmd.Target : id
+        desc := ""
+        try desc := cmd.Description != "" ? cmd.Description : ""
+        catch {
+        }
+        if (kind = "command") {
+            try desc := RimCommand.MakeLabel(cmd.Title, id, cmd.Description)
+            catch {
+            }
+        }
+        disp := name
+        searchBase := name
+        if (kind = "file") {
+            fn := target
+            noext := target
+            fileDir := ""
             try {
-                if (IsSet(AddCommand))
-                    AddCommand(CmdLine_Format("command", id, RimCommand.MakeLabel(cmd.Title, id, cmd.Description)))
+                SplitPath(target, &fn, &fileDir, , &noext)
+            } catch {
+            }
+            if (fn = "")
+                fn := target
+            if (noext = "")
+                noext := fn
+            disp := showExt ? fn : noext
+            searchBase := noext
+            if (searchFull && fileDir != "")
+                searchBase := StrReplace(fileDir, "\", " ") . " " . searchBase
+        } else if (name != target) {
+            ; 四段收编行: 键必须进搜索 (旧 "key cmd desc" 文法)
+            searchBase := name . " " . StrReplace(StrReplace(target, "/", " "), "\", " ")
+        } else if (kind = "command") {
+            searchBase := name
+        } else {
+            ; 三段收编行: 只搜 content 词 (旧文法无名可加, Name 即 Target)
+            searchBase := StrReplace(StrReplace(target, "/", " "), "\", " ")
+        }
+        show := kind . " | " . disp
+        if (desc != "")
+            show .= " | " . desc
+        search := searchBase
+        if (desc != "")
+            search .= " " . desc
+        if (kind != "command") {
+            try {
+                if (IsSet(CmdAliasOf)) {
+                    aliasExtra := CmdAliasOf(target)
+                    if (aliasExtra != "" && !InStr(search, aliasExtra, false))
+                        search .= " " . aliasExtra
+                }
             } catch {
             }
         }
+        return Map("id", id, "kind", kind, "name", name, "desc", desc, "show", show
+            , "search", search, "targetKey", kind . "|" . target, "rankKey", "command | " . id)
     }
 
     ; 获取指令
@@ -143,6 +354,66 @@ class RimCommand {
         }
     }
 
+    ; 参数规格查询: 未注册/未声明一律返回空数组 (调用方按全可选处理, 零行为变化)
+    static ArgSpec(id) {
+        try {
+            cmd := RimCommand.Get(id)
+            if (IsObject(cmd) && IsObject(cmd.Args))
+                return cmd.Args
+        } catch {
+        }
+        return []
+    }
+
+    ; 用法行: "id <必填> [可选] — 描述" (+逐参 help). 未注册返回 "".
+    static Usage(id) {
+        cmd := RimCommand.Get(id)
+        if (!IsObject(cmd))
+            return ""
+        line := id
+        try {
+            for _, spec in cmd.Args {
+                if (!IsObject(spec) || !spec.Has("name"))
+                    continue
+                req := false
+                try req := !!spec.Get("required", false)
+                catch {
+                }
+                line .= req ? " <" . spec["name"] . ">" : " [" . spec["name"] . "]"
+            }
+        } catch {
+        }
+        if (cmd.Description != "")
+            line .= " — " . cmd.Description
+        try {
+            for _, spec in cmd.Args {
+                if (IsObject(spec) && spec.Has("name") && spec.Has("help") && Trim(String(spec["help"])) != "")
+                    line .= "`n  " . spec["name"] . ": " . spec["help"]
+            }
+        } catch {
+        }
+        return line
+    }
+
+    ; 参数校验门 (供 RunCommand): 返回 ""=放行; 否则返回用法行 (调用方展示并跳过执行/历史).
+    ; 只有 required 声明缺失才拦; 自弹输入框的命令 (CmdRun/AhkRun/TranslateWord) 不要声明 required.
+    static CheckArgs(id, arg) {
+        try {
+            for _, spec in RimCommand.ArgSpec(id) {
+                if (!IsObject(spec) || !spec.Has("name"))
+                    continue
+                req := false
+                try req := !!spec.Get("required", false)
+                catch {
+                }
+                if (req && Trim(String(arg)) = "")
+                    return RimCommand.Usage(id)
+            }
+        } catch {
+        }
+        return ""
+    }
+
     ; 搜索匹配指令
     static Search(query, limit := 10) {
         results := []
@@ -181,6 +452,12 @@ class RimCommand {
         }
         return results
     }
+}
+
+; 旧池行首段类型词 (三段/两段行的 kind 位; command 含现代注册行)
+IsActionRowKind(s) {
+    w := StrLower(Trim(String(s)))
+    return w = "file" || w = "function" || w = "cmd" || w = "url" || w = "run" || w = "command"
 }
 
 ; === 命令行值对象 (CommandLine Value Object) ===
@@ -228,17 +505,16 @@ CmdLine_Format(type, cmd, desc := "", key := "") {
     return type " | " cmd
 }
 
-; ==================== 命令池写入 (非 function 型直写池行; function 型调用方已清零, 误调即抛错) ====================
+; ==================== 命令池写入 (过渡双写: 池行 + Registry 收编; C2 切读侧后删池行) ====================
 class LauncherCompat {
     static AddCommand(name, type, content, description := "") {
-        global g_Commands, g_CommandAlias
+        global g_CommandAlias
         if (type = "function") {
             throw Error("RegisterCommand function-type retired; use RimCommand.Register + MakeLegacyCmd directly: " . name)
         } else {
             element := type " | " content
             if (description != "")
                 element .= " | " description
-            g_Commands.Push(element)
             ; 别名保留: 进池丢名导致 ghost/冻结/精确命中全对 content (如整串 URL),
             ; 名字叫不回来 ("Goo" Tab 不出 "Google"). 首胜, 不覆盖.
             try {
@@ -247,6 +523,19 @@ class LauncherCompat {
                     if (key != "" && Trim(name) != "" && !g_CommandAlias.Has(key))
                         g_CommandAlias[key] := Trim(name)
                 }
+            }
+            ; 收编进 Registry (与 LoadFiles 末 IngestRow 同规则, id 一致不分叉; 首注胜)
+            try {
+                id := RimCommand.IngestRow(element)
+                if (id != "" && RimCommand.Registry.Has(id) && Trim(name) != "") {
+                    ent := RimCommand.Registry[id]
+                    try {
+                        if (ent.Keywords = "")
+                            ent.Keywords := Trim(name)
+                    } catch {
+                    }
+                }
+            } catch {
             }
         }
     }

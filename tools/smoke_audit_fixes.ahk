@@ -33,12 +33,7 @@ FileAppend("=== Smoke Test: Audit Fixes Verification ===`n", "*")
 #Include ..\Core\Gesture.ahk
 #Include ..\Core\Plugin.ahk
 
-; 启动不变量探针池: 复刻 LoadFiles 的池语义 (清空后经 Populate 重建, 单轮内不得重复)
-global g_InvPool := []
-AddCommand(line) {
-    global g_InvPool
-    g_InvPool.Push(line)
-}
+; (Register 不再写池, 收编直达 Registry; 见测试 8)
 
 ; --- 测试 1: TC <cm_...> 动作前缀路由 ---
 try {
@@ -149,32 +144,33 @@ try {
     Assert(false, "Test 7 failed: " . e.Message)
 }
 
-; --- 测试 8: 启动顺序不变量 (Init* 在 LoadFiles 之前, Populate 为唯一重建点) ---
-; 复刻 LoadFiles 行为: 清空命令池后经 PopulateAllToLauncher 重建, 不得丢失、不得重复
+; --- 测试 8: Registry 收编不变量 (Registry 是唯一真相源, 池行收编幂等, 推导与旧串一致) ---
 try {
     RimCommand.Register("test.docprobe", "Doc Probe", (*) => 0, Map("Category", "TestCat",
         "Description", "Startup invariant probe", "Keywords", "docprobe"))
-    global g_InvPool
-    g_InvPool := []
-    RimCommand.PopulateAllToLauncher()
-    Assert(g_InvPool.Length > 0, "Startup invariant: pool rebuilt non-empty after clear+Populate")
-    seen := Map()
-    hasProbe := false
-    allUnique := true
-    for _, line in g_InvPool {
-        if (line = "command | test.docprobe | Doc Probe - Startup invariant probe")
-            hasProbe := true
-        if (seen.Has(line))
-            allUnique := false
-        seen[line] := true
-    }
-    Assert(hasProbe, "Startup invariant: registry entry survives clear+Populate rebuild")
-    Assert(allUnique, "Startup invariant: single Populate produces no duplicate pool lines")
-    ; 第二轮: 再清空再重建, 行数必须一致 (Populate 无累积副作用, 重复调用方只能是 LoadFiles 清池后)
-    n1 := g_InvPool.Length
-    g_InvPool := []
-    RimCommand.PopulateAllToLauncher()
-    Assert(g_InvPool.Length = n1, "Startup invariant: rebuild is stable across clear+Populate cycles")
+    ent := RimCommand.Get("test.docprobe")
+    Assert(IsObject(ent) && ent.Kind = "command" && ent.Target = "test.docprobe" && ent.Name = "test.docprobe", "Registry: direct register carries Kind/Target/Name")
+    ; 四段收编: 显示/搜索与旧池行逐字一致
+    id4 := RimCommand.IngestRow("taskmgrx | run | taskmgrx.exe | 任务管理器X")
+    Assert(id4 = "taskmgrx", "IngestRow: 4-seg id is key")
+    row4 := RimCommand.SearchRow(RimCommand.Get(id4))
+    Assert(row4["show"] = "run | taskmgrx | 任务管理器X", "SearchRow: 4-seg show matches legacy")
+    Assert(InStr(row4["search"], "taskmgrx") > 0 && InStr(row4["search"], "taskmgrx.exe") > 0 && InStr(row4["search"], "任务管理器X") > 0, "SearchRow: 4-seg search covers key+cmd+desc")
+    Assert(row4["rankKey"] = "command | taskmgrx", "SearchRow: rankKey stable")
+    ; 文件收编: 显示用无扩展名
+    idf := RimCommand.IngestRow("file | D:\soft\QQMusic.exe | 音乐")
+    rowf := RimCommand.SearchRow(RimCommand.Get(idf))
+    Assert(rowf["show"] = "file | QQMusic | 音乐", "SearchRow: file show uses noext + desc")
+    Assert(rowf["id"] = "file:D:\soft\QQMusic.exe", "IngestRow: file id stable")
+    ; 注册行收编: 显示 label 形
+    idc := RimCommand.IngestRow("command | test.docprobe | Doc Probe - Startup invariant probe")
+    Assert(idc = "test.docprobe", "IngestRow: command row resolves to id")
+    Assert(RimCommand.Get("test.docprobe").Action != "command|test.docprobe", "IngestRow: never clobbers live registration")
+    ; 幂等: 重复收编不增不改
+    n0 := RimCommand.Registry.Count
+    RimCommand.IngestRow("taskmgrx | run | taskmgrx.exe | 任务管理器X")
+    RimCommand.IngestRow("file | D:\soft\QQMusic.exe | 音乐")
+    Assert(RimCommand.Registry.Count = n0, "IngestRow: re-ingest is idempotent")
 } catch Error as e {
     Assert(false, "Test 8 failed: " . e.Message)
 }

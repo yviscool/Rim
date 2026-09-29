@@ -36,9 +36,9 @@ Main() {
     Check("dotted-noclass", !ActionCallDotted("NoSuchCls.Ping"))
     Check("dotted-malformed", !ActionCallDotted("NoDot") && !ActionCallDotted("A.B.C") && !ActionCallDotted(".Ping"))
     Check("bare-still-false", !ActionCallDotted("BareFunc"))
-    ; 真接线静态断言
-    execSrc := FileRead(A_ScriptDir . "\..\Core\Execution.ahk", "UTF-8")
-    Check("wire-exec", InStr(execSrc, "ActionCallDotted(fn, fnArg)") > 0)
+    ; 真接线静态断言 (调用序列收敛到 ActionRunFunction, 手势探针子集保留直调兜底)
+    protoSrc := FileRead(A_ScriptDir . "\..\Core\ActionProtocol.ahk", "UTF-8")
+    Check("wire-exec", InStr(protoSrc, "ActionCallDotted(fn, fnArg)") > 0 && InStr(protoSrc, "ActionRunFunction(fn, fnArg") > 0)
     engSrc := FileRead(A_ScriptDir . "\..\Core\Gesture\Engine.ahk", "UTF-8")
     Check("wire-engine", InStr(engSrc, "ActionCallDotted(fn)") > 0)
     iniSrc := FileRead(A_ScriptDir . "\..\Conf\rim.ini", "UTF-8")

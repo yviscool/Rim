@@ -3,7 +3,7 @@
 
 ; === StrokePlus Plugin - 默认手势集 ===
 ; 以全局手势复用 Rim 既有动作体系 (<Gen_xxx>/<wm_xxx>/key|/run|...),
-; 经 VIMD_CMD 统一派发, 无需重复实现功能.
+; 经统一入口 ExecuteAction 派发, 无需重复实现功能.
 ; 真正的手势->动作映射在 Conf\rim.ini [Gestures] 中, 此处只做:
 ;   1) 若 ini 缺 [Gesture]/[Gestures] 则写入开箱默认值(不覆盖用户已有键)
 ;   2) 注册手势动作的 Action 说明(供 KeyHelp/帮助体系检索)

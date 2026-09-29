@@ -29,7 +29,7 @@ RunAndGetOutput(command) {
 RunCommand(originCmd) {
     global g_UseDisplay, g_DisableAutoExit, g_ExecInterval, g_PipeArg
     global g_HistoryCommands, g_Conf
-    global g_CurrentInput, g_AutoConf, g_ExcludedCommands
+    global g_CurrentInput, g_AutoConf
     global g_LastExecLabel, g_LastExecCb, FullPipeArg, g_Arg
 
     if (originCmd = "")
@@ -73,6 +73,21 @@ RunCommand(originCmd) {
     ; 回放权威参数: 覆盖 ParseArg 从残留输入框读出的不可信值 (全类型一致)
     if (histRec["has"] && Trim(histRec["arg"]) != "")
         g_Arg := Trim(histRec["arg"])
+
+    ; 参数校验门 (仅 Registry 有 required 声明的命令; 未声明=全可选, 零行为变化).
+    ; 拦下后展示用法, 不执行、不记历史不涨 rank (失败不是使用)
+    if (cmdType = "command" && IsSet(RimCommand)) {
+        usage := ""
+        try usage := RimCommand.CheckArgs(cmd, g_Arg)
+        catch {
+        }
+        if (usage != "") {
+            try DisplayResult(usage)
+            catch {
+            }
+            return
+        }
+    }
 
     if (cmdType = "function") {
         ExecuteAction("function|" cmd, g_Arg)
@@ -128,8 +143,8 @@ RunCommand(originCmd) {
     FullPipeArg := ""
 }
 
-; legacy function 命令执行体 (语义与旧分支逐行一致: effective-arg 优先显式参数, 否则 g_Arg;
-; 直接调真实函数, 不重进协议, 无递归)
+; legacy function 命令执行体 (参数拆分保留调用方语义, 调用序列收敛到 ActionRunFunction;
+; viaRegistry=false: 本体即 Registry 动作实现, 查表自指会无限递归且绕过深度守卫)
 LegacyDirectCall(content, callArg := "") {
     global g_Arg
     rest := content
@@ -138,32 +153,7 @@ LegacyDirectCall(content, callArg := "") {
     fnArg := parts.Length >= 2 ? Trim(parts[2]) : callArg
     if (fnArg = "")
         fnArg := g_Arg
-    if (fnArg != "")
-        g_Arg := fnArg
-    ; 点式静态方法 (同 function| 分支, 见 ActionProtocol.ActionCallDotted):
-    ; %fn%() 不支持点式, 先试点式再裸名, 否则未来点式 target 静默走 EXEC_FAILED
-    if (InStr(fn, ".")) {
-        try {
-            if (ActionCallDotted(fn, fnArg))
-                return true
-        }
-    }
-    if (fnArg != "") {
-        try {
-            %fn%(fnArg)
-            return true
-        } catch {
-        }
-    }
-    try {
-        %fn%()
-        return true
-    } catch as e {
-        try RimLog("EXEC_FAILED", fn, e)
-        catch {
-        }
-        return false
-    }
+    return ActionRunFunction(fn, fnArg, content, false, false, false)
 }
 
 GetRunArg() {
@@ -203,7 +193,9 @@ OpenPath(filePath) {
 ; === 统一动作/命令执行器 (Unified Action & Command Dispatcher) ===
 ; 递归守卫: RimCommand.Execute ↔ ExecuteAction 双向互调, 动作串自指 (如 Action="command|self")
 ; 会无界递归; 深度超 10 直接丢弃并记日志 (调用链见日志 action 字段)
-; P1-5: 入口先经 ActionParse 结构化 (错误码+来源日志), 字符串 ABI 冻结兼容
+; 统一入口: 先经 ActionDispatch 真执行 (command/function/legacy/combo),
+; OK/HANDLER_FAIL 表示分发层已接管 (执行或记死), 不再重进 Body;
+; OK_DEFER/UNKNOWN_COMMAND/解析失败才落到 ExecuteAction_Body (前缀处理器 + run/file/key 等 + 递归)
 ExecuteAction(action := "", actionArg := "", source := "") {
     static execDepth := 0
     execDepth += 1
@@ -217,8 +209,24 @@ ExecuteAction(action := "", actionArg := "", source := "") {
     try {
         try {
             parsed := ActionParse(action, source)
-            if (!parsed["ok"])
+            if (!parsed["ok"]) {
                 try RimLog("WARN", "ActionParse " . parsed["code"] . " src=" . source . " raw=" . SubStr(String(action), 1, 80))
+                catch {
+                }
+; 统一入口: 先经 ActionDispatch 真执行.
+; 只有 OK (已执行) / HANDLER_FAIL (已接管, 含记死) 才跳过 Body;
+; OK_DEFER (run|file|key|dir|cmd|url 无人可接) 与 UNKNOWN_COMMAND 必须落到 Body,
+; ok=true 不等于已执行, 错判则文件/网址/按键静默死亡 (血泪).
+            } else {
+                disp := ActionDispatch(parsed, actionArg)
+                code := ""
+                try code := disp["code"]
+                catch {
+                }
+                if (code = "OK" || code = "HANDLER_FAIL")
+                    return
+            }
+        } catch {
         }
         try {
             global g_LogSid
@@ -328,69 +336,8 @@ ExecuteAction_Body(action := "", actionArg := "") {
             url := "http://" . url
         Run(url)
     }
-    else if (SubStr(action, 1, 6) = "combo|") {
-        ; 手势 combo 起臂兜底 (与 GestureEngine.ComboArm 同语义, 统一入口可达)
-        try {
-            if (IsSet(GestureEngine) && IsObject(GestureEngine)) {
-                GestureEngine.ComboArm(action)
-                return
-            }
-        } catch {
-        }
-    }
-    else if (SubStr(action, 1, 9) = "function|") {
-        global g_Arg
-        rest := SubStr(action, 10)
-        parts := StrSplit(rest, "|")
-        fn := Trim(parts[1])
-        ; 桥接命令优先走 Registry (id = 显示名, 冲突时 legacy. 显示名); 找不到才直调 (手写行兜底)
-        if (ExecuteCommandId(fn, parts.Length >= 2 ? Trim(parts[2]) : actionArg))
-            return
-        if (ExecuteCommandId("legacy." . fn, parts.Length >= 2 ? Trim(parts[2]) : actionArg))
-            return
-        fnArg := parts.Length >= 2 ? Trim(parts[2]) : actionArg
-        if (fnArg != "")
-            g_Arg := fnArg
-        ; 点式静态方法 ("Class.Method", 见 ActionProtocol.ActionCallDotted):
-        ; %fn%() 不支持点式, 模板默认动作全死于此. 先点式, 再裸名.
-        if (InStr(fn, ".")) {
-            dottedOk := false
-            try dottedOk := ActionCallDotted(fn, fnArg)
-            catch {
-                dottedOk := false
-            }
-            if (dottedOk)
-                return
-            ; 点式已判死: 不再落到 %fn%() (必报 Variable not found), 直接记未知函数
-            try RimLog("UNKNOWN_FUNCTION", action . " fn=" . fn)
-            catch {
-            }
-            return
-        }
-        ; 运行时前检 (与 probe_dead_refs 同词表): 未知名字直接记错返回, 不抛 Variable not found
-        try {
-            if (IsSet(ActionIsCallable) && !ActionIsCallable(fn)) {
-                try RimLog("UNKNOWN_FUNCTION", action . " fn=" . fn)
-                catch {
-                }
-                return
-            }
-        } catch {
-        }
-        if (fnArg != "") {
-            try {
-                %fn%(fnArg)
-                return
-            } catch {
-            }
-        }
-        try %fn%()
-        catch as e {
-            try RimLog("EXEC_FAILED", action . " fn=" . fn, e)
-            catch {
-            }
-        }
-    }
+    ; function|/combo| 已收归 ActionDispatch (统一入口先行), Body 不再重复实现;
+    ; 残缺子集 (未走统一入口的直调) 落到 else 按裸名处理
     else {
         ; 已注册的 RimCommand (合流点, 未注册则落到函数名直调)
         if (ExecuteCommandId(action, actionArg))
@@ -414,11 +361,6 @@ ExecuteAction_Body(action := "", actionArg := "") {
     }
 }
 
-; VIMD_CMD 兼容接口: 委托至 ExecuteAction (垫片保留: 插件/手势动作串经此进入, 退役需全仓动作串审计)
-VIMD_CMD(action := "") {
-    ExecuteAction(action)
-}
-
 ; 显示当前参数 (原版 Core 插件 ShowArg)
 ShowArg() {
     global g_Arg, FullPipeArg
@@ -428,13 +370,24 @@ ShowArg() {
     DisplayResult(msg)
 }
 
-; 获取所有函数命令
+; 获取所有函数命令 (F1 Help 用; Registry Kind=function 行, 与旧池行输出同形)
 GetAllFunctions() {
-    global g_Commands
     result := ""
-    for index, element in g_Commands {
-        if ((InStr(element, "function | ") = 1 || InStr(element, " | function | ") > 0) && !InStr(result, element "`n"))
-            result .= "* | " element "`n"
+    try {
+        if (IsSet(RimCommand) && IsObject(RimCommand)) {
+            for id, cmd in RimCommand.Registry {
+                try {
+                    if (StrLower(cmd.Kind) != "function")
+                        continue
+                    row := RimCommand.SearchRow(cmd)
+                    line := "* | " . row["show"]
+                    if (!InStr(result, line "`n"))
+                        result .= line "`n"
+                } catch {
+                }
+            }
+        }
+    } catch {
     }
     result := StrReplace(result, "function | ", TypeLabel("function"))
     return AlignText(result)

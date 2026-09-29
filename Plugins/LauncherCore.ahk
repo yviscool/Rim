@@ -67,6 +67,7 @@ Core() {
     RimCommand.Register("CleanupPlugin", "CleanupPlugin", MakeLegacyCmd("CleanupPlugin"), Map("Category", "System", "Description", T("cmd.LauncherCore.CleanupPlugin"), "Keywords", "CleanupPlugin"))
     RimCommand.Register("CountNumber", "CountNumber", MakeLegacyCmd("CountNumber"), Map("Category", "System", "Description", T("cmd.LauncherCore.CountNumber"), "Keywords", "CountNumber"))
     RimCommand.Register("Open", "Open", MakeLegacyCmd("Open"), Map("Category", "System", "Description", T("cmd.LauncherCore.Open"), "Keywords", "Open"))
+    RimCommand.Register("Usage", "Usage", MakeLegacyCmd("ShowUsage"), Map("Category", "System", "Description", T("cmd.LauncherCore.Usage"), "Keywords", "Usage", "Args", [Map("name", "命令名", "required", false, "help", "空参查自身用法")]))
 }
 
 ; ---- 输入链 g_Arg 大于剪切板大于 InputBox ----

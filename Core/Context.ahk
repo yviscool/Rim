@@ -83,10 +83,14 @@ class RimContext {
         ctx.IsInput := RimContext.CheckIsInput(ctx.ControlClass, ctx.Control, ctx.Class)
 
         ; 尝试通过注册的 Provider 丰富路径与选中项信息
+        ; (失败记日志不静默: provider 炸了否则连响都不响, 见 P0 审计)
         if (ctx.AppId != "" && RimContext.Providers.Has(StrLower(ctx.AppId))) {
             try {
                 RimContext.Providers[StrLower(ctx.AppId)](ctx)
-            } catch {
+            } catch as e {
+                try RimLog("CTX_PROVIDER_FAIL", StrLower(ctx.AppId), e)
+                catch {
+                }
             }
         }
 

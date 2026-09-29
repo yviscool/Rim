@@ -54,6 +54,11 @@ LogTrace_Begin(desc) {
 RimLog(level, msg, err := "") {
 }
 
+DisplayResult(text) {
+    global g_CapDisplay
+    g_CapDisplay := text
+}
+
 ; 与 Core/Hotkeys.Commands.ahk ParseArg 同语义的桩 (管道/前缀/空格取参)
 ParseArg(*) {
     global g_Arg, g_PipeArg, g_CurrentInput, g_UseFallbackCommands
@@ -85,6 +90,13 @@ CapCmd(arg := "") {
     g_CapArg := arg
 }
 
+; 生产真形状: MakeLegacyCmd(X) 注册在 id X 之下 (同名是全仓惯例, 自指引爆点)
+global g_CapReal := ""
+ProbeShowIpReal(arg := "") {
+    global g_CapReal
+    g_CapReal := "showip:" . arg
+}
+
 ; ---- 环境 ----
 global g_HistoryCommands := []
 global g_CurrentInput := "", g_Arg := "", g_PipeArg := "", g_UseFallbackCommands := false
@@ -94,14 +106,17 @@ global g_LogSid := 0
 
 RimCommand.Register("ShutdownTimer", "ShutdownTimer", CapCmd, Map("Category", "System", "Description", "x"))
 RimCommand.Register("ShowIp", "ShowIp", CapCmd, Map("Category", "System", "Description", "y"))
+RimCommand.Register("ProbeShowIpReal", "ProbeShowIpReal", MakeLegacyCmd("ProbeShowIpReal"), Map("Category", "System", "Description", "同名包裹"))
+RimCommand.Register("KillX", "KillX", CapCmd, Map("Category", "System", "Description", "杀进程", "Args", [Map("name", "进程名", "required", true, "help", "空格分隔")]))
+global g_CapDisplay := ""
 
 ; ---- 1. 新鲜执行: 输入框参数进真分发与历史 ----
 g_CurrentInput := "ShutdownTimer 30"
-RunCommand("command | ShutdownTimer | 定时关机")
+RunCommand("command | ShutdownTimer")
 ProbeCheck("fresh-dispatched", g_CapId == "hit", g_CapId)
 ProbeCheck("fresh-arg", g_CapArg == "30", g_CapArg)
 rec1 := HistSplit(g_HistoryCommands[1])
-ProbeCheck("fresh-hist-el", rec1["el"] == "command | ShutdownTimer | 定时关机", rec1["el"])
+ProbeCheck("fresh-hist-el", rec1["el"] == "command | ShutdownTimer", rec1["el"])
 ProbeCheck("fresh-hist-arg", rec1["arg"] == "30", rec1["arg"])
 
 ; ---- 2. 回放: 输入框残留不可信, 记录参数权威 (B bug 锁死点) ----
@@ -112,14 +127,43 @@ RunCommand(g_HistoryCommands[1])
 ProbeCheck("replay-dispatched", g_CapId == "hit", g_CapId)
 ProbeCheck("replay-arg-authoritative", g_CapArg == "30", g_CapArg)
 rec2 := HistSplit(g_HistoryCommands[1])
-ProbeCheck("replay-hist-stable", rec2["el"] == "command | ShutdownTimer | 定时关机" && rec2["arg"] == "30", g_HistoryCommands[1])
+ProbeCheck("replay-hist-stable", rec2["el"] == "command | ShutdownTimer" && rec2["arg"] == "30", g_HistoryCommands[1])
 
 ; ---- 3. 无参命令往返干净 ----
 g_CapArg := "__unset__"
 g_CurrentInput := "ShowIp"
-RunCommand("command | ShowIp | 本机IP")
+RunCommand("command | ShowIp")
 ProbeCheck("bare-arg", g_CapArg == "", g_CapArg)
 ProbeCheck("bare-hist-nopack", HistSplit(g_HistoryCommands[1])["has"] == false, g_HistoryCommands[1])
+
+; ---- 4. 参数校验门: required 缺失拦执行、不记历史、给用法 ----
+nHist := g_HistoryCommands.Length
+g_CapId := ""
+g_CapArg := "__unset__"
+g_CapDisplay := ""
+g_CurrentInput := "KillX"
+RunCommand("command | KillX")
+ProbeCheck("gate-blocked", g_CapId == "", g_CapId)
+ProbeCheck("gate-usage-shown", InStr(g_CapDisplay, "KillX") > 0 && InStr(g_CapDisplay, "进程名") > 0, g_CapDisplay)
+ProbeCheck("gate-no-history", g_HistoryCommands.Length == nHist, String(g_HistoryCommands.Length))
+
+; ---- 5. 带参放行 + Usage 文本 ----
+g_CurrentInput := "KillX notepad.exe"
+RunCommand("command | KillX")
+ProbeCheck("gate-pass-arg", g_CapArg == "notepad.exe", g_CapArg)
+ProbeCheck("usage-line", RimCommand.Usage("KillX") == "KillX <进程名> — 杀进程`n  进程名: 空格分隔", RimCommand.Usage("KillX"))
+ProbeCheck("usage-unknown", RimCommand.Usage("NoSuchCmdZZZ") == "")
+ProbeCheck("check-unannotated", RimCommand.CheckArgs("ShowIp", "") == "")
+
+; ---- 6. 同名包裹不自指 (ShowIp 闪退回归: 探针能跑完即无无限递归) ----
+g_CapReal := ""
+g_CurrentInput := "ProbeShowIpReal"
+RunCommand("command | ProbeShowIpReal")
+ProbeCheck("wrapped-once", g_CapReal == "showip:", g_CapReal)
+g_CapReal := ""
+g_CurrentInput := "ProbeShowIpReal 114"
+RunCommand("command | ProbeShowIpReal")
+ProbeCheck("wrapped-arg", g_CapReal == "showip:114", g_CapReal)
 
 if (g_ProbeFail > 0) {
     FileAppend("probe-hist-replay FAIL: " . g_ProbeFail . "`n", "*")

@@ -229,7 +229,12 @@ DisplaySearchResult(result) {
         RunCommand(g_CurrentCommand)
 
     if ((g_SkinConf.Has("ShowCurrentCommand") ? g_SkinConf["ShowCurrentCommand"] : "1") = "1") {
-        commandToShow := SubStr(g_CurrentCommand, InStr(g_CurrentCommand, " | ") + 3)
+        ; 当前行经 Registry 解出原版 remainder 形 (文件行即完整路径), 再走类型本地化
+        commandToShow := ""
+        try commandToShow := RimCommand.StatusOf(g_CurrentCommand)
+        catch {
+            commandToShow := g_CurrentCommand
+        }
         ; 与列表同语言: 类型经 TypeLabel 本地化 (原版此处英文原串, 列表中文, 现统一走语言包)
         commandToShow := StrReplace(commandToShow, "file | ", TypeLabel("file"))
         commandToShow := StrReplace(commandToShow, "function | ", TypeLabel("function"))
@@ -476,8 +481,8 @@ InitMainGui() {
         WinSetRegion("0-0 w" border * 2 + g_SkinConf["WidgetWidth"] + 0 " h" windowHeight
             . " r" g_SkinConf["RoundCorner"] + 0 "-" g_SkinConf["RoundCorner"] + 0, g_WindowName)
 
-    ; 窗口消息与设置 (原 truthy 语义: "0" 亦生效, 缺键抛错; 此处缺键回默认仍生效)
-    if (CfgGet("Config", "SwitchToEngIME", "0") != "")
+    ; 开关门: 只在显式开启 (=1) 时切英文 (与 Hotkeys.ahk:61 一致; 旧 != "" 把 "0" 也当真, 每次启动强制切布局)
+    if (CfgGet("Config", "SwitchToEngIME", "0") = "1")
         SwitchToEngIME()
 
     if (CfgGet("Config", "ExitIfInactivate", "1") != "")

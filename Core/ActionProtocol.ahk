@@ -49,34 +49,30 @@ ActionDispatch(actMap, actionArg := "") {
         return Map("ok", false, "code", "UNKNOWN_COMMAND", "msg", "unknown command: " . target)
     }
     if (kind = "function" || kind = "legacy") {
-        fn := target
+        ; 内联参数优先 (旧 ExecuteAction_Body 语义: parts[2] 有则用, 否则 actionArg);
+        ; 余段用 "|" 接回 (旧逻辑截断丢参, 此处修全). 调用序列收敛到 ActionRunFunction.
+        targParts := StrSplit(target, "|")
+        fn := Trim(targParts[1])
         if (fn = "")
             return Map("ok", false, "code", "VALIDATE_FAIL", "msg", "empty function")
-        try {
-            if (IsSet(RimCommand) && IsObject(RimCommand) && RimCommand.Registry.Has(fn)) {
-                RimCommand.Execute(fn, arg)
-                return Map("ok", true, "code", "OK", "msg", "")
+        inlineArg := ""
+        if (targParts.Length >= 2) {
+            inlineArg := Trim(targParts[2])
+            i := 3
+            while (i <= targParts.Length) {
+                inlineArg .= "|" . Trim(targParts[i])
+                i++
             }
-            if (IsSet(RimCommand) && IsObject(RimCommand) && RimCommand.Registry.Has("legacy." . fn)) {
-                RimCommand.Execute("legacy." . fn, arg)
-                return Map("ok", true, "code", "OK", "msg", "")
-            }
-        } catch as ex {
-            return Map("ok", false, "code", "HANDLER_FAIL", "msg", ex.Message)
         }
-        return Map("ok", false, "code", "UNKNOWN_COMMAND", "msg", "unknown function: " . fn)
+        effArg := inlineArg != "" ? inlineArg : arg
+        if (ActionRunFunction(fn, effArg, actMap["raw"]))
+            return Map("ok", true, "code", "OK", "msg", "")
+        return Map("ok", false, "code", "HANDLER_FAIL", "msg", "unknown function: " . fn)
     }
     if (kind = "combo") {
-        ; 手势 combo 起臂 (如 combo|zoom): 与 Gesture/Engine.ahk ComboArm 同语义,
-        ; 统一入口不再报 UNKNOWN_KIND, 无手势引擎时降级为 OK_DEFER
-        try {
-            if (IsSet(GestureEngine) && IsObject(GestureEngine)) {
-                GestureEngine.ComboArm(kind . "|" . target)
-                return Map("ok", true, "code", "OK", "msg", "")
-            }
-        } catch as ex {
-            return Map("ok", false, "code", "HANDLER_FAIL", "msg", ex.Message)
-        }
+        ; 手势 combo 起臂收敛到 ActionArmCombo; 无手势引擎时降级为 OK_DEFER
+        if (ActionArmCombo(kind . "|" . target))
+            return Map("ok", true, "code", "OK", "msg", "")
         return Map("ok", true, "code", "OK_DEFER", "msg", "defer to ExecuteAction_Body")
     }
     return Map("ok", true, "code", "OK_DEFER", "msg", "defer to ExecuteAction_Body")
@@ -100,6 +96,112 @@ ActionLastTrace() {
         }
     }
     return RTrim(out, " <- ")
+}
+
+; 统一 function| 调用序列 (Execution / GestureEngine / LegacyDirectCall 三处收敛于此):
+; Registry → legacy. → 点式 → 前检 → 直调.
+; 调用方保留各自的参数拆分 (Execution 认 actionArg, 手势只认裸名, LegacyDirectCall 认 content 内参).
+; 返回 true=已执行; false=无人认领 (调用方记 UNKNOWN, 不再下坠重试).
+; quiet=true 跳过 UNKNOWN 日志 (手势旧语义静默); rethrow=true 则最终失败直接抛 (手势旧语义上抛).
+; viaRegistry=false 跳过注册表 (LegacyDirectCall 专用: 它本身就是 Registry 动作的实现体,
+; 再查表会自指无限递归, 且该环不经过 ExecuteAction 深度守卫, 必栈爆).
+ActionRunFunction(fn, fnArg := "", origin := "", quiet := false, rethrow := false, viaRegistry := true) {
+    fn := Trim(String(fn))
+    if (fn = "")
+        return false
+    if (fnArg != "") {
+        try {
+            global g_Arg
+            g_Arg := fnArg
+        } catch {
+        }
+    }
+    if (viaRegistry && IsSet(ExecuteCommandId)) {
+        try {
+            if (ExecuteCommandId(fn, fnArg))
+                return true
+            if (ExecuteCommandId("legacy." . fn, fnArg))
+                return true
+        } catch {
+        }
+    } else if (viaRegistry && IsSet(RimCommand) && IsObject(RimCommand) && IsObject(RimCommand.Registry)) {
+        ; 探针子集 (未包含 Execution.ahk): 直查注册表, 无合流点可走
+        try {
+            if (RimCommand.Registry.Has(fn)) {
+                RimCommand.Execute(fn, fnArg)
+                return true
+            }
+            if (RimCommand.Registry.Has("legacy." . fn)) {
+                RimCommand.Execute("legacy." . fn, fnArg)
+                return true
+            }
+        } catch {
+            return false
+        }
+    }
+    ; 点式静态方法: %fn%() 不支持点式, 先试点式; 判死即停, 不再落到 %fn%() 报 Variable not found
+    if (InStr(fn, ".")) {
+        dottedOk := false
+        try dottedOk := ActionCallDotted(fn, fnArg)
+        catch {
+            dottedOk := false
+        }
+        if (dottedOk)
+            return true
+        if (!quiet) {
+            try RimLog("UNKNOWN_FUNCTION", (origin != "" ? origin : "function|" . fn) . " fn=" . fn)
+            catch {
+            }
+        }
+        return false
+    }
+    ; 运行时前检: 未知名字直接判死, 不靠 %fn%() 抛错
+    try {
+        if (!ActionIsCallable(fn)) {
+            if (!quiet) {
+                try RimLog("UNKNOWN_FUNCTION", (origin != "" ? origin : "function|" . fn) . " fn=" . fn)
+                catch {
+                }
+            }
+            return false
+        }
+    } catch {
+        return false
+    }
+    if (fnArg != "") {
+        try {
+            %fn%(fnArg)
+            return true
+        } catch {
+        }
+    }
+    try {
+        %fn%()
+        return true
+    } catch as e {
+        if (rethrow)
+            throw e
+        try RimLog("EXEC_FAILED", (origin != "" ? origin : "function|" . fn) . " fn=" . fn, e)
+        catch {
+        }
+        return false
+    }
+}
+
+; 统一 combo 起臂 (Execution / ActionDispatch 收敛于此; GestureEngine 内调直连 ComboArm, 同文件零依赖)
+ActionArmCombo(actStr) {
+    s := Trim(String(actStr))
+    if (SubStr(s, 1, 6) != "combo|")
+        return false
+    try {
+        if (IsSet(GestureEngine) && IsObject(GestureEngine)) {
+            GestureEngine.ComboArm(s)
+            return true
+        }
+    } catch {
+        return false
+    }
+    return false
 }
 
 ; 运行时前检: 与 probe_dead_refs 同词表语义 (裸函数/点式/Registry 三形态),

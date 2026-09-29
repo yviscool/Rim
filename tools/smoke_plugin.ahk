@@ -20,8 +20,7 @@ class Rim {
     static config := RimConfigStub()
 }
 
-; 命令池全局 (对齐 Rim.ahk:94-95; 缺了 LauncherCompat.AddCommand 即 PLUGIN_ERR)
-global g_Commands := []
+; 别名全局 (对齐 Rim.ahk; 收编直达 Registry, 池已死)
 global g_CommandAlias := Map()
 
 RegisterCommand(name, type, content, description := "") {

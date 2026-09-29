@@ -116,14 +116,15 @@ ParseArg(*) {
 CleanupRank(*) {
     LoadFiles(false)
     for command, rank in g_AutoConf["Rank"] {
-        cleanup := true
-        for index, element in g_Commands {
-            if (InStr(element, command) = 1) {
-                cleanup := false
-                break
-            }
+        keep := false
+        try {
+            rec := HistSplit(command)
+            parts := StrSplit(rec["el"], " | ")
+            if (parts.Length >= 2 && StrLower(Trim(parts[1])) = "command" && IsSet(RimCommand))
+                keep := RimCommand.Registry.Has(Trim(parts[2]))
+        } catch {
         }
-        if (cleanup)
+        if (!keep)
             g_AutoConf.DeleteKey("Rank", command)
     }
     tries := 0
@@ -183,19 +184,42 @@ DisplayHistoryCommands(*) {
             result .= Chr(g_FirstChar + index - 1) . " | "
         }
 
-        ; 规范记录显示: 参数栏按位拆出 (与类型无关); 无包装旧行退化为整行元素, _h4 自然承接旧参
+        ; 列表行统一 "command|<id>" (+历史参数栏); 显示经 Registry 解名, 未注册退化裸行
         _rec := HistSplit(element)
-        _hp := StrSplit(_rec["el"], " | ")
-        _h1 := _hp.Length >= 1 ? _hp[1] : ""
-        _h2 := _hp.Length >= 2 ? _hp[2] : ""
-        _h3 := _hp.Length >= 3 ? _hp[3] : ""
-        _h4 := _hp.Length >= 4 ? _hp[4] : ""
-        if (_hp.Length > 4) {
-            Loop _hp.Length - 4
-                _h4 .= " | " . _hp[4 + A_Index]
+        _id := ""
+        try {
+            _ep := StrSplit(_rec["el"], " | ")
+            if (_ep.Length >= 2 && StrLower(Trim(_ep[1])) = "command")
+                _id := Trim(_ep[2])
+            else
+                _id := Trim(_ep[1])
+        } catch {
+            _id := ""
+        }
+        _h1 := "command"
+        _h2 := _id
+        _h3 := ""
+        try {
+            if (_id != "" && IsSet(RimCommand)) {
+                _rc := RimCommand.Get(_id)
+                if (IsObject(_rc)) {
+                    if (_rc.Name != "")
+                        _h2 := _rc.Name
+                    try {
+                        if (_rc.Kind = "command")
+                            _h3 := RimCommand.MakeLabel(_rc.Title, _id, _rc.Description)
+                        else if (_rc.Description != "")
+                            _h3 := _rc.Description
+                    } catch {
+                    }
+                }
+            }
+        } catch {
         }
         if (_rec["has"])
             _h4 := _rec["arg"]
+        else
+            _h4 := ""
         result .= _h1 " | " _h2 " | " _h3 . " " . T("hist.argsep") . " " . _h4 "`n"
         g_CurrentCommandList.Push(element)
     }
@@ -203,14 +227,20 @@ DisplayHistoryCommands(*) {
     DisplayControlText(result)
 }
 
-; 从命令中取文件路径 (兼容四段式 key|file|path|desc 与三段式 file|path|desc;
-; 规范记录先剥参数栏, file 带参回放同样定位到路径)
+; 从当前行取文件路径 ("command | <id>" 经 Registry 取 Target)
 GetFilePathFromCmd(cmd) {
-    cmd := HistSplit(cmd)["el"]
-    parts := StrSplit(cmd, " | ")
-    if (parts.Length >= 4 && (parts[2] = "file" || parts[2] = "function" || parts[2] = "cmd" || parts[2] = "url" || parts[2] = "run"))
-        return parts[3]
-    return parts.Length >= 2 ? parts[2] : ""
+    try {
+        el := HistSplit(cmd)["el"]
+        parts := StrSplit(el, " | ")
+        if (parts.Length >= 2 && StrLower(Trim(parts[1])) = "command" && IsSet(RimCommand)) {
+            rc := RimCommand.Get(Trim(parts[2]))
+            if (IsObject(rc) && StrLower(rc.Kind) = "file" && Trim(String(rc.Target)) != "")
+                return Trim(String(rc.Target))
+        }
+        return ""
+    } catch {
+        return ""
+    }
 }
 
 OpenCurrentFileDir(*) {
@@ -345,6 +375,25 @@ Help(*) {
 KeyHelp(*) {
     ToolTip(KeyHelpText())
     SetTimer(RemoveToolTip, -5000)
+}
+
+; 用法查询: "Usage KillProcess" 展示参数规格 (无参查自身用法)
+ShowUsage() {
+    global g_Arg
+    target := Trim(g_Arg)
+    if (target = "")
+        target := "Usage"
+    usage := ""
+    try usage := RimCommand.Usage(target)
+    catch {
+    }
+    if (usage != "")
+        DisplayResult(usage)
+    else {
+        try DisplayResult(T("cmd.usage_unknown", target))
+        catch {
+        }
+    }
 }
 
 RemoveToolTip(*) {

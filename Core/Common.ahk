@@ -145,7 +145,20 @@ SwitchIME(dwLayout) {
 }
 
 SwitchToEngIME() {
-    ; 对齐原版: 调两次, 后者生效 (中文系统默认布局差异)
+    ; 首选: 关当前窗口 IME (当前键盘切英文半角, 布局不动 —— 用户要的是"英文模式"不是"美式键盘")
+    try {
+        hwnd := DllCall("GetForegroundWindow", "Ptr")
+        if (hwnd) {
+            himc := DllCall("imm32\ImmGetContext", "Ptr", hwnd, "Ptr")
+            if (himc) {
+                DllCall("imm32\ImmSetOpenStatus", "Ptr", himc, "Int", 0)
+                DllCall("imm32\ImmReleaseContext", "Ptr", hwnd, "Ptr", himc)
+                return
+            }
+        }
+    } catch {
+    }
+    ; 回落: 旧布局切换 (XP 时代 KLID; 现代系统缺布局时可能停在美式, 仅保底)
     SwitchIME(0x04090409)
     SwitchIME(0x08040804)
 }

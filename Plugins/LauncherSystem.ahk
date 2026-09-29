@@ -27,7 +27,7 @@ class LauncherSystemPlugin extends RimPlugin {
     RimCommand.Register("IncreaseVolume", "IncreaseVolume", MakeLegacyCmd("IncreaseVolume"), Map("Category", "System", "Description", T("cmd.LauncherSystem.IncreaseVolume"), "Keywords", "IncreaseVolume volumeup"))
     RimCommand.Register("DecreaseVolume", "DecreaseVolume", MakeLegacyCmd("DecreaseVolume"), Map("Category", "System", "Description", T("cmd.LauncherSystem.DecreaseVolume"), "Keywords", "DecreaseVolume volumedown"))
     RimCommand.Register("SystemState", "SystemState", MakeLegacyCmd("SystemState"), Map("Category", "System", "Description", T("cmd.LauncherSystem.SystemState"), "Keywords", "SystemState top"))
-    RimCommand.Register("KillProcess", "KillProcess", MakeLegacyCmd("KillProcess"), Map("Category", "System", "Description", T("cmd.LauncherSystem.KillProcess"), "Keywords", "KillProcess"))
+    RimCommand.Register("KillProcess", "KillProcess", MakeLegacyCmd("KillProcess"), Map("Category", "System", "Description", T("cmd.LauncherSystem.KillProcess"), "Keywords", "KillProcess", "Args", [Map("name", "进程名", "required", true, "help", "空格分隔多个, 空参不再静默假成功")]))
     RimCommand.Register("SendToClip", "SendToClip", MakeLegacyCmd("SendToClip"), Map("Category", "System", "Description", T("cmd.LauncherSystem.SendToClip"), "Keywords", "SendToClip"))
     RimCommand.Register("ListWindow", "ListWindow", MakeLegacyCmd("ListWindow"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ListWindow"), "Keywords", "ListWindow"))
     RimCommand.Register("ActivateWindow", "ActivateWindow", MakeLegacyCmd("ActivateWindow"), Map("Category", "System", "Description", T("cmd.LauncherSystem.ActivateWindow"), "Keywords", "ActivateWindow"))

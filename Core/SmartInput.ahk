@@ -21,18 +21,45 @@ if !IsSet(g_SI) {
 SI_HistoryInputs() {
     out := []
     try {
-        for _i, element in g_HistoryCommands
-            out.Push(SI_HistoryInputOfPure(element))
+        for _i, element in g_HistoryCommands {
+            rec := HistSplit(element)
+            core := SI_CoreOfPure(rec["el"])
+            if (rec["has"] && Trim(rec["arg"]) != "")
+                out.Push(SI_NameOf(core) . " " . Trim(rec["arg"]))
+            else
+                out.Push(SI_NameOf(core))
+        }
     } catch {
     }
     return out
 }
 
+; Registry 名解析 (展示/ghost 用; 无 Registry 回落裸核, 探针子集可跑)
+SI_NameOf(core) {
+    try {
+        if (IsSet(RimCommand) && IsObject(RimCommand)) {
+            cmd := RimCommand.Get(core)
+            if (IsObject(cmd) && cmd.Name != "")
+                return cmd.Name
+        }
+    } catch {
+    }
+    return core
+}
+
 SI_CommandCores() {
     out := []
     try {
-        for _i, element in g_Commands
-            out.Push(SI_CoreOfPure(element))
+        if (IsSet(RimCommand) && IsObject(RimCommand)) {
+            for id, cmd in RimCommand.Registry {
+                try {
+                    out.Push(cmd.Name != "" ? cmd.Name : id)
+                } catch {
+                    out.Push(id)
+                }
+            }
+            return out
+        }
     } catch {
     }
     return out
@@ -41,11 +68,11 @@ SI_CommandCores() {
 SI_FindGhost(prefix) {
     global g_CurrentCommandList
     cands := []
-    ; 1. 列表头优先: 回车跑的就是它, ghost 与执行目标永远一致 (精确置顶后更稳定)
-    ;    列表可装历史规范记录 (DisplayHistoryCommands 原样入列), 先剥参数栏再取核
+    ; 1. 列表头优先: 回车跑的就是它, ghost 与执行目标永远一致 (精确置顶后更稳定).
+    ;    列表行统一 "command|<id>", 先拆包取核再解名
     try {
         if (g_CurrentCommandList.Length > 0) {
-            headCore := SI_CoreOfPure(HistSplit(g_CurrentCommandList[1])["el"])
+            headCore := SI_NameOf(SI_CoreOfPure(HistSplit(g_CurrentCommandList[1])["el"]))
             if (headCore != "")
                 cands.Push(headCore)
         }
@@ -56,7 +83,7 @@ SI_FindGhost(prefix) {
         for _i, element in g_CurrentCommandList {
             if (_i > 30)
                 break
-            cands.Push(SI_CoreOfPure(HistSplit(element)["el"]))
+            cands.Push(SI_NameOf(SI_CoreOfPure(HistSplit(element)["el"])))
         }
     } catch {
     }
