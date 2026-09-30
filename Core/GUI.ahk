@@ -28,6 +28,20 @@ EnsureSkinDefaults() {
             g_SkinConf[k] := v
 }
 
+; 皮肤数值安全读: 缺键/空串/垃圾一律回默认, 手改 ini 永不炸启动与重建.
+; (v2 里变量存非数字串再 +0 即抛, 空串亦抛, 实测锤实)
+SkinNum(key, def) {
+    global g_SkinConf
+    try {
+        if (IsObject(g_SkinConf) && g_SkinConf.Has(key)) {
+            v := g_SkinConf[key] + 0
+            return v
+        }
+    } catch {
+    }
+    return def
+}
+
 ; 获取鼠标所在行号
 getMouseCurrentLine() {
     global g_DisplayArea, g_DisplayRows, g_WindowName
@@ -319,8 +333,19 @@ KeyHelpText() {
 AlignText(text) {
     global g_SkinConf
 
-    col3MaxLen := (g_SkinConf.Has("DisplayCol3MaxLength") ? g_SkinConf["DisplayCol3MaxLength"] : "30") + 0
-    col4MaxLen := (g_SkinConf.Has("DisplayCol4MaxLength") ? g_SkinConf["DisplayCol4MaxLength"] : "36") + 0
+    ; 手改垃圾值永不炸搜索: 非数字回落默认
+    col3MaxLen := 30
+    col4MaxLen := 36
+    try col3MaxLen := (g_SkinConf.Has("DisplayCol3MaxLength") ? g_SkinConf["DisplayCol3MaxLength"] : "30") + 0
+    catch {
+    }
+    try col4MaxLen := (g_SkinConf.Has("DisplayCol4MaxLength") ? g_SkinConf["DisplayCol4MaxLength"] : "36") + 0
+    catch {
+    }
+    if (col3MaxLen <= 0)
+        col3MaxLen := 30
+    if (col4MaxLen < 0)
+        col4MaxLen := 36
     col3Pos := 10
     hasCol2 := false
 
@@ -429,6 +454,37 @@ AlignText(text) {
     return result
 }
 
+; 显示区聚焦但不吃光标: 实测 Focus() 会全选文本 (Up 死键根因: 全选闪蓝+collapse 落点错位),
+; 焦点已在显示区时直接返回 (连按时连选中态都不产生, 杜绝蓝闪);
+; 否则先存后恢复; PgUp/PgDn/Home/End 等原生键照常走显示区
+DisplayFocusKeepCaret() {
+    global g_DisplayEdit
+    hwnd := 0
+    try hwnd := g_DisplayEdit.Hwnd
+    catch {
+        return
+    }
+    try {
+        if (ControlGetFocus("A") = hwnd)
+            return
+    } catch {
+    }
+    s := 0
+    e := 0
+    try {
+        packed := DllCall("SendMessageW", "Ptr", hwnd, "UInt", 0x00B0, "Ptr", 0, "Ptr", 0, "Ptr")
+        s := packed & 0xFFFF
+        e := (packed >> 16) & 0xFFFF
+    } catch {
+    }
+    try g_DisplayEdit.Focus()
+    catch {
+    }
+    try DllCall("SendMessageW", "Ptr", hwnd, "UInt", 0x00B1, "Ptr", s, "Ptr", e, "Ptr")
+    catch {
+    }
+}
+
 ; 输入框底色 (对齐原版 Gui,Color 的 Edit 色; try 兜底未知色值)
 ApplyEditColor(ctrl) {
     global g_SkinConf
@@ -445,57 +501,66 @@ InitMainGui() {
 
     _topOpt := (CfgGet("Config", "WindowAlwaysOnTop", "0") = "1") ? " +AlwaysOnTop" : ""
     g_MainGui := Gui("+ToolWindow" _topOpt (g_SkinConf["HideTitle"] = "1" ? " -Caption" : ""), g_WindowName)
-    g_MainGui.BackColor := g_SkinConf["BackgroundColor"]
+    try g_MainGui.BackColor := g_SkinConf["BackgroundColor"]
+    catch {
+    }
 
     if (g_SkinConf["BackgroundPicture"] != "" && FileExist(A_ScriptDir "\Conf\Skins\" g_SkinConf["BackgroundPicture"]))
         g_MainGui.Add("Picture", "x0 y0", A_ScriptDir "\Conf\Skins\" g_SkinConf["BackgroundPicture"])
 
     border := 10
-    if (g_SkinConf["BorderSize"] + 0 >= 0)
-        border := g_SkinConf["BorderSize"] + 0
-    windowHeight := border * 3 + g_SkinConf["EditHeight"] + 0 + g_SkinConf["DisplayAreaHeight"] + 0
+    b := SkinNum("BorderSize", -1)
+    if (b >= 0)
+        border := b
+    editH := SkinNum("EditHeight", 24)
+    dispH := SkinNum("DisplayAreaHeight", 246)
+    widgetW := SkinNum("WidgetWidth", 650)
+    windowHeight := border * 3 + editH + dispH
 
-    g_MainGui.SetFont("C" g_SkinConf["FontColor"] " S" g_SkinConf["FontSize"], g_SkinConf["FontName"])
+    try g_MainGui.SetFont("C" g_SkinConf["FontColor"] " S" g_SkinConf["FontSize"], g_SkinConf["FontName"])
+    catch {
+    }
 
     g_InputEdit := g_MainGui.Add("Edit", "x" border " y" border " -WantReturn"
-        . " w" g_SkinConf["WidgetWidth"] " h" g_SkinConf["EditHeight"])
+        . " w" widgetW " h" editH)
     ApplyEditColor(g_InputEdit)
     g_InputEdit.OnEvent("Change", ProcessInputCommand)
     g_MainGui.Add("Edit", "y+0 w0 h0 ReadOnly -WantReturn")
     btn := g_MainGui.Add("Button", "y+0 w0 h0 Default")
     btn.OnEvent("Click", RunCurrentCommand)
     g_DisplayEdit := g_MainGui.Add("Edit", "y+" border " -VScroll ReadOnly -WantReturn"
-        . " w" g_SkinConf["WidgetWidth"] " h" g_SkinConf["DisplayAreaHeight"])
+        . " w" widgetW " h" dispH)
     ApplyEditColor(g_DisplayEdit)
 
     g_CommandEdit := ""
     if (g_SkinConf["ShowCurrentCommand"] = "1") {
         g_CommandEdit := g_MainGui.Add("Edit", "y+" border " ReadOnly"
-            . " w" g_SkinConf["WidgetWidth"] " h" g_SkinConf["EditHeight"])
+            . " w" widgetW " h" editH)
         ApplyEditColor(g_CommandEdit)
-        windowHeight += border + g_SkinConf["EditHeight"] + 0
+        windowHeight += border + editH
     }
 
     windowY := ""
     if (g_SkinConf["ShowInputBoxOnlyIfEmpty"] = "1") {
-        windowHeight := border * 2 + g_SkinConf["EditHeight"] + 0
+        windowHeight := border * 2 + editH
         screenHeight := SysGet(79)
-        windowY := "y" (screenHeight - border * 2 - g_SkinConf["EditHeight"] + 0 - g_SkinConf["DisplayAreaHeight"] + 0) / 2
+        windowY := "y" (screenHeight - border * 2 - editH - dispH) / 2
     }
 
     cmdlineArg := A_Args.Length >= 1 ? A_Args[1] : ""
     showCmd := (cmdlineArg = "--hide") ? "Hide" : ""
 
-    g_MainGui.Show(windowY " w" border * 2 + g_SkinConf["WidgetWidth"] + 0
+    g_MainGui.Show(windowY " w" border * 2 + widgetW
         . " h" windowHeight " " showCmd)
 
     ; 初始化显示内容
     _searchResult := SearchCommand("", true)
     g_DisplayEdit.Value := AlignText(_searchResult)
 
-    if (g_SkinConf["RoundCorner"] + 0 > 0)
-        WinSetRegion("0-0 w" border * 2 + g_SkinConf["WidgetWidth"] + 0 " h" windowHeight
-            . " r" g_SkinConf["RoundCorner"] + 0 "-" g_SkinConf["RoundCorner"] + 0, g_WindowName)
+    cornerR := SkinNum("RoundCorner", 0)
+    if (cornerR > 0)
+        WinSetRegion("0-0 w" border * 2 + widgetW " h" windowHeight
+            . " r" cornerR "-" cornerR, g_WindowName)
 
     ; 开关门: 只在显式开启 (=1) 时切英文 (与 Hotkeys.ahk:61 一致; 旧 != "" 把 "0" 也当真, 每次启动强制切布局)
     if (CfgGet("Config", "SwitchToEngIME", "0") = "1")

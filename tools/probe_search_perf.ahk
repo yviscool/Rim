@@ -171,6 +171,72 @@ Ck("fuzzy-seq", TCMatch.Match("gge", "Google Chrome") = true)
 Ck("fuzzy-nomatch", TCMatch.Match("zxq", "Google Chrome") = false)
 Ck("fuzzy-empty-pat", TCMatch.Match("", "Google") = true)
 Ck("fuzzy-empty-text", TCMatch.Match("goo", "") = false)
+; ---- 真 DLL 对照 (rim.ini 配了有效路径才跑; CI 无 DLL 自动 SKIP) ----
+dllPath := ""
+try {
+    rimIni := EasyIni(A_ScriptDir . "\..\Conf\rim.ini")
+    dllPath := Trim(rimIni.Get("Config", "TCMatchPath", ""))
+} catch {
+}
+if (dllPath = "" || !FileExist(dllPath)) {
+    FileAppend("SKIP: dll-bench (no DLL at configured path)`n", "*")
+} else {
+    TCMatchInit(dllPath)
+    Ck("dll-loaded", TCMatch.enabled = true)
+    corpus := [["goo", "Google Chrome"], ["gge", "Google Chrome"], ["zxq", "Google Chrome"]
+        , ["", "Google"], ["goo", ""], ["tcm", "TotalCommander"], ["TC", "totalcmd64.exe"]
+        , ["WEI", "Weixin"], [" control", " control keyboard"], ["aab", "aaabbb"], ["xyz", ""]
+        , ["中文", "微信 Weixin"], ["exe", "C:\Windows\System32\control.exe"]]
+    mismatch := 0
+    for _, pair in corpus {
+        a := TCMatch.MatchDLL(pair[1], pair[2]) ? true : false
+        b := TCMatch.BuiltInMatch(StrLower(pair[1]), StrLower(pair[2])) ? true : false
+        if (a != b)
+            mismatch++
+    }
+    Ck("dll-parity", mismatch = 0, String(mismatch))
+    benchRows := []
+    Loop 500 {
+        benchRows.Push("app" . A_Index . " program files utility version" . Mod(A_Index, 37))
+    }
+    benchQueries := ["app", "app1", "ap1", "uty", "zxq", "program files", "p64", "ver3", "PP", ""]
+    benchOne(fn) {
+        n := 0
+        for _, q in benchQueries {
+            for _, r in benchRows {
+                if (%fn%(q, r))
+                    n++
+            }
+        }
+        return n
+    }
+    t0 := A_TickCount
+    nDll := benchOne("DllBenchMatch")
+    tDll := A_TickCount - t0
+    t0 := A_TickCount
+    nBi := 0
+    for _, q in benchQueries {
+        lq := StrLower(q)
+        for _, r in benchRows {
+            if (TCMatch.BuiltInMatch(lq, StrLower(r)))
+                nBi++
+        }
+    }
+    tBi := A_TickCount - t0
+    t0 := A_TickCount
+    nIs := 0
+    for _, q in benchQueries {
+        for _, r in benchRows
+            if (q != "" && InStr(r, q))
+                nIs++
+    }
+    tIs := A_TickCount - t0
+    FileAppend("INFO: dll500x10=" . tDll . "ms hits=" . nDll . " builtin=" . tBi . "ms hits=" . nBi . " instr=" . tIs . "ms hits=" . nIs . "`n", "*")
+}
+
+DllBenchMatch(q, r) {
+    return TCMatch.MatchDLL(q, r)
+}
 longStr := ""
 Loop 300 {
     longStr .= "1+"

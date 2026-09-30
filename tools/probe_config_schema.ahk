@@ -189,6 +189,23 @@ Check("history-line", InStr(hisContent, "APPLIED") > 0 && InStr(hisContent, "[Co
 Check("history-del", InStr(hisContent, "(delete)") > 0)
 try FileDelete(hisLog)
 
+; infra 缺失退化 (启动疑案回归锁: 表被清空/未赋值时全家永不抛, 按缺省走)
+savedSchema := ""
+try savedSchema := g_CfgSchema
+catch {
+}
+try g_CfgSchema := ""
+catch {
+}
+Check("guard-find", CfgFind("Config", "Language") = "")
+Check("guard-get", CfgGet("Config", "Language", "auto") = "auto")
+Check("guard-scope", CfgScope("Config", "Language") = "restart")
+Check("guard-validate", CfgValidate("Config", "Language", "zh-CN") = "")
+try g_CfgSchema := savedSchema
+catch {
+}
+Check("guard-restore", IsObject(g_CfgSchema) && g_CfgSchema.Length = 51)
+
 if (g_ProbeFails > 0) {
     FileAppend("FAIL total=" . g_ProbeFails . "`n", "*")
     ExitApp(1)

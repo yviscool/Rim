@@ -94,16 +94,23 @@ class EasyIni {
             content .= "`r`n"
         }
 
+        ; 原子落盘: 先写 tmp 再改名, 崩溃/断电只丢本次不丢整盘
+        ; (此前截断直写, auto.ini 在退出/权重节流保存窗口期可被清空)
+        tmpPath := filePath . ".easytmp"
         try {
-            f := FileOpen(filePath, "w", "UTF-8-RAW")
+            f := FileOpen(tmpPath, "w", "UTF-8-RAW")
             f.Write(content)
             f.Close()
+            FileMove(tmpPath, filePath, 1)
         } catch {
             ; 保存失败只记日志不弹窗: 调用方 (SaveAutoConf/重启链) 靠 FileExist 自检,
             ; 弹窗会以模态卡死自动重启, 且用户在重启瞬间看不到它
             try FileAppend(A_Now . " WARN: EasyIni.Save failed: " filePath "`n", A_ScriptDir . "\Rim.error.log")
             catch {
             }
+        }
+        try FileDelete(tmpPath)
+        catch {
         }
     }
 

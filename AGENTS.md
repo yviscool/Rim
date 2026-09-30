@@ -728,3 +728,17 @@ if (menuOpen && g_TCLastCmd != 572)
 ;   ObjBindMethod(this, ...) 照旧可用；尾部僵尸全局量顺手删
 ; ✅ 删基类前全仓确认唯一活用户 (TCDialog)，Excel 先删是前提
 ```
+
+### 错误 39：`Edit.Focus()` 会全选文本 —— 显示区导航先存光标再聚焦
+
+```ahk
+; ❌ 实测翻车 (Up 死键：按一次蓝闪一次，Up 永远不动)：
+;   Next/PrevCommand 显示分支每按必调 g_DisplayEdit.Focus()，
+;   实测 Focus() 把光标 100-100 也掀成 0-411 全选；
+;   之后 Send/ControlSend 的 collapse 落点看全选边界，上键恒跳顶、形同阵亡
+; ✅ DisplayFocusKeepCaret()：EM_GETSEL 先存，Focus，再 EM_SETSEL 恢复；
+;   ControlSend 直投目标控件（免焦点竞态）；PgUp/PgDn 等原生键照常走显示区
+; ✅ 追补：连按时选中态仍会闪一帧——焦点已在显示区直接返回，Focus 一次不调
+; ✅ 附带教训：`cmd | head` 后取 $? 拿到的是 head 的码，假绿过一次；
+;   判退出码一律重定向到文件再 echo
+```

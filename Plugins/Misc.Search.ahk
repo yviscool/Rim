@@ -13,10 +13,11 @@ TranslateWord() {
     if (word = "")
         return
 
-    ; 使用必应翻译完整解析 (9维度), 结果进显示区不弹新窗
+    ; 使用必应翻译完整解析 (9维度), 结果进显示区不弹新窗;
+    ; 标题与正文词头二去其二 (正文从音标起, 不再复读查询词)
     result := BingFanyiFull(word)
     if (result != "") {
-        DisplayResult(T("misc.translate_title", word) . "`n`n" . result)
+        DisplayResult(result)
     } else {
         ; 失败则打开网页
         url := "https://dict.youdao.com/w?le=en&q=" UriEncode(word)
@@ -406,7 +407,7 @@ BingFanyiFull(word) {
             return ""
         
         raw := http.ResponseText
-        result := word "`n`n"
+        result := ""
 
         ; === 1. 音标 (meta description) ===
         metaIdx := InStr(raw, 'name="description"')

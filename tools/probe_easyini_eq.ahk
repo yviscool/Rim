@@ -33,6 +33,15 @@ Main() {
     Check("rt-eqfile", back.Get("Rank", "file | D:\software\app\a=b.txt", "") = "2|20260927")
     Check("rt-plain", back.Get("Rank", "command | Calc | 计算器", "") = "5")
     Check("rt-value-eq", back.Get("History", "1", "") = "function | AhkRun | x | a=b=c")
+    ; 原子落盘: 无残留 tmp, 内容一次到位
+    Check("atomic-no-tmp", !FileExist(tmp . ".easytmp"))
+    ; 老文件 (无转义) 照旧读: 首 "=" 切分 (2026-09-30 教训: 删测试不删容忍, 读侧单正则天然兼容)
+    old := "[Rank]`nurl | https://x.y/?q={query} | 旧=2`nfoo=bar`n"
+    FileAppend(old, tmp, "UTF-8")
+    back2 := EasyIni(tmp)
+    Check("old-compat", back2.Get("Rank", "foo", "") = "bar")
+    ; 无转义 URL 行按首 "=" 切 (旧行为, 与转义新文件并存同一正则)
+    Check("old-compat-eq", back2.Get("Rank", "url | https://x.y/?q", "") = "{query} | 旧=2")
     try FileDelete(tmp)
     catch {
     }

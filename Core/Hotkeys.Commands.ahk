@@ -5,13 +5,18 @@
 
 NextCommand(*) {
     if (g_UseDisplay) {
-        ; 行导航态: ^J 移动 >| 标记 (焦点不出输入框); 非行态才挪文本光标
+        ; 行导航态: ^J 移动 >| 标记 (焦点不出输入框); 非行态才挪文本光标.
+        ; 直投目标控件 (曾用 Focus()+Send, 焦点竞态下按键落地不可控; 见 Up 死键排查)
         if (RowNavActive()) {
             RowNavMove(1)
             return
         }
-        g_DisplayEdit.Focus()
-        Send("{Down}")
+        try DisplayFocusKeepCaret()
+        catch {
+        }
+        try ControlSend("{Down}", g_DisplayEdit)
+        catch {
+        }
         return
     }
     ChangeCommand(1)
@@ -23,8 +28,12 @@ PrevCommand(*) {
             RowNavMove(-1)
             return
         }
-        g_DisplayEdit.Focus()
-        Send("{Up}")
+        try DisplayFocusKeepCaret()
+        catch {
+        }
+        try ControlSend("{Up}", g_DisplayEdit)
+        catch {
+        }
         return
     }
     ChangeCommand(-1)
@@ -444,20 +453,26 @@ ProcessInputCommandCallBack(*) {
     SetTimer(ProcessInputCommandCallBack, 0)
 
     if (g_SkinConf["ShowInputBoxOnlyIfEmpty"] = "1") {
+        ; 手改垃圾值永不炸击键: 同 InitMainGui 经 SkinNum 取数
+        cbBorder := SkinNum("BorderSize", 10)
+        cbEditH := SkinNum("EditHeight", 24)
+        cbDispH := SkinNum("DisplayAreaHeight", 246)
+        cbWide := SkinNum("WidgetWidth", 650)
+        cbCorner := SkinNum("RoundCorner", 0)
         if (g_CurrentInput != "") {
             if (g_SkinConf["ShowCurrentCommand"] = "1")
-                windowHeight := g_SkinConf["BorderSize"] * 4 + g_SkinConf["EditHeight"] * 2 + g_SkinConf["DisplayAreaHeight"]
+                windowHeight := cbBorder * 4 + cbEditH * 2 + cbDispH
             else
-                windowHeight := g_SkinConf["BorderSize"] * 3 + g_SkinConf["EditHeight"] + g_SkinConf["DisplayAreaHeight"]
+                windowHeight := cbBorder * 3 + cbEditH + cbDispH
             WinMove(, , , windowHeight, g_WindowName)
         } else {
-            windowHeight := g_SkinConf["BorderSize"] * 2 + g_SkinConf["EditHeight"]
+            windowHeight := cbBorder * 2 + cbEditH
             WinMove(, , , windowHeight, g_WindowName)
         }
 
-        if (g_SkinConf["RoundCorner"] + 0 > 0) {
-            WinSetRegion("0-0 w" g_SkinConf["BorderSize"] * 2 + g_SkinConf["WidgetWidth"] " h" windowHeight
-                . " r" g_SkinConf["RoundCorner"] "-" g_SkinConf["RoundCorner"], g_WindowName)
+        if (cbCorner > 0) {
+            WinSetRegion("0-0 w" cbBorder * 2 + cbWide " h" windowHeight
+                . " r" cbCorner "-" cbCorner, g_WindowName)
         }
     }
 

@@ -562,7 +562,7 @@ GestureMgr_OnFilter(*) {
 
 ; 由动作串派生精准含义 (无用户自定义时列表显示; 与存储无关, 跟语言走)
 ; 优先级: ①引擎已注册动作的注释 (P2 精翻, 最准) ②常见按键语义表 ③动作类型原文
-; 前缀与统一入口 ExecuteAction 派发一致: run|/key|/dir|/tccmd|/function|
+; 前缀与统一入口 ExecuteAction 派发一致: run|/key|(/wshkey=key 旧别名)/dir|/tccmd|/function|
 GestureMgr_DescribeAction(action) {
     global g_VimEngine
     action := Trim(action)
@@ -584,6 +584,12 @@ GestureMgr_DescribeAction(action) {
         if (m != "")
             return m
         return T("gesture.desc_key", Trim(SubStr(action, 5)))
+    }
+    if (SubStr(action, 1, 7) = "wshkey|") {
+        m := GestureMgr_KeyMeaning(Trim(SubStr(action, 8)))
+        if (m != "")
+            return m
+        return T("gesture.desc_key", Trim(SubStr(action, 8)))
     }
     if (SubStr(action, 1, 4) = "run|")
         return T("gesture.desc_run", SubStr(action, 5))

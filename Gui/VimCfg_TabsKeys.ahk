@@ -634,17 +634,12 @@ VimCfg_BuildTCTab(g) {
     g.Add("Text", "x25 y115 w110", T("cfg.tc_ini"))
     ed2 := g.Add("Edit", "x140 y112 w560 h25")
     g.Add("Button", "x+10 w80", T("cfg.tc_browse")).OnEvent("Click", VimCfg_TCBrowseIni)
-    cb1 := g.Add("CheckBox", "x25 y155", T("cfg.tc_savemark"))
-    g.Add("Text", "x25 y190 w110", T("cfg.tc_iconsize"))
-    ed3 := g.Add("Edit", "x140 y187 w80 h25")
-    cb2 := g.Add("CheckBox", "x25 y225", T("cfg.tc_asdlg"))
-    g.Add("Text", "x25 y260 w150", T("cfg.tc_exclude"))
-    ed4 := g.Add("Edit", "x25 y285 w675 h25")
-    g.Add("Text", "x25 y330 w675", T("cfg.tc_note"))
+    cb2 := g.Add("CheckBox", "x25 y155", T("cfg.tc_asdlg"))
+    g.Add("Text", "x25 y190 w150", T("cfg.tc_exclude"))
+    ed4 := g.Add("Edit", "x25 y215 w675 h25")
+    g.Add("Text", "x25 y260 w675", T("cfg.tc_note"))
     g_VimCfg["tc_path"] := ed1
     g_VimCfg["tc_ini"] := ed2
-    g_VimCfg["tc_savemark"] := cb1
-    g_VimCfg["tc_iconsize"] := ed3
     g_VimCfg["tc_asdlg"] := cb2
     g_VimCfg["tc_exclude"] := ed4
     VimCfg_TCLoad()
@@ -659,8 +654,6 @@ VimCfg_TCLoad() {
         tcPath := CfgGet("Config", "TCPath", "")
     try g_VimCfg["tc_path"].Value := tcPath
     try g_VimCfg["tc_ini"].Value := CfgGet("TotalCommander_Config", "TCINI", "")
-    try g_VimCfg["tc_savemark"].Value := CfgGet("TotalCommander_Config", "SaveMark", "1") = "1" ? 1 : 0
-    try g_VimCfg["tc_iconsize"].Value := CfgGet("TotalCommander_Config", "MenuIconSize", "20")
     try g_VimCfg["tc_asdlg"].Value := CfgGet("TotalCommander_Config", "AsOpenFileDialog", "0") = "1" ? 1 : 0
     try g_VimCfg["tc_exclude"].Value := CfgGet("TotalCommander_Config", "OpenFileDialogExclude", "")
 }
@@ -696,8 +689,6 @@ VimCfg_CollectTCTab() {
     ; 路径框允许清空 (PutDirty 相等即 no-op, 空串正常落盘删键不断)
     VimCfg_PutDirty("TotalCommander_Config", "TCPath", Trim(g_VimCfg["tc_path"].Value))
     VimCfg_PutDirty("TotalCommander_Config", "TCINI", Trim(g_VimCfg["tc_ini"].Value))
-    VimCfg_PutDirty("TotalCommander_Config", "SaveMark", g_VimCfg["tc_savemark"].Value ? "1" : "0")
-    VimCfg_PutDirty("TotalCommander_Config", "MenuIconSize", Trim(g_VimCfg["tc_iconsize"].Value))
     VimCfg_PutDirty("TotalCommander_Config", "AsOpenFileDialog", g_VimCfg["tc_asdlg"].Value ? "1" : "0")
     VimCfg_PutDirty("TotalCommander_Config", "OpenFileDialogExclude", Trim(g_VimCfg["tc_exclude"].Value))
 }

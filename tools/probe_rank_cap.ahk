@@ -39,6 +39,15 @@ global g_AutoConf := EasyIni()
 global g_ExcludedCommandsObj := Map()
 global g_RankEpoch := 0
 
+; 值格式三态 (裸整数是生产现行遗留, 删了藏命令, 2026-09-30 实锤)
+Ck("parse-bare", RankParseValue("5")["visits"] = 5)
+Ck("parse-excluded", RankParseValue("-1")["visits"] = -1)
+Ck("parse-full", RankParseValue("3|20250101")["visits"] = 3
+    && RankParseValue("3|20250101")["date"] = "20250101")
+Ck("parse-empty", RankParseValue("")["visits"] = 0)
+Ck("parse-garbage", RankParseValue("abc")["visits"] = 0)
+Ck("parse-bare-one", RankParseValue("1")["visits"] >= 1, "bare=1 不得进排除表")
+
 ; 小表不剪
 g_AutoConf.AddKey("Rank", "command | tiny", "3|20260930")
 Ck("noop-small", RankPrune() = 0 && RankCount() = 1, String(RankCount()))

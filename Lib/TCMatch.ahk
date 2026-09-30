@@ -28,8 +28,19 @@ class TCMatch {
         }
     }
 
-    ; 匹配函数
+    ; 匹配函数 (主路: 内置; DLL 原生在 MatchDLL, 休眠保留)
+    ; 实测 500x10: DLL 5437ms vs 内置 78ms, 结果逐条一致 —— 每击键全池扫描走 DLL 纯亏
     static Match(pattern, text) {
+        if (pattern = "")
+            return true
+        if (text = "")
+            return false
+
+        return this.BuiltInMatch(StrLower(pattern), StrLower(text))
+    }
+
+    ; DLL 原生匹配 (休眠保留, 不删除: 需 hModule 已加载; 与内置逐条一致已探针验证)
+    static MatchDLL(pattern, text) {
         if (pattern = "")
             return true
         if (text = "")
@@ -38,7 +49,6 @@ class TCMatch {
         pattern := StrLower(pattern)
         text := StrLower(text)
 
-        ; DLL 匹配
         if (this.enabled && this.hModule) {
             try {
                 result := DllCall("tcmatch\Match", "Str", text, "Str", pattern, "Int")
@@ -46,12 +56,15 @@ class TCMatch {
             }
         }
 
-        ; 内置匹配
         return this.BuiltInMatch(pattern, text)
     }
 
-    ; 内置匹配算法
+    ; 内置匹配算法 (空 pattern/空文本守卫: v2 InStr 空 needle 直接抛错)
     static BuiltInMatch(pattern, text) {
+        if (pattern = "")
+            return true
+        if (text = "")
+            return false
         if InStr(text, pattern)
             return true
 
@@ -71,7 +84,7 @@ TCMatchInit(dllPath := "") {
     return TCMatch.enabled
 }
 
-; 模糊匹配入口 (dll/内置自动选择)
+; 模糊匹配入口 (内置引擎; 开关见 TCMatchPath 空/非空)
 TCMatchTest(Haystack, Needle) {
     return TCMatch.Match(Needle, Haystack)
 }

@@ -30,11 +30,11 @@ global g_CfgSchema := [
     Map("sec", "Config", "key", "DebugMode", "type", "bool", "default", "0", "label", "cfg.opt_debug", "help", "cfg.help_debug", "scope", "live"),
     Map("sec", "Config", "key", "ShowFileExt", "type", "bool", "default", "0", "label", "cfg.opt_showext", "help", "cfg.help_showext", "scope", "live"),
     Map("sec", "Config", "key", "SearchFullPath", "type", "bool", "default", "0", "label", "cfg.opt_searchfull", "help", "cfg.help_searchfull", "scope", "live"),
-    Map("sec", "Config", "key", "LoadControlPanelFunctions", "type", "bool", "default", "0", "label", "cfg.opt_cpl", "help", "cfg.help_cpl", "scope", "restart"),
+    Map("sec", "Config", "key", "LoadControlPanelFunctions", "type", "bool", "default", "0", "label", "cfg.opt_cpl", "help", "cfg.help_cpl", "scope", "live"),
     Map("sec", "Config", "key", "RankHalfLife", "type", "int", "min", 1, "max", 365, "default", "14", "label", "cfg.opt_rankhalf", "help", "cfg.help_rankhalf", "scope", "live"),
     Map("sec", "Config", "key", "SaveInputText", "type", "bool", "default", "0", "label", "cfg.opt_saveinput", "help", "cfg.help_saveinput", "scope", "live"),
-    Map("sec", "Config", "key", "CreateSendToLnk", "type", "bool", "default", "0", "label", "cfg.opt_sendto", "help", "cfg.help_sendto", "scope", "restart"),
-    Map("sec", "Config", "key", "CreateStartupLnk", "type", "bool", "default", "0", "label", "cfg.opt_startuplnk", "help", "cfg.help_startuplnk", "scope", "restart"),
+    Map("sec", "Config", "key", "CreateSendToLnk", "type", "bool", "default", "0", "label", "cfg.opt_sendto", "help", "cfg.help_sendto", "scope", "live"),
+    Map("sec", "Config", "key", "CreateStartupLnk", "type", "bool", "default", "0", "label", "cfg.opt_startuplnk", "help", "cfg.help_startuplnk", "scope", "live"),
     Map("sec", "Config", "key", "ChangeCommandOnMouseMove", "type", "bool", "default", "0", "label", "cfg.opt_mousemove", "help", "cfg.help_mousemove", "scope", "live"),
     Map("sec", "Config", "key", "ClearInputWithEsc", "type", "bool", "default", "0", "label", "cfg.opt_clearesc", "help", "cfg.help_clearesc", "scope", "live"),
     Map("sec", "Config", "key", "Editor", "type", "text", "default", "", "label", "cfg.opt_editor", "help", "cfg.help_editor", "scope", "live"),
@@ -73,11 +73,27 @@ global g_CfgSubs := Map()
 global g_CfgTokSeq := 0
 
 ; ---- 查 schema 行 (无则返回 "") ----
+; infra 永不抛: 表缺失/非对象即退化空表 (启动疑案: 某进程在表未就绪时进过此函数,
+; 此前直接炸"未赋值"; 现退化与 g_Conf 未就绪同语义, 调用方按缺省走)
 CfgFind(sec, key) {
     global g_CfgSchema
-    for spec in g_CfgSchema {
-        if (spec["sec"] = sec && spec["key"] = key)
-            return spec
+    try {
+        if (!IsSet(g_CfgSchema) || !IsObject(g_CfgSchema)) {
+            ; 取证: 复发即落盘 (每进程一次, 无弹窗), 下次贴日志即定案
+            static logged := false
+            if (!logged) {
+                logged := true
+                try FileAppend(A_Now . " CFGSCHEMA-UNSET first-hit=" . sec . "/" . key . "`n", A_ScriptDir . "\Rim.error.log")
+                catch {
+                }
+            }
+            return ""
+        }
+        for spec in g_CfgSchema {
+            if (spec["sec"] = sec && spec["key"] = key)
+                return spec
+        }
+    } catch {
     }
     return ""
 }

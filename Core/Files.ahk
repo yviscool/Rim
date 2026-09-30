@@ -245,7 +245,8 @@ RankKeyOfElement(element) {
     return element
 }
 
-; 唯一两种格式: "-1" (排除) / "visits|YYYYMMDD"; 其余一律零分
+; 三种格式: "-1" (排除) / "visits|YYYYMMDD" / 裸整数 (老版本写入, 次数保留日期按极旧,
+; 下次 ChangeRank 即转正新格式; 2026-09-30 教训: 生产 auto.ini 里还有, 删了直接藏命令)
 RankParseValue(val) {
     s := Trim(String(val))
     if (s = "")
@@ -262,6 +263,13 @@ RankParseValue(val) {
         }
         d := parts.Length >= 2 ? Trim(parts[2]) : ""
         return Map("visits", v, "date", d)
+    }
+    if IsInteger(s) {
+        v := 0
+        try v := Integer(s)
+        catch {
+        }
+        return Map("visits", v, "date", "")
     }
     return Map("visits", 0, "date", "")
 }

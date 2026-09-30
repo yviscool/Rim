@@ -194,10 +194,11 @@ VimCfg_ValidateDirty(dirty) {
     return errs
 }
 
-; 单项生效分级: Plugins/删 vim 键/新段一律 restart (诚实, 不玩假热删);
+; 单项生效分级: Plugins/TC 段/删 vim 键/新段一律 restart (诚实, 不玩假热删);
+; TC 段键只在插件 Setup/Detect 时读一次, 无订阅即标 live 是撒谎;
 ; schema 键走 CfgScope; 其余新增改键走引擎运行时 MapKey = live
 VimCfg_ItemScope(sec, key, del, secIsNew := false) {
-    if (sec = "Plugins" || del || secIsNew)
+    if (sec = "Plugins" || sec = "TotalCommander_Config" || del || secIsNew)
         return "restart"
     spec := CfgFind(sec, key)
     if (IsObject(spec))
