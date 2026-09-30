@@ -26,15 +26,15 @@ if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
 
 RegisterMiscUrls() {
     ; 搜索引擎 (url 直注册, 无执行函数)
-    RegisterCommand("Google", "url", "https://www.google.com/search?q={query}", T("cmd.Misc.Google"))
-    RegisterCommand("Baidu", "url", "https://www.baidu.com/s?wd={query}", T("cmd.Misc.Baidu"))
-    RegisterCommand("Bing", "url", "https://www.bing.com/search?q={query}", T("cmd.Misc.Bing"))
-    RegisterCommand("GitHub", "url", "https://github.com/search?q={query}", T("cmd.Misc.GitHub"))
-    RegisterCommand("Npm", "url", "https://www.npmjs.com/search?q={query}", T("cmd.Misc.Npm"))
-    RegisterCommand("Zhihu", "url", "https://www.zhihu.com/search?q={query}", T("cmd.Misc.Zhihu"))
-    RegisterCommand("Bilibili", "url", "https://search.bilibili.com/all?keyword={query}", T("cmd.Misc.Bilibili"))
-    RegisterCommand("Taobao", "url", "https://s.taobao.com/search?q={query}", T("cmd.Misc.Taobao"))
-    RegisterCommand("JD", "url", "https://search.jd.com/Search?keyword={query}", T("cmd.Misc.JD"))
+    LauncherCompat.AddCommand("Google", "url", "https://www.google.com/search?q={query}", T("cmd.Misc.Google"))
+    LauncherCompat.AddCommand("Baidu", "url", "https://www.baidu.com/s?wd={query}", T("cmd.Misc.Baidu"))
+    LauncherCompat.AddCommand("Bing", "url", "https://www.bing.com/search?q={query}", T("cmd.Misc.Bing"))
+    LauncherCompat.AddCommand("GitHub", "url", "https://github.com/search?q={query}", T("cmd.Misc.GitHub"))
+    LauncherCompat.AddCommand("Npm", "url", "https://www.npmjs.com/search?q={query}", T("cmd.Misc.Npm"))
+    LauncherCompat.AddCommand("Zhihu", "url", "https://www.zhihu.com/search?q={query}", T("cmd.Misc.Zhihu"))
+    LauncherCompat.AddCommand("Bilibili", "url", "https://search.bilibili.com/all?keyword={query}", T("cmd.Misc.Bilibili"))
+    LauncherCompat.AddCommand("Taobao", "url", "https://s.taobao.com/search?q={query}", T("cmd.Misc.Taobao"))
+    LauncherCompat.AddCommand("JD", "url", "https://search.jd.com/Search?keyword={query}", T("cmd.Misc.JD"))
 }
 
 RegisterMiscTools() {

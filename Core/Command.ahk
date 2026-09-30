@@ -19,10 +19,10 @@ class RimCommand {
     Target := ""        ; 执行目标: 注册=id; 收编=原 content/path
     Name := ""          ; 显示名: 注册=id; 收编=别名/文件名/键
 
-    ; 静态注册表: Id -> RimCommand 对象
+    ; 静态注册表: Id -> RimCommand 对象 (唯一真相源; 分类即 Category 字段, 按需过滤)
     static Registry := Map()
-    ; 分类列表: Category -> [RimCommand, ...]
-    static Categories := Map()
+    ; 序列号: 每次真实增删 +1, 搜索缓存 (SearchRow/空查询) 靠它失效
+    static Seq := 0
 
     __New(id, title, action, options := "") {
         this.Id := id
@@ -66,24 +66,33 @@ class RimCommand {
         cmd.Target := id
         cmd.Name := id
         RimCommand.Registry[id] := cmd
-
-        cat := cmd.Category
-        ; 幂等更新分类列表 (移除旧同名项)
-        for existingCat, list in RimCommand.Categories {
-            i := 1
-            while (i <= list.Length) {
-                if (list[i].Id = id) {
-                    list.RemoveAt(i)
-                    break
-                }
-                i++
-            }
-        }
-        if (!RimCommand.Categories.Has(cat))
-            RimCommand.Categories[cat] := []
-        RimCommand.Categories[cat].Push(cmd)
+        RimCommand.Seq++
 
         return cmd
+    }
+
+    ; 收编行清理 (LoadFiles 重建语义: 只清 Category=Ingested 的收编行,
+    ; 插件直注/通用指令 (真实分类) 保留; 有删除才 bump Seq. 返回清理数)
+    static ClearIngested() {
+        n := 0
+        dead := []
+        for id, cmd in RimCommand.Registry {
+            cat := ""
+            try cat := String(cmd.Category)
+            catch {
+            }
+            if (cat = "Ingested")
+                dead.Push(id)
+        }
+        for _, goneId in dead {
+            try RimCommand.Registry.Delete(goneId)
+            catch {
+            }
+            n++
+        }
+        if (n > 0)
+            RimCommand.Seq++
+        return n
     }
 
     ; 池行 label 装配 (展示列 Name — Desc 的右半部分):
@@ -99,7 +108,7 @@ class RimCommand {
         return label
     }
 
-    ; 池行收编进 Registry (LoadFiles 建池后统一调一次, 与 AddCommand 双写过渡;
+    ; 池行收编进 Registry (LoadFiles 建池后统一调一次;
     ; 已注册 id 直接跳过 (首注胜), 保证插件直注优先于 rank/回退复刻行).
     ; id 规则: 四段 key|type|cmd|desc → key; 三段 command|X|D → X;
     ; 三段/两段 type|content[|desc] → type:content; 裸 key → key.
@@ -176,6 +185,7 @@ class RimCommand {
         cmd := RimCommand(id, name, action, Map("Category", "Ingested", "Description", desc
             , "Kind", kind, "Target", target, "Name", name))
         RimCommand.Registry[id] := cmd
+        RimCommand.Seq++
         return id
     }
 
@@ -246,6 +256,14 @@ class RimCommand {
     ; show 永远 "kind | 名 | 描述" (command 行描述取 label 形, 与旧池行一致);
     ; search 永远 "名 目标词 描述 [别名]" (file 行恒用无扩展名, 别名只找非 command 行).
     static SearchRow(cmd, showExt := false, searchFull := false) {
+        ; 行推导缓存: 纯函数 (输入=id/kind/name/target/desc/alias + 开关), 按开关+Seq 键缓存;
+        ; 旧 Seq 键在下次命中时顺手清理, 单对象最多驻留 2 代
+        rowCacheKey := (showExt ? "1" : "0") . (searchFull ? "1" : "0") . ":" . String(RimCommand.Seq)
+        try {
+            if (IsObject(cmd._rowCache) && cmd._rowCache.Has(rowCacheKey))
+                return cmd._rowCache[rowCacheKey]
+        } catch {
+        }
         id := cmd.Id
         kind := cmd.Kind != "" ? StrLower(cmd.Kind) : "command"
         name := cmd.Name != "" ? cmd.Name : id
@@ -302,8 +320,24 @@ class RimCommand {
             } catch {
             }
         }
-        return Map("id", id, "kind", kind, "name", name, "desc", desc, "show", show
+        row := Map("id", id, "kind", kind, "name", name, "desc", desc, "show", show
             , "search", search, "targetKey", kind . "|" . target, "rankKey", "command | " . id)
+        try {
+            if (!IsObject(cmd._rowCache))
+                cmd._rowCache := Map()
+            cmd._rowCache[rowCacheKey] := row
+            if (cmd._rowCache.Count > 2) {
+                pruneKeys := []
+                for ck in cmd._rowCache {
+                    if (ck != rowCacheKey)
+                        pruneKeys.Push(ck)
+                }
+                for _, pk in pruneKeys
+                    cmd._rowCache.Delete(pk)
+            }
+        } catch {
+        }
+        return row
     }
 
     ; 获取指令
@@ -414,44 +448,8 @@ class RimCommand {
         return ""
     }
 
-    ; 搜索匹配指令
-    static Search(query, limit := 10) {
-        results := []
-        query := Trim(StrLower(query))
-        if (query = "")
-            return results
-
-        ctx := GetActiveContext()
-        for id, cmd in RimCommand.Registry {
-            ; 检查上下文可用性
-            if (IsObject(cmd.ContextFilter)) {
-                pass := false
-                try {
-                    pass := cmd.ContextFilter(ctx)
-                } catch {
-                    try {
-                        pass := cmd.ContextFilter()
-                    } catch {
-                        pass := false
-                    }
-                }
-                if (!pass)
-                    continue
-            }
-
-            idLow := StrLower(cmd.Id)
-            titleLow := StrLower(cmd.Title)
-            descLow := StrLower(cmd.Description)
-            kwLow := StrLower(cmd.Keywords)
-
-            if (InStr(idLow, query) || InStr(titleLow, query) || InStr(kwLow, query) || InStr(descLow, query))
-                results.Push(cmd)
-
-            if (results.Length >= limit)
-                break
-        }
-        return results
-    }
+    ; 注: 通用搜索走 SearchCollectMatches (Core/Search.ahk, 唯一真相源);
+    ; 本类不再自带 Search (上下文过滤在 Execute 期做, 见 Execute())
 }
 
 ; 旧池行首段类型词 (三段/两段行的 kind 位; command 含现代注册行)
@@ -497,20 +495,12 @@ CmdLine_Parse(line) {
     return out
 }
 
-CmdLine_Format(type, cmd, desc := "", key := "") {
-    if (key != "")
-        return key " | " type " | " cmd " | " desc
-    if (desc != "")
-        return type " | " cmd " | " desc
-    return type " | " cmd
-}
-
-; ==================== 命令池写入 (过渡双写: 池行 + Registry 收编; C2 切读侧后删池行) ====================
+; ==================== 数据行注册 (url/file/run/cmd 行: 别名 + Registry 收编) ====================
 class LauncherCompat {
     static AddCommand(name, type, content, description := "") {
         global g_CommandAlias
         if (type = "function") {
-            throw Error("RegisterCommand function-type retired; use RimCommand.Register + MakeLegacyCmd directly: " . name)
+            throw Error("AddCommand function-type removed; use RimCommand.Register + MakeLegacyCmd directly: " . name)
         } else {
             element := type " | " content
             if (description != "")
@@ -616,7 +606,7 @@ Cmd_FileOpenInTC(arg := "") {
         return
     tc := ""
     try {
-        tc := CfgGet("Config", "TCPath", "")
+        tc := TC_EffPath()
     }
     if (tc != "" && FileExist(tc))
         Run(tc ' /O /A /T /L="' target '"')
@@ -669,7 +659,7 @@ Cmd_WindowCenter(*) {
 
 ; --- System 指令集 ---
 Cmd_SystemReload(*) {
-    RestartRunZ()
+    RestartRim()
 }
 
 Cmd_SystemEditConfig(*) {
@@ -703,7 +693,7 @@ InitUniversalCommands() {
     RimCommand.Register("window.toggle_top", T("cmdtitle.window.toggle_top"), Cmd_WindowToggleTop, Map("Category", "Window", "Description", T("cmd.universal.window_toggle_top"), "Keywords", "top pin alwaysontop"))
     RimCommand.Register("window.center", T("cmdtitle.window.center"), Cmd_WindowCenter, Map("Category", "Window", "Description", T("cmd.universal.window_center"), "Keywords", "center move window"))
 
-    RimCommand.Register("system.reload_rim", T("cmdtitle.system.reload_rim"), Cmd_SystemReload, Map("Category", "System", "Description", T("cmd.universal.reload_rim"), "Keywords", "reload restart rim runz"))
+    RimCommand.Register("system.reload_rim", T("cmdtitle.system.reload_rim"), Cmd_SystemReload, Map("Category", "System", "Description", T("cmd.universal.reload_rim"), "Keywords", "reload restart rim"))
     RimCommand.Register("system.edit_config", T("cmdtitle.system.edit_config"), Cmd_SystemEditConfig, Map("Category", "System", "Description", T("cmd.universal.edit_config"), "Keywords", "config setting ini edit"))
     RimCommand.Register("system.edit_auto_config", T("cmdtitle.system.edit_auto_config"), Cmd_SystemEditAutoConfig, Map("Category", "System", "Description", T("cmd.universal.edit_auto_config"), "Keywords", "auto config ini"))
     RimCommand.Register("system.lock", T("cmdtitle.system.lock"), Cmd_SystemLock, Map("Category", "System", "Description", T("cmd.universal.lock"), "Keywords", "lock workstation screen"))

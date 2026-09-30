@@ -47,8 +47,8 @@ global g_SkinConf := Map("HideCol2", "0", "HideCol4IfEmpty", "1", "DisplayCol3Ma
 global g_ExcludedCommandsObj := Map()
 
 ; ---- GetAllFunctions 列出来自 Registry Kind=function 的行 ----
-RimCommand.IngestRow("reload | function | RestartRunZ | 重启")
-RimCommand.IngestRow("exit | function | ExitRunZ | 退出")
+RimCommand.IngestRow("reload | function | RestartRim | 重启")
+RimCommand.IngestRow("exit | function | ExitRim | 退出")
 RimCommand.Register("CalcX", "CalcX", (*) => 0, Map("Description", "计算器"))
 try {
     fns := GetAllFunctions()

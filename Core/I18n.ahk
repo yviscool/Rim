@@ -9,7 +9,7 @@
 ;   - 占位符: {1} {2} ... (ICU-lite, 跨语言可调序; audit 脚本校验各语言占位一致)
 ;   - 语言决议: [Config] Language = auto/zh-CN/en/... ; auto 跟 A_Language, 未知回落 zh-CN
 ; 注意:
-;   - g_WindowName ("RunZ    ") 是窗口匹配哨兵, 禁止翻译, 禁止进语言包
+;   - g_WindowName ("Rim    ") 是窗口匹配哨兵, 禁止翻译, 禁止进语言包
 ;   - 本文件零依赖 (不走 EasyIni/Common), 保证启动最早阶段可用 (I18nBoot)
 
 ; 顶层初始化守卫 (AGENTS.md 坑点):

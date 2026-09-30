@@ -49,41 +49,41 @@ class LauncherSystemPlugin extends RimPlugin {
 
     ; --- Invented cmd/file shortcuts (GUI 程序必须用 file，直接 Run；用 cmd 会走 `cmd /C xxx & pause` 多弹一个终端) ---
     ; 注意: control 已由 Core\ControlPanelFunctions.txt 提供 `file | control`，此处不再重复注册，避免和 `cmd | control` 冲突
-    RegisterCommand("DeviceManager", "file", "devmgmt.msc", T("cmd.LauncherSystem.DeviceManager"))
-    RegisterCommand("TaskManager", "file", "taskmgr", T("cmd.LauncherSystem.TaskManager"))
-    RegisterCommand("SystemInfo", "file", "msinfo32", T("cmd.LauncherSystem.SystemInfo"))
-    RegisterCommand("RegEdit", "file", "regedit", T("cmd.LauncherSystem.RegEdit"))
-    RegisterCommand("Cmd", "file", "cmd", T("cmd.LauncherSystem.Cmd"))
-    RegisterCommand("PowerShell", "file", "powershell", "PowerShell")
-    RegisterCommand("Notepad", "file", "notepad", T("cmd.LauncherSystem.Notepad"))
-    RegisterCommand("Paint", "file", "mspaint", T("cmd.LauncherSystem.Paint"))
-    RegisterCommand("WordPad", "file", "write", T("cmd.LauncherSystem.WordPad"))
-    RegisterCommand("Magnifier", "file", "magnify", T("cmd.LauncherSystem.Magnifier"))
-    RegisterCommand("OnScreenKeyboard", "file", "osk", T("cmd.LauncherSystem.OnScreenKeyboard"))
-    RegisterCommand("SnippingTool", "file", "snippingtool", T("cmd.LauncherSystem.SnippingTool"))
-    RegisterCommand("ResourceMonitor", "file", "resmon", T("cmd.LauncherSystem.ResourceMonitor"))
-    RegisterCommand("PerformanceMonitor", "file", "perfmon", T("cmd.LauncherSystem.PerformanceMonitor"))
-    RegisterCommand("EventViewer", "file", "eventvwr", T("cmd.LauncherSystem.EventViewer"))
-    RegisterCommand("Services", "file", "services.msc", T("cmd.LauncherSystem.Services"))
-    RegisterCommand("DiskManagement", "file", "diskmgmt.msc", T("cmd.LauncherSystem.DiskManagement"))
-    RegisterCommand("ComputerManagement", "file", "compmgmt.msc", T("cmd.LauncherSystem.ComputerManagement"))
-    RegisterCommand("LocalGroupPolicy", "file", "gpedit.msc", T("cmd.LauncherSystem.LocalGroupPolicy"))
-    RegisterCommand("CertificateManager", "file", "certmgr.msc", T("cmd.LauncherSystem.CertificateManager"))
-    RegisterCommand("DirectX", "file", "dxdiag", T("cmd.LauncherSystem.DirectX"))
-    RegisterCommand("WindowsUpdate", "file", "wuapp", T("cmd.LauncherSystem.WindowsUpdate"))
-    RegisterCommand("Firewall", "file", "firewall.cpl", T("cmd.LauncherSystem.Firewall"))
-    RegisterCommand("NetworkConnections", "file", "ncpa.cpl", T("cmd.LauncherSystem.NetworkConnections"))
-    RegisterCommand("Sound", "file", "mmsys.cpl", T("cmd.LauncherSystem.Sound"))
-    RegisterCommand("Display", "file", "desk.cpl", T("cmd.LauncherSystem.Display"))
-    RegisterCommand("System", "file", "sysdm.cpl", T("cmd.LauncherSystem.System"))
-    RegisterCommand("Programs", "file", "appwiz.cpl", T("cmd.LauncherSystem.Programs"))
-    RegisterCommand("PowerOptions", "file", "powercfg.cpl", T("cmd.LauncherSystem.PowerOptions"))
-    RegisterCommand("DateAndTime", "file", "timedate.cpl", T("cmd.LauncherSystem.DateAndTime"))
-    RegisterCommand("RegionAndLanguage", "file", "intl.cpl", T("cmd.LauncherSystem.RegionAndLanguage"))
-    RegisterCommand("Mouse", "file", "main.cpl", T("cmd.LauncherSystem.Mouse"))
-    RegisterCommand("Keyboard", "file", "control keyboard", T("cmd.LauncherSystem.Keyboard"))
-    RegisterCommand("Fonts", "file", "control fonts", T("cmd.LauncherSystem.Fonts"))
-    RegisterCommand("AdministrativeTools", "file", "control admintools", T("cmd.LauncherSystem.AdministrativeTools"))
+    LauncherCompat.AddCommand("DeviceManager", "file", "devmgmt.msc", T("cmd.LauncherSystem.DeviceManager"))
+    LauncherCompat.AddCommand("TaskManager", "file", "taskmgr", T("cmd.LauncherSystem.TaskManager"))
+    LauncherCompat.AddCommand("SystemInfo", "file", "msinfo32", T("cmd.LauncherSystem.SystemInfo"))
+    LauncherCompat.AddCommand("RegEdit", "file", "regedit", T("cmd.LauncherSystem.RegEdit"))
+    LauncherCompat.AddCommand("Cmd", "file", "cmd", T("cmd.LauncherSystem.Cmd"))
+    LauncherCompat.AddCommand("PowerShell", "file", "powershell", "PowerShell")
+    LauncherCompat.AddCommand("Notepad", "file", "notepad", T("cmd.LauncherSystem.Notepad"))
+    LauncherCompat.AddCommand("Paint", "file", "mspaint", T("cmd.LauncherSystem.Paint"))
+    LauncherCompat.AddCommand("WordPad", "file", "write", T("cmd.LauncherSystem.WordPad"))
+    LauncherCompat.AddCommand("Magnifier", "file", "magnify", T("cmd.LauncherSystem.Magnifier"))
+    LauncherCompat.AddCommand("OnScreenKeyboard", "file", "osk", T("cmd.LauncherSystem.OnScreenKeyboard"))
+    LauncherCompat.AddCommand("SnippingTool", "file", "snippingtool", T("cmd.LauncherSystem.SnippingTool"))
+    LauncherCompat.AddCommand("ResourceMonitor", "file", "resmon", T("cmd.LauncherSystem.ResourceMonitor"))
+    LauncherCompat.AddCommand("PerformanceMonitor", "file", "perfmon", T("cmd.LauncherSystem.PerformanceMonitor"))
+    LauncherCompat.AddCommand("EventViewer", "file", "eventvwr", T("cmd.LauncherSystem.EventViewer"))
+    LauncherCompat.AddCommand("Services", "file", "services.msc", T("cmd.LauncherSystem.Services"))
+    LauncherCompat.AddCommand("DiskManagement", "file", "diskmgmt.msc", T("cmd.LauncherSystem.DiskManagement"))
+    LauncherCompat.AddCommand("ComputerManagement", "file", "compmgmt.msc", T("cmd.LauncherSystem.ComputerManagement"))
+    LauncherCompat.AddCommand("LocalGroupPolicy", "file", "gpedit.msc", T("cmd.LauncherSystem.LocalGroupPolicy"))
+    LauncherCompat.AddCommand("CertificateManager", "file", "certmgr.msc", T("cmd.LauncherSystem.CertificateManager"))
+    LauncherCompat.AddCommand("DirectX", "file", "dxdiag", T("cmd.LauncherSystem.DirectX"))
+    LauncherCompat.AddCommand("WindowsUpdate", "file", "wuapp", T("cmd.LauncherSystem.WindowsUpdate"))
+    LauncherCompat.AddCommand("Firewall", "file", "firewall.cpl", T("cmd.LauncherSystem.Firewall"))
+    LauncherCompat.AddCommand("NetworkConnections", "file", "ncpa.cpl", T("cmd.LauncherSystem.NetworkConnections"))
+    LauncherCompat.AddCommand("Sound", "file", "mmsys.cpl", T("cmd.LauncherSystem.Sound"))
+    LauncherCompat.AddCommand("Display", "file", "desk.cpl", T("cmd.LauncherSystem.Display"))
+    LauncherCompat.AddCommand("System", "file", "sysdm.cpl", T("cmd.LauncherSystem.System"))
+    LauncherCompat.AddCommand("Programs", "file", "appwiz.cpl", T("cmd.LauncherSystem.Programs"))
+    LauncherCompat.AddCommand("PowerOptions", "file", "powercfg.cpl", T("cmd.LauncherSystem.PowerOptions"))
+    LauncherCompat.AddCommand("DateAndTime", "file", "timedate.cpl", T("cmd.LauncherSystem.DateAndTime"))
+    LauncherCompat.AddCommand("RegionAndLanguage", "file", "intl.cpl", T("cmd.LauncherSystem.RegionAndLanguage"))
+    LauncherCompat.AddCommand("Mouse", "file", "main.cpl", T("cmd.LauncherSystem.Mouse"))
+    LauncherCompat.AddCommand("Keyboard", "file", "control keyboard", T("cmd.LauncherSystem.Keyboard"))
+    LauncherCompat.AddCommand("Fonts", "file", "control fonts", T("cmd.LauncherSystem.Fonts"))
+    LauncherCompat.AddCommand("AdministrativeTools", "file", "control admintools", T("cmd.LauncherSystem.AdministrativeTools"))
 }
 
 }
@@ -96,7 +96,7 @@ if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
 ; === Original behavior (same names as v1 labels) ===
 
 Clip() {
-    ActivateRunZ()
+    ActivateRim()
     DisplayResult(T("sys.clip_len", StrLen(A_Clipboard)) . "`n`n" . A_Clipboard)
 }
 
@@ -227,10 +227,6 @@ DecreaseVolume() {
 }
 
 SystemState() {
-    if (!SetExecInterval(1)) {
-        return
-    }
-
     GMSEx := GlobalMemoryStatusEx()
     result := "* | " . T("sys.row_state") . " | " . T("sys.uptime") . " | " . Round(A_TickCount / 1000 / 3600, 3) . " " . T("sys.hours") . "`n"
     result .= "* | " . T("sys.row_state") . " | " . T("sys.cpu") . " | " . CPULoad() . "% `n"

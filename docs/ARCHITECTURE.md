@@ -186,7 +186,7 @@ Core/Gesture.ahk (主门面 Facade, 保持向后兼容 API 与全局 Map)
 ## 六、插件与拆分现状（零兼容）
 
 ### 1. 统一现状
-- 全插件（命令 8 个 Hybrid 类＋Vim 11 个 Hybrid 类）经 `RimPlugin` 六阶段直注：命令 `RegisterCommands()` 直调 `RimCommand.Register`，键位 `RegisterKeymaps(engine)` 直调 `engine.SetWin/SetAction/MapKey`。`LoadLegacy*` 适配器、`LegacyVimPlugins` 白名单、6 个全局注册函数、`RegisterPlugin_*` 旧入口已全部删除；`smoke_register` 以对等计数断言（10 插件 W/A/M/G/Mode/X 精确值）锁死映射不丢失。
+- 全插件（命令 9 个 Hybrid 类＋Vim 11 个 Hybrid 类）经 `RimPlugin` 六阶段直注：命令 `RegisterCommands()` 直调 `RimCommand.Register`，键位 `RegisterKeymaps(engine)` 直调 `engine.SetWin/SetAction/MapKey`。`LoadLegacy*` 适配器、`LegacyVimPlugins` 白名单、6 个全局注册函数、`RegisterPlugin_*` 旧入口已全部删除；`VimDConfig` 独立浏览器（插件/按键双 GUI）已并入配置中心（动作页＋按键页超集），3 个共享函数改名 `VimCfg_*` 下沉 `VimCfg_TabsMisc.ahk`；`smoke_register` 以对等计数断言（9 插件 W/A/M/G/Mode/X 精确值）锁死映射不丢失。
 - `g_FuncAlias` 已退役：function 型命令内联为 `RimCommand`（闭包经 `LegacyDirectCall` 直调真实函数）；`ResolveFuncAlias` 及 `SearchTargetKey` 别名分支已删。现代指令池行统一三段式 `command | id | label`（旧四段式会被解析器误判 key/type，从启动器回车现代命令此前根本跑不通）。
 - 小语种缺口（`python tools/i18n_audit.py scaffold <lang>` 实测 de 缺约 1900 键，en/zh 双全量约 1918 键）：机翻填 `Lang/*.ini` 后跑 `audit --check` 即可合，翻不翻、机翻审不审由维护者定，CI 只卡 en/zh。
 

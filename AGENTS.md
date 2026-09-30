@@ -706,3 +706,25 @@ if (menuOpen && g_TCLastCmd != 572)
 ; canHandle 先行 (窗类不对跳过，不进 COM)；CapabilitiesOf(appId) 机读能力自述。
 ; 调用单点 RimContext.ApplyProvider (Capture 内调)，探针直测门控与回填。
 ```
+
+## 十三、重构手记 (2026-09-30 传世工程)
+
+### 错误 37：探针桩必须与生产同形 —— 实例桩调静态方法直接炸
+
+```ahk
+; ❌ 实测翻车 (probe_tcdialog 首版全 PASS 后复现失败)：
+;   桩写成实例 global RimPluginManager := MgrStub()，生产里它是类；
+;   本构建实例调静态方法抛 "has no method named"，且属性读经实例又通，
+;   导致 8 个断言真过、1 个include 时注册行假过/炸，极难察觉
+; ✅ 桩一律与生产同形 (类对类、实例对实例)；静态断言 (源码无旧串) + 行为断言双锁
+```
+
+### 错误 38：旧实例插件迁静态 —— `this` 即类，方法全标 static
+
+```ahk
+; ✅ TCDialog 迁移范式 (旧 Plugin 基类退役)：字段→static，方法全加 static
+;   (v2 无对象调实例方法抛错)；`this.X` 在静态方法里即类字段，方法体内零改；
+;   构造行换 Setup 直调 + Ready 守卫保"未就绪 no-op"旧语义；
+;   ObjBindMethod(this, ...) 照旧可用；尾部僵尸全局量顺手删
+; ✅ 删基类前全仓确认唯一活用户 (TCDialog)，Excel 先删是前提
+```

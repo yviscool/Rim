@@ -69,8 +69,6 @@ LoadHistoryCommands() {
 UpdateSendTo(create := true, overwrite := false) {
     sendToDir := StrReplace(A_StartMenu, "\Start Menu", "\SendTo\")
     lnkFilePath := sendToDir . "Rim.lnk"
-    oldLnk := sendToDir . "RunZ.lnk"
-    try FileDelete(oldLnk)
 
     if (!create) {
         try FileDelete(lnkFilePath)

@@ -30,7 +30,6 @@ EXPECTED := [
     "Core\Utils.ahk",
     "Core\Logging.ahk",
     "Core\Observability.ahk",
-    "Core\TrainingLoop.ahk",
     "Core\Hotkeys.ahk",
 ]
 

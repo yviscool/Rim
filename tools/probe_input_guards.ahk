@@ -38,9 +38,9 @@ Main() {
     comSrc := FileRead(A_ScriptDir . "\..\Core\Common.ahk", "UTF-8")
     fnPos := InStr(comSrc, "SwitchToEngIME() {")
     immPos := InStr(comSrc, "ImmSetOpenStatus", false, fnPos)
-    retPos := InStr(comSrc, "`n                return", false, fnPos)
-    layPos := InStr(comSrc, "SwitchIME(0x", false, fnPos)
-    Check("ime-imm-first", fnPos > 0 && immPos > fnPos && retPos > immPos && layPos > retPos)
+    Check("ime-imm-first", fnPos > 0 && immPos > fnPos)
+    ; KLID 回落已删: 无 LoadKeyboardLayout/SwitchIME(0x, 失败直接返回不断布局
+    Check("ime-no-klid", !InStr(comSrc, "LoadKeyboardLayout") && !InStr(comSrc, "SwitchIME(0x"))
     out := A_ScriptDir . "\..\probe_input_guards.out.txt"
     try FileDelete(out)
     catch {

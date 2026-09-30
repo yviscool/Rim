@@ -38,7 +38,7 @@ global g_CfgSchema := [
     Map("sec", "Config", "key", "ChangeCommandOnMouseMove", "type", "bool", "default", "0", "label", "cfg.opt_mousemove", "help", "cfg.help_mousemove", "scope", "live"),
     Map("sec", "Config", "key", "ClearInputWithEsc", "type", "bool", "default", "0", "label", "cfg.opt_clearesc", "help", "cfg.help_clearesc", "scope", "live"),
     Map("sec", "Config", "key", "Editor", "type", "text", "default", "", "label", "cfg.opt_editor", "help", "cfg.help_editor", "scope", "live"),
-    Map("sec", "Config", "key", "TCPath", "type", "text", "default", "", "label", "cfg.opt_tcpath", "help", "cfg.help_tcpath", "scope", "restart"),
+
     ; ---- [Gui] 外观 (同上) ----
     Map("sec", "Gui", "key", "Skin", "type", "skin", "default", "New", "label", "cfg.opt_skin", "help", "cfg.help_skin", "scope", "rebuild"),
     Map("sec", "Gui", "key", "HideTitle", "type", "bool", "default", "1", "label", "cfg.opt_hidetitle", "help", "cfg.help_hidetitle", "scope", "rebuild"),
@@ -60,7 +60,12 @@ global g_CfgSchema := [
     Map("sec", "StatsBall", "key", "TopMost", "type", "bool", "default", "1", "label", "cfg.opt_statsball_topmost", "help", "cfg.help_statsball_topmost", "scope", "live"),
     Map("sec", "StatsBall", "key", "LockPos", "type", "bool", "default", "0", "label", "cfg.opt_statsball_lock", "help", "cfg.help_statsball_lock", "scope", "live"),
     Map("sec", "StatsBall", "key", "SnapEdge", "type", "bool", "default", "0", "label", "cfg.opt_statsball_snap", "help", "cfg.help_statsball_snap", "scope", "live"),
-    Map("sec", "StatsBall", "key", "AlertThreshold", "type", "slider", "min", 50, "max", 100, "default", "85", "label", "cfg.opt_statsball_alert", "help", "cfg.help_statsball_alert", "scope", "live")
+    Map("sec", "StatsBall", "key", "AlertThreshold", "type", "slider", "min", 50, "max", 100, "default", "85", "label", "cfg.opt_statsball_alert", "help", "cfg.help_statsball_alert", "scope", "live"),
+    ; ---- [SmartInput] 智能输入 (边界与代码钳制对齐: MaxHist>=10, ValidateDelay>=50) ----
+    Map("sec", "SmartInput", "key", "Enabled", "type", "bool", "default", "1", "label", "cfg.opt_si_enabled", "help", "cfg.help_si_enabled", "scope", "live"),
+    Map("sec", "SmartInput", "key", "MaxHist", "type", "int", "min", 10, "max", 1000, "default", "100", "label", "cfg.opt_si_maxhist", "help", "cfg.help_si_maxhist", "scope", "live"),
+    Map("sec", "SmartInput", "key", "ValidateDelay", "type", "int", "min", 50, "max", 2000, "default", "300", "label", "cfg.opt_si_delay", "help", "cfg.help_si_delay", "scope", "live"),
+    Map("sec", "SmartInput", "key", "PrivacyExtra", "type", "text", "default", "", "label", "cfg.opt_si_privacy", "help", "cfg.help_si_privacy", "scope", "live")
 ]
 
 ; 订阅表: "sec\x01key" -> Array of Map(tok, fn); "*" 通配整表

@@ -41,7 +41,7 @@ SearchCollectMatches(query, showExt := false, searchFull := false) {
 
 ; 核心搜索函数
 SearchCommand(command := "", firstRun := false) {
-    global g_UseDisplay, g_ExecInterval, g_PipeArg, g_CurrentInput, g_CurrentCommand
+    global g_UseDisplay, g_PipeArg, g_CurrentInput, g_CurrentCommand
     global g_CurrentCommandList, g_FallbackCommands, g_FirstChar, g_DisplayRows
     global g_EnableTCMatch, g_SkinConf
     global g_UseResultFilter, g_UseRealtimeExec, g_InputEdit, g_DisplayEdit
@@ -50,7 +50,6 @@ SearchCommand(command := "", firstRun := false) {
 
     g_UseDisplay := false
     g_RowActive := false
-    g_ExecInterval := -1
     result := ""
     ; 排除表用 LoadFiles/ChangeRank 同步维护的 g_ExcludedCommandsObj (键为 rankKey 形)
     static resultToFilter := ""
@@ -135,6 +134,46 @@ SearchCommand(command := "", firstRun := false) {
 
     if (commandPrefix != "|")
         g_PipeArg := ""
+
+    ; 空查询缓存: 首屏/清空输入框每字都重算全池, 按池序列+排序纪元+显示开关键缓存.
+    ; 命中恢复列表/首项/回退标记后照常走 DisplaySearchResult (副作用与未命中一致)
+    static emptyCacheKey := "", emptyCache := Map()
+    wantEmptyCache := (command = "")
+    if (wantEmptyCache) {
+        cacheHide2 := "0"
+        try cacheHide2 := (g_SkinConf.Has("HideCol2") ? g_SkinConf["HideCol2"] : "0")
+        catch {
+        }
+        cacheSeq := 0
+        try cacheSeq := RimCommand.Seq + 0
+        catch {
+        }
+        cacheEpoch := 0
+        try {
+            global g_RankEpoch
+            if (IsSet(g_RankEpoch) && g_RankEpoch != "")
+                cacheEpoch := g_RankEpoch + 0
+        } catch {
+        }
+        emptyKey := (firstRun ? "1" : "0") . ":" . String(g_DisplayRows) . ":" . String(g_FirstChar)
+            . ":" . cacheHide2 . ":" . CfgGet("Config", "ShowFileExt", "0") . ":" . CfgGet("Config", "SearchFullPath", "0")
+            . ":" . String(cacheSeq) . ":" . String(cacheEpoch)
+        if (emptyKey = emptyCacheKey && emptyCache.Has("result")) {
+            try g_CurrentCommandList := emptyCache["list"].Clone()
+            catch {
+                g_CurrentCommandList := []
+            }
+            try g_CurrentCommand := emptyCache["current"]
+            catch {
+            }
+            try g_UseFallbackCommands := emptyCache["fallback"]
+            catch {
+            }
+            DisplaySearchResult(emptyCache["result"])
+            return emptyCache["result"]
+        }
+        emptyCacheKey := emptyKey
+    }
 
     g_CurrentCommandList := []
     order := g_FirstChar
@@ -257,6 +296,15 @@ SearchCommand(command := "", firstRun := false) {
         result := StrReplace(result, "run | ", TypeLabel("run"))
     }
 
+    ; 空查询写缓存 (与命中侧同键; 列表快照 Clone 防调用方后续改动污染)
+    if (wantEmptyCache) {
+        try {
+            emptyCache := Map("result", result, "current", g_CurrentCommand
+                , "fallback", g_UseFallbackCommands, "list", g_CurrentCommandList.Clone())
+        } catch {
+        }
+    }
+
     DisplaySearchResult(result)
     return result
 }
@@ -309,7 +357,7 @@ ShouldFreezeInput(command) {
 MatchCommand(Haystack, Needle) {
     global g_EnableTCMatch
     if (g_EnableTCMatch)
-        return TCMatchFunc(Haystack, Needle)
+        return TCMatchTest(Haystack, Needle)
     else
         return InStr(Haystack, Needle)
 }
@@ -318,7 +366,7 @@ MatchCommand(Haystack, Needle) {
 MatchResult(Haystack, Needle) {
     global g_EnableTCMatch
     if (g_EnableTCMatch)
-        return TCMatchFunc(Haystack, Needle)
+        return TCMatchTest(Haystack, Needle)
     else
         return InStr(Haystack, Needle)
 }
@@ -361,20 +409,6 @@ TurnOnRealtimeExec() {
     }
 }
 
-; 设置间隔执行 (对齐原版; 开关皆用闭包对象, 本构建 SetTimer/Func 皆忌字符串名)
-SetExecInterval(second) {
-    global g_ExecInterval, g_LastExecCb
-    if (g_ExecInterval >= 0) {
-        g_ExecInterval := second * 1000
-        return true
-    } else {
-        if (IsObject(g_LastExecCb)) {
-            try SetTimer(g_LastExecCb, 0)
-        }
-        return false
-    }
-}
-
 ; 设置命令过滤器
 SetCommandFilter(command) {
     global g_CommandFilter
@@ -383,9 +417,32 @@ SetCommandFilter(command) {
 
 ; 无结果时试算表达式 (原版 Eval 语义: 数字非0才显示)
 ; 仅纯数学表达式才计算, 避免 "calc123+123" 等误触 (原版未知标识符直接失败)
+; 输入框计算 memo: 同输入 + 同 Misc 开关直接回 (搜索无结果分支与 300ms 延迟校验
+; 常撞同输入; 单条目防 ini 无界膨胀; 探针无 CfgGet 时开关取 "" 照样可测)
 TryEvalInput(input) {
     global g_Conf
+    static memoInput := Chr(1), memoFlag := Chr(1), memoVal := ""
     if (input = "")
+        return ""
+    miscFlag := ""
+    try miscFlag := CfgGet("Plugins", "Misc", "1")
+    catch {
+    }
+    if (input = memoInput && miscFlag = memoFlag)
+        return memoVal
+    memoVal := TryEvalInput_Body(input)
+    memoInput := input
+    memoFlag := miscFlag
+    return memoVal
+}
+
+; 计算本体 (多出口原样保留; wrapper 负责 memo)
+TryEvalInput_Body(input) {
+    global g_Conf
+    if (input = "")
+        return ""
+    ; T4: 荒谬长串直接拒 (MonsterEval 贪婪回溯 len600 可达 40ms, 实测锤实)
+    if (StrLen(input) > 200)
         return ""
     ; 必须包含数字
     if (!RegExMatch(input, "\d"))

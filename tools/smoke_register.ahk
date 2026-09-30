@@ -12,6 +12,7 @@
 #Include ..\Core\Command.ahk
 #Include ..\Core\Execution.ahk
 #Include ..\Core\Engine.ahk
+#Include ..\Core\Utils.ahk
 #Include ..\Core\Gesture.ahk
 
 global g_RegCommands := []
@@ -25,9 +26,6 @@ class ConfStub {
             return "1"
         if (k = "TCPath")
             return A_ScriptFullPath
-        return d
-    }
-    GetValue(s, k, d := "") {
         return d
     }
     Set(s, k, v) {
@@ -124,7 +122,6 @@ RegisterCommand(name, type, content, desc := "") {
 #Include ..\Plugins\TCCompare.ahk
 #Include ..\Plugins\TCDialog.ahk
 #Include ..\Plugins\TotalCommander.ahk
-#Include ..\Plugins\VimDConfig.ahk
 #Include ..\Plugins\VimEditor.ahk
 #Include ..\Plugins\WinMerge.ahk
 
@@ -151,8 +148,8 @@ vimExpect := Map("General", [1, 88, 47, 0, 0, 0], "Explorer", [1, 21, 28, 0, 0, 
     , "TCCompare", [1, 16, 23, 0, 0, 0], "WinMerge", [1, 19, 26, 0, 0, 0]
     , "BeyondCompare4", [1, 16, 23, 0, 0, 0], "Foobar2000", [1, 17, 24, 0, 0, 0]
     , "TCDialog", [0, 7, 0, 0, 0, 0], "StrokePlus", [0, 20, 0, 0, 0, 0]
-    , "VimDConfig", [0, 3, 0, 0, 0, 0], "TotalCommander", [2, 650, 143, 0, 4, 0])
-for _pn in ["General", "Explorer", "TCCompare", "WinMerge", "BeyondCompare4", "Foobar2000", "TCDialog", "StrokePlus", "VimDConfig", "TotalCommander"] {
+    , "TotalCommander", [2, 650, 143, 0, 4, 0])
+for _pn in ["General", "Explorer", "TCCompare", "WinMerge", "BeyondCompare4", "Foobar2000", "TCDialog", "StrokePlus", "TotalCommander"] {
     EngineStub.Reset()
     TryRegE(_pn . "_Keymaps", g_VimEngine)
     got := EngineStub.Counts()
@@ -167,8 +164,8 @@ for _pn in ["General", "Explorer", "TCCompare", "WinMerge", "BeyondCompare4", "F
         g_RegFails.Push("VimParity:" . _pn . " got=" . got[1] . "/" . got[2] . "/" . got[3] . "/" . got[4] . "/" . got[5] . "/" . got[6])
     }
 }
-; 命令插件经 Hybrid RegisterCommands 直注 (Misc/LauncherCore/System/QRCode/Kanji/StatsBall/VimDConfig/General/Explorer/TotalCommander)
-for _cls in [MiscPlugin, LauncherCorePlugin, LauncherSystemPlugin, QRCodePlugin, KanjiPlugin, StatsBallPlugin, VimDConfigPlugin, GeneralPlugin, ExplorerPlugin, TotalCommanderPlugin] {
+; 命令插件经 Hybrid RegisterCommands 直注 (Misc/LauncherCore/System/QRCode/Kanji/StatsBall/General/Explorer/TotalCommander)
+for _cls in [MiscPlugin, LauncherCorePlugin, LauncherSystemPlugin, QRCodePlugin, KanjiPlugin, StatsBallPlugin, GeneralPlugin, ExplorerPlugin, TotalCommanderPlugin] {
     try {
         _cls.RegisterCommands()
     } catch as e {
@@ -221,7 +218,7 @@ if (sbCount != 2) {
     g_RegFails.Push("StatsBallIdempotent: got " . sbCount . " rows (expect 2)")
 }
 ; 全插件 Hybrid 自注册覆盖断言 (include 即注册, 缺类名即 TotalCommander 式漏尾)
-for _hpn in ["General", "Explorer", "TCCompare", "WinMerge", "BeyondCompare4", "Foobar2000", "TCDialog", "TotalCommander", "StrokePlus", "VimDConfig", "VimEditor", "Misc", "LauncherCore", "LauncherSystem", "QRCode", "Kanji", "StatsBall"] {
+for _hpn in ["General", "Explorer", "TCCompare", "WinMerge", "BeyondCompare4", "Foobar2000", "TCDialog", "TotalCommander", "StrokePlus", "VimEditor", "Misc", "LauncherCore", "LauncherSystem", "QRCode", "Kanji", "StatsBall"] {
     if (RimPluginManager.Get(_hpn) = "") {
         global g_RegFails
         g_RegFails.Push("HybridMissing:" . _hpn)

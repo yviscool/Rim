@@ -75,18 +75,7 @@ TurnOnResultFilter() {
 TurnOnRealtimeExec() {
 }
 
-; 与 Search.ahk SetExecInterval 同语义 (g_ExecInterval>=0 即置毫秒并返回真)
-SetExecInterval(second) {
-    global g_ExecInterval, g_LastExecCb
-    if (g_ExecInterval >= 0) {
-        g_ExecInterval := second * 1000
-        return true
-    }
-    return false
-}
-
 global g_Arg := "", FullPipeArg := ""
-global g_ExecInterval := 0, g_LastExecCb := ""
 global g_VimEngine := ""
 global g_ExcludedCommandsObj := Map()
 

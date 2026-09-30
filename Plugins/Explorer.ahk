@@ -277,12 +277,12 @@ Exp_CopyPath() {
     }
 }
 
-; TC 路径: 插件全局 > 配置文件
+; TC 路径: 插件全局 > 配置文件 (唯一真相见 TC_EffPath)
 Exp_TCPath() {
     global TCPath
     if (TCPath != "")
         return TCPath
-    return CfgGet("Config", "TCPath", "")
+    return TC_EffPath()
 }
 
 Exp_OpenInTC() {

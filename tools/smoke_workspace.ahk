@@ -19,6 +19,23 @@ Assert(cond, msg) {
     FileAppend("PASS: " . msg . "`n", "*")
 }
 
+ProbeSearch(query, limit := 10) {
+    out := []
+    q := Trim(StrLower(query))
+    if (q = "")
+        return out
+    for id, c in RimCommand.Registry {
+        try {
+            if (InStr(StrLower(c.Id), q) || InStr(StrLower(c.Title), q)
+                || InStr(StrLower(c.Keywords), q) || InStr(StrLower(c.Description), q))
+                out.Push(c)
+        }
+        if (out.Length >= limit)
+            break
+    }
+    return out
+}
+
 ; 1. 初始化工作空间并验证内置配置
 InitUniversalCommands()
 InitWorkspaceCommands()
@@ -57,7 +74,7 @@ Assert(RimCommand.Get("workspace.save") != "", "cmd-ws-save-registered")
 Assert(RimCommand.Get("workspace.rim") != "", "cmd-ws-rim-registered")
 Assert(RimCommand.Get("workspace.dev") != "", "cmd-ws-dev-registered")
 
-wsMatches := RimCommand.Search("workspace")
+wsMatches := ProbeSearch("workspace")
 Assert(wsMatches.Length >= 3, "search-workspace-multi")
 
 ; 4. Window Tiling 监视器工作区计算验证 (Win32 API)
@@ -86,7 +103,7 @@ Assert(RimCommand.Get("window.tile_left") != "", "cmd-win-tile-left")
 Assert(RimCommand.Get("window.tile_right") != "", "cmd-win-tile-right")
 Assert(RimCommand.Get("window.next_monitor") != "", "cmd-win-next-monitor")
 
-winMatches := RimCommand.Search("tile")
+winMatches := ProbeSearch("tile")
 Assert(winMatches.Length >= 2, "search-window-tile-multi")
 
 FileAppend("smoke-workspace-ok`n", A_ScriptDir . "\..\smoke_workspace.out.txt")

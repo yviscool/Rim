@@ -43,6 +43,18 @@ VimCfg_StatsBallSpecs() {
     return VimCfg_SpecsFor(["StatsBall"])
 }
 
+VimCfg_SmartInputSpecs() {
+    return VimCfg_SpecsFor(["SmartInput"])
+}
+
+VimCfg_BuildSmartInputTab(g) {
+    VimCfg_BuildSpecsTab(g, T("cfg.smartinput_title"), VimCfg_SmartInputSpecs(), "sispecs")
+}
+
+VimCfg_CollectSmartInputTab() {
+    VimCfg_CollectSpecsTab("sispecs")
+}
+
 VimCfg_BuildStatsBallTab(g) {
     VimCfg_BuildSpecsTab(g, T("cfg.statsball_title"), VimCfg_StatsBallSpecs(), "sbspecs")
 }

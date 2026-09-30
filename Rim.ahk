@@ -35,7 +35,7 @@ class Rim {
     static launcher := ""
 }
 
-; ==================== 全局变量 (RunZ 兼容) ====================
+; ==================== 全局变量 ====================
 ; 配置文件路径
 global g_SearchFileList := A_ScriptDir . "\Conf\SearchFileList.txt"
 global g_UserFileList := A_ScriptDir . "\Conf\UserFileList.txt"
@@ -90,13 +90,14 @@ try {
 global g_Arg := ""
 global FullPipeArg := ""
 ; 不能是 Rim.ahk 的子串, 否则按键绑定会有问题 (对齐原版 4 空格)
-global g_WindowName := "RunZ    "
+global g_WindowName := "Rim    "
 global g_CommandAlias := Map()
 global g_FallbackCommands := []
 global g_CurrentInput := ""
 global g_CurrentCommand := ""
 global g_CurrentCommandList := []
-global g_EnableTCMatch := TCMatchOn(g_Conf["Config"]["TCMatchPath"])
+; 缺键/坏行永不炸启动 (裸 Map 访问缺键即抛; 实测缺 TCMatchPath 行即加载死)
+global g_EnableTCMatch := TCMatchInit(CfgGet("Config", "TCMatchPath", ""))
 global g_FirstChar := 0
 try g_FirstChar := Ord(g_SkinConf.Has("FirstChar") ? g_SkinConf["FirstChar"] : "a")
 if (!g_FirstChar)
@@ -112,13 +113,10 @@ global g_UseFallbackCommands := false
 global g_UseResultFilter := false
 global g_UseRealtimeExec := false
 global g_ExcludedCommandsObj := Map()
-global g_ExecInterval := -1
-global g_LastExecCb := ""
 global g_PipeArg := ""
 global g_CommandFilter := ""
 global g_Plugins := []
-; g_FuncAlias 别名表已退役 (O 批): function 型经 LauncherCompat 桥接为 RimCommand("legacy.*"),
-; 执行走同一 function| 入口, 无需名实映射
+; 命令注册: 结构化经 RimCommand.Register, 数据行经 LauncherCompat.AddCommand (别名+收编)
 
 ; ==================== 全局错误网 (本构建无 IsFunc/Func, 运行时错转日志不断线) ====================
 Rim_OnError(e, mode) {
@@ -206,7 +204,6 @@ global g_CommandArea := "Edit4"
 #Include Core\Utils.ahk
 #Include Core\Logging.ahk
 #Include Core\Observability.ahk
-#Include Core\TrainingLoop.ahk
 #Include Core\Hotkeys.ahk
 #Include Core\SmartInput.ahk
 #Include Core\Gesture.ahk
@@ -227,7 +224,7 @@ global g_CommandArea := "Edit4"
 #Include *i Plugins\VimEditorAdapters.ahk
 
 ; ==================== 其他插件 ====================
-; RunZ 风格插件 (RegisterCommand 注册)
+; 数据行插件 (LauncherCompat.AddCommand 注册 url/file 行)
 #Include *i Plugins\Misc.ahk
 #Include *i Plugins\QRCode.ahk
 #Include *i Plugins\Kanji.ahk
@@ -236,7 +233,7 @@ global g_CommandArea := "Edit4"
 #Include *i Plugins\General.ahk
 #Include *i Plugins\StrokePlus.ahk
 #Include *i Plugins\StatsBall.ahk
-; VimDesktop 风格插件 (需 VimEngine, 已接线; Excel 待 COM 重移植)
+; VimDesktop 风格插件 (需 VimEngine, 已接线)
 #Include *i Plugins\Explorer.ahk
 #Include *i Plugins\Terminal.ahk
 #Include *i Plugins\TCCompare.ahk
@@ -245,8 +242,6 @@ global g_CommandArea := "Edit4"
 #Include *i Plugins\Foobar2000.ahk
 #Include *i Plugins\TCDialog.ahk
 #Include *i Plugins\TotalCommander.ahk
-#Include *i Plugins\VimDConfig.ahk
-; #Include *i Plugins\MicrosoftExcel.ahk
 ; 用户自定义函数 (v2: 定义 Func() 后经 ini function|Func|arg 或 [Hotkey] 调用)
 #Include *i custom.ahk
 
@@ -255,7 +250,7 @@ global g_CommandArea := "Edit4"
 pluginDir := A_ScriptDir "\Plugins"
 Loop Files, pluginDir "\*.ahk" {
     SplitPath(A_LoopFileName, , , , &pluginName)
-    if (g_Conf.GetValue("Plugins", pluginName) != 0)
+    if (CfgGet("Plugins", pluginName, "1") != "0")
         g_Plugins.Push(pluginName)
 }
 
@@ -266,7 +261,7 @@ Rim_CheckCoreSymbols() {
     missing := []
     for _, sym in ["MakeLegacyCmd", "LegacyDirectCall", "GetRunArg", "CmdLine_Parse",
         "RimCommand", "RimPluginManager", "GestureEngine", "ExecuteAction", "LoadFiles",
-        "RegisterCommand", "AddCommand"] {
+        "AddCommand"] {
         ok := false
         try {
             ref := %sym%
@@ -311,6 +306,7 @@ else
         GenerateSearchFileList()
         LoadFiles()
     }
+BootMark("STARTUP files-loaded")
 
 ; ==================== 创建 GUI (AHK v2) ====================
 InitMainGui()
@@ -344,7 +340,9 @@ VimPluginOn(name) => RimPluginManager.IsEnabled(name)
 
 ; 插件按键模式注入 (全插件经 Hybrid RegisterKeymaps 直注引擎, 无双轨分发)
 RimPluginManager.RegisterAllKeymaps(g_VimEngine)
+BootMark("STARTUP keymaps-ready")
 VimdCheckHotKey()
+BootMark("STARTUP vimcheck-ready")
 
 ; 配置热应用订阅 (live/rebuild 档免重启; restart 档走重启链, 见 VimCfg_DoSave)
 ; 注意: 回调只做"读配置→改对象", 禁止阻塞 (单线程, 卡死界面)
@@ -362,6 +360,7 @@ for _idx, guiKey in ["Skin", "HideTitle", "ShowCurrentCommand", "DisplayRows", "
     ; 右键按住拖拽=手势, 短点=普通右键; 映射见 [Gesture]/[Gestures]
     RimPluginManager.RegisterAllGestures()
     GestureEngine.Init()
+    BootMark("STARTUP gestures-ready")
 
 ; ==================== 文件监控 ====================
 SetTimer(WatchUserFileList, 3000)
@@ -394,8 +393,6 @@ try {
     FileAppend("BUILD " . g_BuildTag . " ready +" . (A_TickCount - g_BootT0) . "ms " . A_Now . "`n", A_ScriptDir . "\Rim.error.log")
 }
 
-; ==================== 兼容层: 供插件 RegisterCommand 调用 (实现见 Core/Command.ahk LauncherCompat) ====================
-
 ShowPluginInfo(*) {
     global g_Plugins
     msg := T("plugin.list_header")
@@ -411,11 +408,6 @@ ToggleSuspend(*) {
     else
         ToolTip(T("state.enabled"))
     SetTimer(RemoveToolTip, -1000)
-}
-
-; 插件注册函数 (命令池写入; function 型已无调用方, 误调见 LauncherCompat 抛错)
-RegisterCommand(name, type, content, description := "") {
-    LauncherCompat.AddCommand(name, type, content, description)
 }
 
 ; ===== VimDesktop ini→map 编译器 (最小闭环: exclude/global/各窗口段) =====

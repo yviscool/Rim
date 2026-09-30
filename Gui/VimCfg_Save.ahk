@@ -30,10 +30,10 @@ VimCfg_WriteIni(path, final) {
         FileMove(tmp, path, 1)
         return
     }
-    VimCfg_WriteIniLegacy(path, final)
+    VimCfg_WriteIniDirect(path, final)
 }
 
-VimCfg_WriteIniLegacy(path, final) {
+VimCfg_WriteIniDirect(path, final) {
     lines := ReadFileLines(path)
     out := []
     cur := ""
@@ -148,6 +148,7 @@ VimCfg_OnSaveInner(*) {
     global g_VimCfg, g_Conf, g_AutoConf
     VimCfg_CollectLauncherTab()
     VimCfg_CollectStatsBallTab()
+    VimCfg_CollectSmartInputTab()
     VimCfg_CollectTCTab()
     VimCfg_CollectPluginTab()
     VimCfg_RefreshWarnBar()
@@ -398,7 +399,7 @@ VimCfg_DoSaveBody(dirty) {
         try {
             if (MsgBox(T("cfg.lang_restart_prompt"), T("cfg.lang_restart_title"), "YesNo") = "Yes") {
                 VimCfg_MarkReopen()
-                RestartRunZ()
+                RestartRim()
                 return
             }
         } catch {
@@ -407,7 +408,7 @@ VimCfg_DoSaveBody(dirty) {
     if (needRestart.Length > 0) {
         VimCfg_MarkReopen()
         if (MsgBox(T("cfg.need_restart", needRestart.Length) "`n" . VimCfg_JoinLines(needRestart, 8), T("cfg.title"), "YesNo") = "Yes") {
-            RestartRunZ()
+            RestartRim()
             return
         }
         ToolTip(T("cfg.need_restart", needRestart.Length))
@@ -600,7 +601,7 @@ VimCfg_ProfileApply(*) {
     }
     VimCfg_MarkReopen()
     MsgBox(T("cfg.profile_done"), T("cfg.title"))
-    RestartRunZ()
+    RestartRim()
 }
 
 VimCfg_ProfileDel(*) {

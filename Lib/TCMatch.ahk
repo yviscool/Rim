@@ -1,7 +1,7 @@
 ﻿#Requires AutoHotkey v2.0
 
 ; === TCMatch 库 ===
-; 兼容 RunZ 的 TCMatch 模糊匹配功能
+; TCMatch 模糊匹配 (字符子序列匹配)
 
 class TCMatch {
     static dllPath := ""
@@ -66,13 +66,12 @@ class TCMatch {
     }
 }
 
-; RunZ 兼容的 TCMatchOn 函数
-TCMatchOn(dllPath := "") {
+TCMatchInit(dllPath := "") {
     TCMatch.Init(dllPath)
     return TCMatch.enabled
 }
 
-; RunZ 兼容的 TCMatch 函数
-TCMatchFunc(Haystack, Needle) {
+; 模糊匹配入口 (dll/内置自动选择)
+TCMatchTest(Haystack, Needle) {
     return TCMatch.Match(Needle, Haystack)
 }

@@ -520,7 +520,8 @@ class VimEngine {
             }
         }
 
-        ; 自家进程守卫: 配置中心/手势UI等子窗一律透传 ([global] 字母映射不再劫自家编辑框)
+        ; 自家进程守卫: 配置中心/手势UI等子窗一律透传 ([global] 字母映射不再劫自家编辑框).
+        ; 接线不变量 (probe_input_guards 锁死): 必须在 CheckWin 之前, 逐字键零经过分发
         try {
             _selfPath := ""
             try _selfPath := WinGetProcessPath("A")
@@ -534,7 +535,7 @@ class VimEngine {
         }
 
         ; IME 组字保护: 组字中全透传 (提交/取消走原生语义), 组字结束自动恢复分发.
-        ; 仅映射窗按键走到这里 (未命中窗零经过); 查询失败/无 IME 回退旧行为.
+        ; 接线不变量 (probe_input_guards 锁死): 自家守卫之后、CheckWin 之前
         try {
             if (ImeComposing()) {
                 Send(this.ConvertFromVim(vimKey, true))
@@ -1165,53 +1166,17 @@ class ModeObj {
     }
 }
 
-; === Action - 动作对象 ===
+; === Action - 动作对象 (仅名/注释; 执行一律走统一入口 ExecuteAction) ===
 class Action {
     Name := ""
     Comment := ""
-    Type := 0  ; 0=Label, 1=Function, 2=CmdLine, 3=HotString
-    Function := ""
-    CmdLine := ""
-    HotString := ""
-    MaxTimes := 99
 
     __New(name) {
         this.Name := name
     }
 
-    SetFunction(funcName) {
-        this.Type := 1
-        this.Function := funcName
-    }
-
     Do(count := 1) {
-        if (this.Function != "") {
-            f := this.Function
-            try %f%()
-            return
-        }
         ExecuteAction(this.Name)
-    }
-}
-
-; === Plugin - 插件对象 ===
-class Plugin {
-    PluginName := ""
-    Author := ""
-    Ver := ""
-    Comment := ""
-
-    __New(name, author, ver, comment) {
-        this.PluginName := name
-        this.Author := author
-        this.Ver := ver
-        this.Comment := comment
-    }
-
-    CheckSub() {
-        ; 直调同名函数 (缺失走 OnError 网); 本构建无 Func()
-        pn := this.PluginName
-        %pn%()
     }
 }
 

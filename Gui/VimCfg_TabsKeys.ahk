@@ -617,7 +617,7 @@ VimCfg_PluginToggle(*) {
 }
 
 VimCfg_PluginRestart(*) {
-    RestartRunZ()
+    RestartRim()
 }
 
 VimCfg_CollectPluginTab() {
@@ -693,11 +693,8 @@ VimCfg_CollectTCTab() {
     global g_VimCfg, g_Conf
     if !g_VimCfg.Has("tc_path") || !IsObject(g_Conf)
         return
-    p := Trim(g_VimCfg["tc_path"].Value)
-    if (p != "") {
-        VimCfg_PutDirty("TotalCommander_Config", "TCPath", p)
-        VimCfg_PutDirty("Config", "TCPath", p)
-    }
+    ; 路径框允许清空 (PutDirty 相等即 no-op, 空串正常落盘删键不断)
+    VimCfg_PutDirty("TotalCommander_Config", "TCPath", Trim(g_VimCfg["tc_path"].Value))
     VimCfg_PutDirty("TotalCommander_Config", "TCINI", Trim(g_VimCfg["tc_ini"].Value))
     VimCfg_PutDirty("TotalCommander_Config", "SaveMark", g_VimCfg["tc_savemark"].Value ? "1" : "0")
     VimCfg_PutDirty("TotalCommander_Config", "MenuIconSize", Trim(g_VimCfg["tc_iconsize"].Value))

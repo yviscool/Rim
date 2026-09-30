@@ -239,6 +239,7 @@ class StatsBallObj {
         this.downWY := 0
         this.dragging := false
         this.downTick := 0
+        this.lastHoverTick := 0
         this.msgInstalled := false
         this.hoverBoost := false
         this.renderFails := 0
@@ -495,17 +496,23 @@ class StatsBallObj {
     OnMMove(wParam, lParam, msg, hwnd) {
         if (!this.visible || !this.g)
             return
-        ; 悬停追踪 (与拖拽无关, downTick=0 照走); 按住左键时不触发
-        try {
-            over := this.HitBall()
-            if (over && !this.hoverBoost && !this.dragging && !GetKeyState("LButton", "P"))
-                this.SetHover(true)
-            else if (!over && this.hoverBoost)
-                this.SetHover(false)
-        } catch {
-        }
-        if (this.downTick = 0 || this.lockPos)
+        ; 非拖拽态只做悬停追踪, 且 200ms 节流 (此前每条 0x200 都进 HitBall/MouseGetPos)
+        if (this.downTick = 0 || this.lockPos) {
+            now := A_TickCount
+            if (now - this.lastHoverTick < 200)
+                return
+            this.lastHoverTick := now
+            ; 悬停追踪 (与拖拽无关, downTick=0 照走); 按住左键时不触发
+            try {
+                over := this.HitBall()
+                if (over && !this.hoverBoost && !this.dragging && !GetKeyState("LButton", "P"))
+                    this.SetHover(true)
+                else if (!over && this.hoverBoost)
+                    this.SetHover(false)
+            } catch {
+            }
             return
+        }
         try {
             if (!GetKeyState("LButton", "P"))
                 return

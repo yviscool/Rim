@@ -100,8 +100,8 @@ ProbeShowIpReal(arg := "") {
 ; ---- 环境 ----
 global g_HistoryCommands := []
 global g_CurrentInput := "", g_Arg := "", g_PipeArg := "", g_UseFallbackCommands := false
-global g_UseDisplay := false, g_DisableAutoExit := false, g_ExecInterval := 0
-global g_LastExecLabel := "", g_LastExecCb := "", FullPipeArg := ""
+global g_UseDisplay := false, g_DisableAutoExit := false
+global FullPipeArg := ""
 global g_LogSid := 0
 
 RimCommand.Register("ShutdownTimer", "ShutdownTimer", CapCmd, Map("Category", "System", "Description", "x"))

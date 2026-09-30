@@ -60,12 +60,22 @@ try {
 
 ; --- 测试 2: 命令注册幂等性 ---
 try {
-    catBefore := RimCommand.Categories.Has("TestCat") ? RimCommand.Categories["TestCat"].Length : 0
+    CountCat(cat) {
+        n := 0
+        for id, c in RimCommand.Registry {
+            try {
+                if (c.Category = cat)
+                    n++
+            }
+        }
+        return n
+    }
+    catBefore := CountCat("TestCat")
     RimCommand.Register("test.idempotent", "Test Title", (*) => 0, Map("Category", "TestCat"))
     RimCommand.Register("test.idempotent", "Test Title New", (*) => 0, Map("Category", "TestCat"))
     RimCommand.Register("test.idempotent", "Test Title Final", (*) => 0, Map("Category", "TestCat"))
 
-    catAfter := RimCommand.Categories["TestCat"].Length
+    catAfter := CountCat("TestCat")
     Assert(catAfter = catBefore + 1, "RimCommand.Register is idempotent, categories not duplicated: count=" . catAfter)
     Assert(RimCommand.Get("test.idempotent").Title = "Test Title Final", "RimCommand.Get returns latest registered object")
 } catch Error as e {

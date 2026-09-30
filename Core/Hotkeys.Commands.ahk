@@ -30,17 +30,6 @@ PrevCommand(*) {
     ChangeCommand(-1)
 }
 
-GotoCommand(*) {
-    global g_InputEdit, g_CurrentCommandList, g_FirstChar
-    try {
-        if (ControlGetFocus("A") = g_InputEdit.Hwnd)
-            return
-    }
-    index := Ord(SubStr(A_ThisHotkey, -1)) - g_FirstChar + 1
-    if (index >= 1 && index <= g_CurrentCommandList.Length)
-        ChangeCommand(index - 1, true)
-}
-
 ReindexFiles(*) {
     if WinActive(g_WindowName)
         ToolTip(T("ctx.reindexing"))
@@ -154,17 +143,21 @@ RunSelectedCommand(*) {
         RunCommand(g_CurrentCommandList[index])
 }
 
+; 权重调整后显式重搜当前输入即时刷新排序 (ChangeRank 已同步排除表+碰纪元;
+; 此前全量 LoadFiles() 重建 Registry 但不重绘, 排序下次击键才生效, 又贵又滞后)
 IncreaseRank(*) {
+    global g_CurrentCommand, g_CurrentInput
     if (g_CurrentCommand != "") {
         ChangeRank(g_CurrentCommand, true, 10)
-        LoadFiles()
+        SearchCommand(g_CurrentInput)
     }
 }
 
 DecreaseRank(*) {
+    global g_CurrentCommand, g_CurrentInput
     if (g_CurrentCommand != "") {
         ChangeRank(g_CurrentCommand, true, -10)
-        LoadFiles()
+        SearchCommand(g_CurrentInput)
     }
 }
 
@@ -317,7 +310,7 @@ WatchUserFileList(*) {
                     g_CfgSelfWriteTick := 0
                     lastConfFileModifyTime := newConfFileModifyTime
                 } else {
-                    RestartRunZ()
+                    RestartRim()
                 }
             } else {
                 lastConfFileModifyTime := newConfFileModifyTime
@@ -474,11 +467,5 @@ ProcessInputCommandCallBack(*) {
         SI_OnInputChanged()
     } catch {
     }
-}
-
-StartCommandLine(*) {
-    global g_FirstChar, g_CurrentInput
-    g_FirstChar := 97
-    SearchCommand(g_CurrentInput)
 }
 

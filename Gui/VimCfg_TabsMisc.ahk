@@ -20,7 +20,7 @@ VimCfg_BuildActionsTab(g) {
     g_VimCfg["ac_lines"] := []
     g_VimCfg["ac_file"] := ""
     names := []
-    try names := VimDConfig_PluginNames()
+    try names := VimCfg_PluginNames()
     for n in names {
         try ddl.Add([n])
     }
@@ -57,7 +57,7 @@ VimCfg_AcPick(*) {
                 if (desc = "" && mm[3] != "")
                     desc := VimCfg_TrKey(mm[3])
                 lines.Push(Map("action", mm[1], "desc", desc))
-            } else if RegExMatch(_line, '(?:Host\s*\(\s*"RegisterCommand"\s*,\s*|RegisterCommand\s*\(\s*)"([^"]+)"\s*,\s*"([^"]+)"(?:\s*,\s*"[^"]*")?(?:\s*,\s*(?:"([^"]*)"|T\("([^"]+)"\)))?', &mc) {
+            } else if RegExMatch(_line, 'LauncherCompat\.AddCommand\("([^"]+)"\s*,\s*"([^"]+)"(?:\s*,\s*"[^"]*")?(?:\s*,\s*(?:"([^"]*)"|T\("([^"]+)"\)))?', &mc) {
                 desc := mc[3]
                 if (desc = "" && mc[4] != "")
                     desc := VimCfg_TrKey(mc[4])
@@ -100,7 +100,92 @@ VimCfg_AcGoto(*) {
     if (action = "")
         return
     action := RegExReplace(action, " \[.*\]$", "")
-    try VimDConfig_SearchFileForEdit(action, "", false, g_VimCfg["ac_file"])
+    try VimCfg_SearchFileForEdit(action, "", false, g_VimCfg["ac_file"])
+}
+
+; ==================== 源码定位助手 (原 VimDConfig 插件共享函数, 独立浏览器已删) ====================
+VimCfg_PluginNames() {
+    names := []
+    Loop Files, A_ScriptDir "\Plugins\*.ahk" {
+        SplitPath(A_LoopFileName, , , , &pname)
+        if (pname != "")
+            names.Push(pname)
+    }
+    return names
+}
+
+VimCfg_SearchFileForEdit(action, desc, editKeymap, pluginFile) {
+    if (SubStr(action, 1, 1) = "<" || editKeymap) {
+        found := false
+        if (pluginFile != "" && FileExist(pluginFile)) {
+            n := 0
+            for _line in ReadFileLines(pluginFile) {
+                n++
+                if InStr(_line, action) {
+                    VimCfg_EditFile(pluginFile, n)
+                    found := true
+                    break
+                }
+            }
+        }
+        if (!found) {
+            Loop Files, A_ScriptDir "\Plugins\*.ahk" {
+                n := 0
+                for _line in ReadFileLines(A_LoopFileFullPath) {
+                    n++
+                    if InStr(_line, action) {
+                        VimCfg_EditFile(A_LoopFileFullPath, n)
+                        return
+                    }
+                }
+            }
+            Loop Files, A_ScriptDir "\Core\*.ahk" {
+                n := 0
+                for _line in ReadFileLines(A_LoopFileFullPath) {
+                    n++
+                    if InStr(_line, action) {
+                        VimCfg_EditFile(A_LoopFileFullPath, n)
+                        return
+                    }
+                }
+            }
+        }
+        return
+    }
+    g_ConfFile := A_ScriptDir . "\Conf\rim.ini"
+    needle := "=" . action
+    n := 0
+    for _line in ReadFileLines(g_ConfFile) {
+        n++
+        if InStr(_line, needle) {
+            VimCfg_EditFile(g_ConfFile, n)
+            return
+        }
+    }
+    VimCfg_EditFile(g_ConfFile, 1)
+}
+
+VimCfg_EditFile(editPath, line := 1) {
+    global g_Conf
+    editorArgs := Map("notepad", "/g $line $file", "notepad2", "/g $line $file"
+        , "sublime_text", "$file:$line", "vim", "+$line $file", "gvim", "--remote-silent-tab +$line $file"
+        , "everedit", "-n$line $file", "notepad++", "-n$line $file", "EmEditor", "-l $line $file"
+        , "uedit32", "$file/$line", "Editplus", "$file -cursor $line", "textpad", "$file($line)"
+        , "pspad", "$file /$line", "ConTEXT", "$file /g1:$line", "scite", "$file -goto:$line")
+    editor := CfgGet("Config", "Editor", "")
+    if (editor = "" || !FileExist(editor)) {
+        try {
+            Run(editPath)
+        }
+        return
+    }
+    SplitPath(editor, , , &ext, &nameNoExt)
+    args := editorArgs.Has(nameNoExt) ? editorArgs[nameNoExt] : "$file"
+    args := StrReplace(args, "$line", line)
+    args := StrReplace(args, "$file", '"' . editPath . '"')
+    try {
+        Run('"' . editor . '" ' . args)
+    }
 }
 
 ; ==================== 帮助页 (替代托盘 热键K) ====================
@@ -173,7 +258,7 @@ VimCfg_BackupRestore(*) {
     }
     VimCfg_MarkReopen()
     MsgBox(T("cfg.backup_done"), T("cfg.title"))
-    RestartRunZ()
+    RestartRim()
 }
 
 ; ==================== 变更历史 (Conf/config-history.log, 单行一单) ====================
@@ -381,9 +466,9 @@ VimCfg_CheckConflicts() {
         out.Push(Map("level", "info", "text", T("cfg.info_ime")))
     if (G.Get("Config", "ExitIfInactivate", "1") = "1" && G.Get("Config", "RunInBackground", "1") != "1")
         out.Push(Map("level", "info", "text", T("cfg.info_exitblur")))
-    ; 7. 另一个 RunZ 窗口 (原版或重复启动)
+    ; 7. 另一个 Rim 窗口 (重复启动)
     try {
-        if (hw := WinExist("RunZ    ")) {
+        if (hw := WinExist("Rim    ")) {
             pid := 0
             try pid := WinGetPID("ahk_id " hw)
             if (pid != 0 && pid != DllCall("GetCurrentProcessId", "UInt"))

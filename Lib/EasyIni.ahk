@@ -1,7 +1,7 @@
 ﻿#Requires AutoHotkey v2.0
 
 ; === EasyIni 库 ===
-; 兼容 RunZ 的 EasyIni 功能
+; EasyIni: 段/键 ini 读写 (裸键行/转义/引号兼容)
 
 class EasyIni {
     sections := Map()
@@ -46,10 +46,9 @@ class EasyIni {
                 continue
             }
 
-            ; 检测 key=value, 同时兼容无 "=" 的裸键行 (RunZ FallbackCommand 格式).
+            ; 检测 key=value, 同时兼容无 "=" 的裸键行 (FallbackCommand 格式).
             ; 键内 "=" 转义为 "\=" (Rank 键是整行命令, URL 查询串 ?q=/ ?wd= 必含 "=";
             ; 不转义则 Save→Load 回合键被截断, rank 丢失且误入排除表).
-            ; 读兼容老文件 (无转义=旧行为, 首 "=" 切分).
             if RegExMatch(line, "^((?:\\=|[^=])*)=(.*)", &match) {
                 key := Trim(StrReplace(match[1], "\=", "="))
                 value := Trim(match[2])
@@ -170,10 +169,5 @@ class EasyIni {
     ; === 获取所有 Section ===
     GetSections() {
         return this.sections
-    }
-
-    ; === GetValue（兼容 RunZ 的 g_Conf["GetValue"]） ===
-    GetValue(section, key, default := "") {
-        return this.Get(section, key, default)
     }
 }

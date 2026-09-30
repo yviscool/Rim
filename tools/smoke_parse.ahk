@@ -42,11 +42,9 @@
 #Include ..\Plugins\TCDialog.ahk
 #Include ..\Plugins\Terminal.ahk
 #Include ..\Plugins\TotalCommander.ahk
-#Include ..\Plugins\VimDConfig.ahk
 #Include ..\Plugins\VimEditor.ahk
 #Include ..\Plugins\VimEditorAdapters.ahk
 #Include ..\Plugins\WinMerge.ahk
-#Include ..\Plugins\MicrosoftExcel.ahk
 #Include ..\Gui\GestureUI.ahk
 #Include ..\Gui\VimConfigUI.ahk
 

@@ -33,11 +33,6 @@ Main() {
     Check("rt-eqfile", back.Get("Rank", "file | D:\software\app\a=b.txt", "") = "2|20260927")
     Check("rt-plain", back.Get("Rank", "command | Calc | 计算器", "") = "5")
     Check("rt-value-eq", back.Get("History", "1", "") = "function | AhkRun | x | a=b=c")
-    ; 老文件 (无转义) 照旧读: 首 "=" 切分
-    old := "[Rank]`nurl | https://x.y/?q={query} | 旧=2`nfoo=bar`n"
-    FileAppend(old, tmp, "UTF-8")
-    back2 := EasyIni(tmp)
-    Check("old-compat", back2.Get("Rank", "foo", "") = "bar")
     try FileDelete(tmp)
     catch {
     }

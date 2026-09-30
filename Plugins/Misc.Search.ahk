@@ -368,30 +368,7 @@ BaiduFanyi_ParseResponse(response, word) {
     return ""
 }
 
-MD5Hash(str) {
-    ; 使用 Windows 内置的 certutil 计算 MD5
-    ; 旧实现读的是输入文件而非 certutil 输出 (恒返回 ""), 且 certutil 输出大写 hex, 正则须 (?i)
-    tempFile := A_Temp "\md5_temp.txt"
-    outFile := A_Temp "\md5_out.txt"
-    try FileDelete(tempFile)
-    try FileDelete(outFile)
-    result := ""
-    try {
-        FileAppend(str, tempFile, "UTF-8-RAW")
-        RunWait(A_ComSpec ' /C certutil -hashfile "' tempFile '" MD5 > "' outFile '"', , "Hide")
-        for _mline in ReadFileLines(outFile) {
-            line := Trim(_mline)
-            if (StrLen(line) = 32 && RegExMatch(line, "(?i)^[a-f0-9]+$")) {
-                result := line
-                break
-            }
-        }
-    } catch {
-    }
-    try FileDelete(tempFile)
-    try FileDelete(outFile)
-    return result
-}
+
 
 
 ; === HTML 清理函数 ===

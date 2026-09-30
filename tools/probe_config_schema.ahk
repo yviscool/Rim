@@ -38,7 +38,7 @@ class ConfStub2 {
 ; ---- 语言固定英文, 断言 label/help 零缺键 (缺键时 T 回落 key 本身) ----
 I18nSetLang("en", false)
 
-Check("schema-count-48", g_CfgSchema.Length = 48)
+Check("schema-count-51", g_CfgSchema.Length = 51)
 seen := Map()
 dupFound := false
 typeOk := true

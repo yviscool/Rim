@@ -10,7 +10,7 @@ Default(*) {
     return
 }
 
-RestartRunZ(*) {
+RestartRim(*) {
     try FileAppend(A_Now . " RESTART begin`n", A_ScriptDir . "\Rim.error.log")
     catch {
     }
@@ -56,7 +56,7 @@ PrevPage(*) {
     g_InputEdit.Focus()
 }
 
-ActivateRunZ(*) {
+ActivateRim(*) {
     g_MainGui.Show()
     if (CfgGet("Config", "SwitchToEngIME", "0") = "1")
         SwitchToEngIME()
@@ -77,7 +77,7 @@ ToggleWindow(*) {
             g_InputEdit.Value := ""
         g_MainGui.Hide()
     } else {
-        ActivateRunZ()
+        ActivateRim()
     }
 }
 
@@ -116,21 +116,9 @@ OpenContextMenu(*) {
     contextMenu.Add(T("ctx.updatepath"), ChangePath)
     contextMenu.Add()
     contextMenu.Add(T("ctx.help"), Help)
-    contextMenu.Add(T("ctx.restart"), RestartRunZ)
-    contextMenu.Add(T("ctx.exit"), ExitRunZ)
+    contextMenu.Add(T("ctx.restart"), RestartRim)
+    contextMenu.Add(T("ctx.exit"), ExitRim)
     contextMenu.Show()
-}
-
-TabFunction(*) {
-    global g_InputEdit
-    try {
-        if (ControlGetFocus("A") = g_InputEdit.Hwnd)
-            ControlFocus("Edit2")
-        else
-            g_InputEdit.Focus()
-    } catch {
-        try g_InputEdit.Focus()
-    }
 }
 
 EscFunction(*) {
@@ -144,7 +132,7 @@ EscFunction(*) {
     }
 }
 
-ExitRunZ(*) {
+ExitRim(*) {
     SaveAutoConf()
     ExitApp
 }
@@ -161,7 +149,7 @@ HideOrExit(*) {
     if (CfgGet("Config", "RunInBackground", "1") = "1")
         g_MainGui.Hide()
     else
-        ExitRunZ()
+        ExitRim()
 }
 
 ; 一键居中活动窗口 (全局热键 !h 入口; 算法对齐 General.ahk wm_center, 最小修复不改数学)
@@ -190,13 +178,13 @@ BindLauncherHotkeys() {
     HotIfWinActive(g_WindowName)
 
     BindKey("Esc", SI_Esc)
-    BindKey("!F4", ExitRunZ)
+    BindKey("!F4", ExitRim)
     BindKey("Tab", SI_Tab)
     BindKey("F1", Help)
     BindKey("+F1", KeyHelp)
     BindKey("F2", EditConfig)
     BindKey("F3", EditAutoConfig)
-    BindKey("^q", RestartRunZ)
+    BindKey("^q", RestartRim)
     BindKey("^l", ClearInputLabel)
     BindKey("^u", ClearInputLabel)
     BindKey("^d", OpenCurrentFileDir)

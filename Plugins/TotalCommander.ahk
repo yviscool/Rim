@@ -716,8 +716,8 @@ TC_ContextProvider(ctx) {
 DetectTCPath() {
     global TCPath, TCINI, isTC64
 
-    ; 1. 尝试从配置读取
-    tcPath := Rim.config.Get("TotalCommander_Config", "TCPath", "")
+    ; 1. 尝试从配置读取 (唯一真相 + Config 兜底, 见 TC_EffPath)
+    tcPath := TC_EffPath()
     if (tcPath != "" && FileExist(tcPath)) {
         TCPath := tcPath
         isTC64 := RegExMatch(tcPath, "i)totalcmd64\.exe$")

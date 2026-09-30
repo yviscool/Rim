@@ -13,7 +13,7 @@ ClearInput() {
 
 ; 运行命令并获取输出 (v2: FileRead 为返回值式)
 RunAndGetOutput(command) {
-    tempFileName := "RunZ.stdout.log"
+    tempFileName := "Rim.stdout.log"
     fullCommand := A_ComSpec ' /C "' command ' > ' tempFileName '"'
     RunWait(fullCommand, A_Temp, "Hide")
     try {
@@ -27,10 +27,10 @@ RunAndGetOutput(command) {
 
 ; 核心命令执行
 RunCommand(originCmd) {
-    global g_UseDisplay, g_DisableAutoExit, g_ExecInterval, g_PipeArg
+    global g_UseDisplay, g_DisableAutoExit, g_PipeArg
     global g_HistoryCommands, g_Conf
     global g_CurrentInput, g_AutoConf
-    global g_LastExecCb, FullPipeArg, g_Arg
+    global FullPipeArg, g_Arg
 
     if (originCmd = "")
         return
@@ -55,7 +55,6 @@ RunCommand(originCmd) {
 
     g_UseDisplay := false
     g_DisableAutoExit := true
-    g_ExecInterval := 0
 
     parsed := CmdLine_Parse(originCmd)
     if (parsed["len"] < 2)
@@ -131,8 +130,8 @@ RunCommand(originCmd) {
         HideOrExit()
     }
 
-    ; 注: 间隔执行已死 (g_ExecInterval 在入口清零, 唯一写入者 SystemState 跑在 command 分支,
-    ; 此处 cmdType=function 永不成立; Calc 实时靠重执行不靠 timer). 整块删除, 不留僵尸 timer.
+    ; 注: 间隔执行机制已彻底移除 (SetExecInterval/g_ExecInterval/g_LastExecCb 删除);
+    ; Calc 实时靠重执行不靠 timer.
 
     g_PipeArg := ""
     FullPipeArg := ""
@@ -160,13 +159,21 @@ MakeLegacyCmd(content) {
     return (callArg := "") => LegacyDirectCall(content, callArg)
 }
 
-; 通过 cmd 运行
+; 通过终端运行 (偏好链: wt → PATH 上的 mintty → cmd; 均走 PATH, 不再硬编码 msys 路径)
 RunWithCmd(command, onlyCmd := false) {
-    global g_Conf
-    if (!onlyCmd && FileExist("c:\msys64\usr\bin\mintty.exe"))
-        Run("mintty -e sh -c '" command "; read'")
-    else
-        Run(A_ComSpec " /C " command " & pause")
+    if (!onlyCmd) {
+        try {
+            Run('wt.exe cmd /C "' command ' & pause"')
+            return
+        } catch {
+        }
+        try {
+            Run("mintty -e sh -c '" command "; read'")
+            return
+        } catch {
+        }
+    }
+    Run(A_ComSpec " /C " command " & pause")
 }
 
 ; 打开文件路径
@@ -175,7 +182,7 @@ OpenPath(filePath) {
     if (!FileExist(filePath))
         return
     if (IsObject(g_Conf) && g_Conf.HasSection("Config")) {
-        tc := CfgGet("Config", "TCPath", "")
+        tc := TC_EffPath()
         if (tc != "" && FileExist(tc)) {
             Run(tc ' /O /A /L="' filePath '"')
             return
@@ -305,11 +312,6 @@ ExecuteAction_Body(action := "", actionArg := "") {
     }
     else if (SubStr(action, 1, 4) = "key|") {
         Send(SubStr(action, 5))
-    }
-    else if (SubStr(action, 1, 7) = "wshkey|") {
-        SendLevel 1
-        Send(SubStr(action, 8))
-        SendLevel 0
     }
     else if (SubStr(action, 1, 4) = "dir|") {
         OpenPath(SubStr(action, 5))

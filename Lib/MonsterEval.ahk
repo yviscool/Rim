@@ -15,6 +15,8 @@ global MONSTER_CONST := Map("e", "2.718281828459045", "pi", "3.141592653589793"
     , "pint", "0.5682", "gallon", "4.54609", "oz", "28.35", "lb", "453.59237")
 
 MonsterEval(x) {
+    if (StrLen(x) > 200)
+        return "错误: 输入过长"
     form := ""
     w := ""
     if RegExMatch(x, "\$(b|h|x|)(\d*[eEgG]?)", &mt) {
@@ -87,7 +89,11 @@ MonsterEval1(x) {
     x := StrReplace(x, "’", "")
     x := RegExReplace(x, "(\d)\.([eE])", "$1$2")
     prev := Chr(0)
+    guard := 0
     Loop {
+        guard++
+        if (guard > 1000)
+            return "错误: 表达式过深"
         if (x = prev)
             break
         prev := x

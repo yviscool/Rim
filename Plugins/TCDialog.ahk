@@ -1,9 +1,7 @@
 ; === TCDialog 插件 - TC 文件对话框替代 ===
 ; 完整实现 TC 作为文件选择对话框的功能
 ; 功能: 检测系统文件打开对话框, 自动切换到 TC, 选择文件后返回原窗口
-
-; TC 对话框实例 (TCDialog_Keymaps 创建)
-global g_TCDialog := ""
+; 纯静态 RimPlugin (状态全挂类上, 无实例; 旧 instance 基类已退役)
 
 class TCDialogPlugin extends RimPlugin {
     static Name => "TCDialog"
@@ -19,60 +17,50 @@ if (IsSet(RimPluginManager) && IsObject(RimPluginManager))
     RimPluginManager.Register(TCDialogPlugin)
 
 TCDialog_Keymaps(engine) {
-    global g_TCDialog, g_Conf
+    global g_Conf
     if (CfgGet("Plugins", "TCDialog", "1") = "0")
         return
-    g_TCDialog := Plugin_TCDialog("TCDialog", "", "", T("tcdlg.title"))
-    g_TCDialog.Setup(engine)
+    TCDialog.Setup(engine)
 }
 
-; 全局动作入口 (Action.Do 经 ActionToFuncName 调这些)
+; 全局动作入口 (Action.Do 经 ActionToFuncName 调这些; 未就绪即静默 no-op, 对齐旧实例守卫)
 TCD_Select() {
-    global g_TCDialog
-    if IsObject(g_TCDialog)
-        g_TCDialog.TCD_Select()
+    if (TCDialog.Ready)
+        TCDialog.TCD_Select()
 }
 TCD_Cancel() {
-    global g_TCDialog
-    if IsObject(g_TCDialog)
-        g_TCDialog.TCD_Cancel()
+    if (TCDialog.Ready)
+        TCDialog.TCD_Cancel()
 }
 TCD_PreSelected() {
-    global g_TCDialog
-    if IsObject(g_TCDialog)
-        g_TCDialog.PreSelected()
+    if (TCDialog.Ready)
+        TCDialog.PreSelected()
 }
 TCD_Selected() {
-    global g_TCDialog
-    if IsObject(g_TCDialog)
-        g_TCDialog.Selected()
+    if (TCDialog.Ready)
+        TCDialog.Selected()
 }
 TCD_SelectedCurrentDir() {
-    global g_TCDialog
-    if IsObject(g_TCDialog)
-        g_TCDialog.SelectedCurrentDir()
+    if (TCDialog.Ready)
+        TCDialog.SelectedCurrentDir()
 }
 TCD_ReturnToCaller() {
-    global g_TCDialog
-    if IsObject(g_TCDialog)
-        g_TCDialog.ReturnToCaller()
+    if (TCDialog.Ready)
+        TCDialog.ReturnToCaller()
 }
 TCD_OpenTCDialog() {
-    global g_TCDialog
-    if IsObject(g_TCDialog)
-        g_TCDialog.OpenTCDialog()
+    if (TCDialog.Ready)
+        TCDialog.OpenTCDialog()
 }
 
-class Plugin_TCDialog extends Plugin {
-    name := "TCDialog"
-    title := T("tcdlg.title")
+class TCDialog {
+    static Ready := false
+    static Callers := Map()  ; 窗体ID -> 调用者ID
+    static IsDialogMode := Map()  ; 窗体ID -> 是否在对话框模式
+    static CheckTimer := ""
+    static ExcludeList := ""
 
-    Callers := Map()  ; 窗体ID -> 调用者ID
-    IsDialogMode := Map()  ; 窗体ID -> 是否在对话框模式
-    CheckTimer := ""
-    ExcludeList := ""
-
-    Setup(engine) {
+    static Setup(engine) {
         ; 总开关: AsOpenFileDialog (对齐原版读 [TotalCommander_Config])
         try {
             if (Rim.config.Get("TotalCommander_Config", "AsOpenFileDialog", "0") != "1")
@@ -85,7 +73,7 @@ class Plugin_TCDialog extends Plugin {
             _tc := ""
         }
         if (_tc = "") {
-            try _tc := Rim.config.Get("TotalCommander_Config", "TCPath", Rim.config.Get("Config", "TCPath", ""))
+            try _tc := TC_EffPath()
         }
         if (_tc = "" || !FileExist(_tc)) {
             try Log("TCDialog: TC path not found, disabled")
@@ -111,12 +99,13 @@ class Plugin_TCDialog extends Plugin {
         ; 启动定时检测
         this.CheckTimer := ObjBindMethod(this, "CheckFileDialog")
         SetTimer(this.CheckTimer, 1000)
+        this.Ready := true
 
         try Log("TCDialog: Plugin initialized")
     }
 
     ; 检测系统文件打开对话框 (v2 返回值式控件读取)
-    CheckFileDialog() {
+    static CheckFileDialog() {
         ; 检查当前窗口是否是文件对话框
         try {
             class := WinGetClass("A")
@@ -172,7 +161,7 @@ class Plugin_TCDialog extends Plugin {
     }
 
     ; 映射对话框模式下的按键
-    MapDialogKeys(dialogId) {
+    static MapDialogKeys(dialogId) {
         ; 在 TC 窗口映射特殊按键
         Rim.vim.SetWin("TTOTAL_CMD")
         Rim.vim.SetMode("normal", "TTOTAL_CMD")
@@ -188,7 +177,7 @@ class Plugin_TCDialog extends Plugin {
     }
 
     ; 取消映射对话框模式下的按键
-    UnmapDialogKeys() {
+    static UnmapDialogKeys() {
         Rim.vim.SetWin("TTOTAL_CMD")
         Rim.vim.SetMode("normal", "TTOTAL_CMD")
 
@@ -199,14 +188,14 @@ class Plugin_TCDialog extends Plugin {
     }
 
     ; 切换到 TC 窗口
-    FocusTC() {
+    static FocusTC() {
         if WinExist("ahk_class TTOTAL_CMD") {
             WinActivate("ahk_class TTOTAL_CMD")
         }
     }
 
     ; 返回调用者窗口
-    ReturnToCaller() {
+    static ReturnToCaller() {
         this.UnmapDialogKeys()
 
         dialogId := this.GetActiveDialogId()
@@ -227,7 +216,7 @@ class Plugin_TCDialog extends Plugin {
     }
 
     ; 获取当前对话框ID
-    GetActiveDialogId() {
+    static GetActiveDialogId() {
         try {
             if (WinGetClass("A") = "#32770")
                 return WinExist("A")
@@ -236,7 +225,7 @@ class Plugin_TCDialog extends Plugin {
     }
 
     ; 进入目录或选择文件
-    PreSelected() {
+    static PreSelected() {
         ; cm_CopyNetNamesToClip
         TC_SendPos(2021)
         Sleep 100
@@ -258,7 +247,7 @@ class Plugin_TCDialog extends Plugin {
     }
 
     ; 选择文件并返回
-    Selected() {
+    static Selected() {
         this.UnmapDialogKeys()
 
         ; cm_CopySrcPathToClip
@@ -326,7 +315,7 @@ class Plugin_TCDialog extends Plugin {
     }
 
     ; 选择当前目录
-    SelectedCurrentDir() {
+    static SelectedCurrentDir() {
         this.UnmapDialogKeys()
 
         ; cm_CopySrcPathToClip
@@ -359,7 +348,7 @@ class Plugin_TCDialog extends Plugin {
     }
 
     ; 手动打开 TC 对话框
-    OpenTCDialog() {
+    static OpenTCDialog() {
         class := WinGetClass("A")
 
         ; 如果已经在 TC 中，执行选择
@@ -375,16 +364,12 @@ class Plugin_TCDialog extends Plugin {
     }
 
     ; TCD_Select 动作
-    TCD_Select() {
+    static TCD_Select() {
         this.OpenTCDialog()
     }
 
     ; TCD_Cancel 动作
-    TCD_Cancel() {
+    static TCD_Cancel() {
         this.ReturnToCaller()
     }
 }
-
-; 全局变量
-TCDialog_Callers := Map()
-TCDialog_IsDialogMode := Map()

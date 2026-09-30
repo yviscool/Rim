@@ -23,16 +23,6 @@ if !IsSet(g_Arg)
 if !IsSet(FullPipeArg)
     FullPipeArg := ""
 
-__LauncherCore_LoadGuard() {
-    global g_Conf
-    if (false)
-        g_Conf := ""
-}
-
-Host(fn, args*) {
-    return %fn%(args*)
-}
-
 class LauncherCorePlugin extends RimPlugin {
     static Name => "LauncherCore"
     static Title => "Launcher Core Commands"
@@ -94,14 +84,14 @@ CoreInput(prompt, title) {
 CmdRun() {
     input := CoreInput(T("core.prompt_cmd"), T("core.title_cmd"))
     if (input != "")
-        Host("RunWithCmd", input)
+        RunWithCmd(input)
 }
 
 ; ---- 原版 CmdRunOnly ----
 CmdRunOnly() {
     input := CoreInput(T("core.prompt_cmd"), T("core.title_cmd"))
     if (input != "")
-        Host("RunWithCmd", input, true)
+        RunWithCmd(input, true)
 }
 
 ; ---- 原版 AhkRun ----
@@ -119,7 +109,7 @@ AhkRun() {
             errMsg := T("core.run_failed", input)
         }
         if (errMsg != "")
-            Host("DisplayResult", errMsg)
+            DisplayResult(errMsg)
     } else {
         Run(input)
     }
@@ -129,7 +119,7 @@ AhkRun() {
 RunAndDisplay() {
     input := CoreInput(T("core.prompt_rundisplay"), T("core.title_rundisplay"))
     if (input != "")
-        Host("DisplayResult", Host("RunAndGetOutput", input))
+        DisplayResult(RunAndGetOutput(input))
 }
 
 ; ---- 原版 WinRRun ----
@@ -148,7 +138,7 @@ AhkTest() {
     input := CoreInput(T("core.prompt_ahktest"), T("core.title_ahktest"))
     if (input = "")
         return
-    testFile := A_Temp . "\RunZ.AhkTest.ahk"
+    testFile := A_Temp . "\Rim.AhkTest.ahk"
     try {
         FileDelete(testFile)
     } catch {
@@ -179,7 +169,7 @@ CountNumber() {
         lineCount := lineCount - 1
     result := "* | " . T("core.count_type") . " | " . spaceCount . " | " . T("core.count_space") . "`n"
     result .= "* | " . T("core.count_type") . " | " . lineCount . " | " . T("core.count_line") . "`n"
-    Host("DisplayResult", Host("AlignText", result))
+    DisplayResult(AlignText(result))
 }
 
 ; ---- 原版 InstallPlugin ----
@@ -203,9 +193,9 @@ InstallPlugin() {
     if (pluginPath = "")
         return
     if (InStr(pluginPath, "http") == 1) {
-        Host("DisplayResult", T("core.downloading"))
+        DisplayResult(T("core.downloading"))
         pluginPath := StrReplace(pluginPath, "\", "/")
-        tmpFile := A_Temp . "\RunZ.Plugin.txt"
+        tmpFile := A_Temp . "\Rim.Plugin.txt"
         dlOk := true
         try {
             Download(pluginPath, tmpFile)
@@ -213,11 +203,11 @@ InstallPlugin() {
             dlOk := false
         }
         if (!dlOk) {
-            Host("DisplayResult", T("core.download_failed", pluginPath))
+            DisplayResult(T("core.download_failed", pluginPath))
             return
         }
         if (!FileExist(tmpFile)) {
-            Host("DisplayResult", T("core.download_failed", pluginPath))
+            DisplayResult(T("core.download_failed", pluginPath))
             return
         }
         pluginPath := tmpFile
@@ -230,15 +220,15 @@ InstallPlugin() {
             content := ""
         }
         if (content = "") {
-            Host("DisplayResult", T("core.invalid_plugin", pluginPath))
+            DisplayResult(T("core.invalid_plugin", pluginPath))
             return
         }
         if (SubStr(content, 1, 1) = Chr(0xFEFF))
             content := SubStr(content, 2)
         firstLine := StrSplit(content, "`n", "`r")[1]
         pluginName := ""
-        if (InStr(firstLine, "`; RunZ:")) {
-            nameParts := StrSplit(firstLine, "`; RunZ:")
+        if (InStr(firstLine, "`; Rim:")) {
+            nameParts := StrSplit(firstLine, "`; Rim:")
             if (nameParts.Length >= 2)
                 pluginName := Trim(nameParts[2])
         } else if (InStr(content, "RegisterPlugin_")) {
@@ -250,12 +240,12 @@ InstallPlugin() {
             }
         }
         if (pluginName = "") {
-            Host("DisplayResult", T("core.invalid_plugin", pluginPath))
+            DisplayResult(T("core.invalid_plugin", pluginPath))
             return
         }
         destFile := A_ScriptDir . "\Plugins\" . pluginName . ".ahk"
         if (FileExist(destFile)) {
-            Host("DisplayResult", T("core.plugin_exists"))
+            DisplayResult(T("core.plugin_exists"))
             return
         }
         moved := false
@@ -278,14 +268,14 @@ InstallPlugin() {
             }
         }
         if (!moved) {
-            Host("DisplayResult", T("core.install_failed", destFile))
+            DisplayResult(T("core.install_failed", destFile))
             return
         }
-        Host("DisplayResult", T("core.install_ok", pluginName))
+        DisplayResult(T("core.install_ok", pluginName))
         Sleep(1000)
-        Host("RestartRunZ")
+        RestartRim()
     } else {
-        Host("DisplayResult", T("core.file_missing", pluginPath))
+        DisplayResult(T("core.file_missing", pluginPath))
     }
 }
 
@@ -297,7 +287,7 @@ RemovePlugin() {
         return
     pluginFile := A_ScriptDir . "\Plugins\" . pluginName . ".ahk"
     if (!FileExist(pluginFile)) {
-        Host("DisplayResult", T("core.not_installed"))
+        DisplayResult(T("core.not_installed"))
         return
     }
     delOk := true
@@ -307,12 +297,12 @@ RemovePlugin() {
         delOk := false
     }
     if (!delOk) {
-        Host("DisplayResult", T("core.remove_failed", pluginName))
+        DisplayResult(T("core.remove_failed", pluginName))
         return
     }
-    Host("DisplayResult", T("core.remove_ok", pluginName))
+    DisplayResult(T("core.remove_ok", pluginName))
     Sleep(1000)
-    Host("RestartRunZ")
+    RestartRim()
 }
 
 ; ---- 原版 ListPlugin ----
@@ -334,16 +324,16 @@ ListPlugin() {
         }
         state := T("core.state_on")
         try {
-            if (g_Conf.GetValue("Plugins", pname, "1") = "0")
+            if (CfgGet("Plugins", pname, "1") = "0")
                 state := T("core.state_off")
         } catch {
             state := T("core.state_on")
         }
         result .= "* | " . T("core.row_plugin") . " | " . pname . " | " . state . "  " . T("core.row_desc") . SubStr(descLine, 3) . "`n"
     }
-    Host("DisplayResult", Host("AlignText", result))
-    Host("TurnOnResultFilter")
-    Host("SetCommandFilter", "RemovePlugin")
+    DisplayResult(AlignText(result))
+    TurnOnResultFilter()
+    SetCommandFilter("RemovePlugin")
 }
 
 ; ---- 原版 CleanupPlugin 真删文件 ----
@@ -354,7 +344,7 @@ CleanupPlugin() {
         SplitPath(A_LoopFileName, , , , &pname)
         disabled := false
         try {
-            if (g_Conf.GetValue("Plugins", pname, "1") = "0")
+            if (CfgGet("Plugins", pname, "1") = "0")
                 disabled := true
         } catch {
             disabled := false
@@ -376,19 +366,19 @@ CleanupPlugin() {
         }
     }
     if (result != "")
-        Host("DisplayResult", result)
+        DisplayResult(result)
     else
-        Host("DisplayResult", T("core.nothing_to_clean"))
+        DisplayResult(T("core.nothing_to_clean"))
 }
 
 ; ---- 保留的前版帮助文本, 已按实际绑定修正, 走 DisplayResult ----
 ; 注 Help 与 KeyHelp 命令透传给主程序同名函数, 下面两个仅保留内容备用, 未注册
 LauncherCore_ShowHelp() {
     ; 双语文本见 Lang/*.ini help.launcher
-    Host("DisplayResult", T("help.launcher"))
+    DisplayResult(T("help.launcher"))
 }
 
 LauncherCore_ShowKeyHelp() {
     ; 双语文本见 Lang/*.ini help.keyhelp
-    Host("DisplayResult", T("help.keyhelp"))
+    DisplayResult(T("help.keyhelp"))
 }

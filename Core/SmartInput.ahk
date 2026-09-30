@@ -47,16 +47,29 @@ SI_NameOf(core) {
     return core
 }
 
+; 全表名缓存: ghost/子串/校验三处同击键各扫一次全 Registry, 按 RimCommand.Seq 缓存.
+; 池变化 (LoadFiles/重注) Seq 即变, 下次自动重建; 空表不缓存 (探针子集每次重算, 反正便宜)
 SI_CommandCores() {
+    static coreCache := [], coreSeq := -1
     out := []
     try {
         if (IsSet(RimCommand) && IsObject(RimCommand)) {
+            seq := 0
+            try seq := RimCommand.Seq + 0
+            catch {
+            }
+            if (coreSeq = seq && coreCache.Length > 0)
+                return coreCache
             for id, cmd in RimCommand.Registry {
                 try {
                     out.Push(cmd.Name != "" ? cmd.Name : id)
                 } catch {
                     out.Push(id)
                 }
+            }
+            if (out.Length > 0) {
+                coreCache := out
+                coreSeq := seq
             }
             return out
         }

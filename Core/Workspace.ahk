@@ -186,7 +186,7 @@ class RimWorkspace {
             rightPath := ws.TCRight != "" ? ws.TCRight : root
             tcPath := ""
             try {
-                try tcPath := CfgGet("Config", "TCPath", "")
+                try tcPath := TC_EffPath()
             }
             if (tcPath != "" && FileExist(tcPath)) {
                 args := '/O /A /T'

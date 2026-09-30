@@ -24,7 +24,6 @@
 #Include ..\Plugins\TCDialog.ahk
 #Include ..\Plugins\Terminal.ahk
 #Include ..\Plugins\TotalCommander.ahk
-#Include ..\Plugins\VimDConfig.ahk
 #Include ..\Plugins\VimEditor.ahk
 #Include ..\Plugins\WinMerge.ahk
 

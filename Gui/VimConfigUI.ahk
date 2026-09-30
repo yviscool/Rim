@@ -23,7 +23,7 @@ VimConfig_Show(*) {
     g.SetFont("s10", "Microsoft YaHei")
     g_VimCfg["gui"] := g
     g_VimCfg["dirty"] := Map()
-    tabs := g.Add("Tab3", "w880 h470", [T("cfg.tab_keys"), T("cfg.tab_globalhotkey"), T("cfg.tab_plugins"), T("cfg.tab_tc"), T("cfg.tab_launcher"), T("cfg.tab_statsball"), T("cfg.tab_actions"), T("cfg.tab_help")])
+    tabs := g.Add("Tab3", "w880 h470", [T("cfg.tab_keys"), T("cfg.tab_globalhotkey"), T("cfg.tab_plugins"), T("cfg.tab_tc"), T("cfg.tab_launcher"), T("cfg.tab_statsball"), T("cfg.tab_smartinput"), T("cfg.tab_actions"), T("cfg.tab_help")])
     g_VimCfg["tabs"] := tabs
 
     tabs.UseTab(1)
@@ -39,8 +39,10 @@ VimConfig_Show(*) {
     tabs.UseTab(6)
     VimCfg_BuildStatsBallTab(g)
     tabs.UseTab(7)
-    VimCfg_BuildActionsTab(g)
+    VimCfg_BuildSmartInputTab(g)
     tabs.UseTab(8)
+    VimCfg_BuildActionsTab(g)
+    tabs.UseTab(9)
     VimCfg_BuildHelpTab(g)
     tabs.UseTab()
 

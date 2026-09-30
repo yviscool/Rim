@@ -6,7 +6,7 @@
 ; === 剪切板工具 (结果进显示区, 对齐原版 Clip) ===
 Misc_ShowClipboard() {
     clipText := A_Clipboard
-    ActivateRunZ()
+    ActivateRim()
     if (clipText = "")
         DisplayResult(T("misc.clip_empty"))
     else

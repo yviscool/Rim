@@ -3,6 +3,17 @@
 
 ; === GUI - 显示和对齐 (从 RunZ Core/GUI.ahk 移植) ===
 
+; 鼠标移动导航开关缓存 (WM_MOUSEMOVE 逐像素触发, 不再每像素 CfgGet;
+; InitMainGui 同步一次 + CfgSubscribe 跟随, 探针未初始化时回落 CfgGet)
+global g_MouseMoveNav
+if !IsSet(g_MouseMoveNav)
+    g_MouseMoveNav := false
+
+MouseMoveNavApply(val, _sec := "", _key := "") {
+    global g_MouseMoveNav
+    g_MouseMoveNav := (val = "1")
+}
+
 ; 皮肤配置默认值回填 (唯一 owner: 缺键访问 Map 在 v2 抛错, 对齐原版字段全集; 入口只调一次)
 EnsureSkinDefaults() {
     global g_SkinConf
@@ -95,7 +106,7 @@ ChangeCommand(step, resetCurrentLine := false) {
 GuiClose(*) {
     global g_Conf
     if (CfgGet("Config", "RunInBackground", "1") != "1")
-        ExitRunZ()
+        ExitRim()
 }
 
 ; 设置显示区文本 (带对齐)
@@ -248,12 +259,17 @@ DisplaySearchResult(result) {
 ; 鼠标移动事件
 WM_MOUSEMOVE(wParam, lParam, msg, hwnd) {
     global g_Conf, g_DisplayArea, g_DisplayRows, g_CurrentCommandList, g_WindowName
+    global g_MouseMoveNav
 
     if (wParam = 1)
         PostMessage(0xA1, 2, , , "A")
 
-    if (CfgGet("Config", "ChangeCommandOnMouseMove", "0") != "1")
+    if (IsSet(g_MouseMoveNav)) {
+        if (!g_MouseMoveNav)
+            return -1
+    } else if (CfgGet("Config", "ChangeCommandOnMouseMove", "0") != "1") {
         return -1
+    }
 
     MouseGetPos(, &mouseY, , &classnn)
     if (classnn != g_DisplayArea)
@@ -268,7 +284,7 @@ WM_MOUSEMOVE(wParam, lParam, msg, hwnd) {
         ChangeCommand(index - 1, true)
 }
 
-; 窗口激活/失焦事件 (对齐原版: WinExist("RunZ.ahk") 判调试器, 否则 HideOrExit)
+; 窗口激活/失焦事件 (WinExist("Rim.ahk") 判调试器, 否则 HideOrExit)
 WM_ACTIVATE(wParam, lParam, msg, hwnd) {
     global g_DisableAutoExit, g_Conf, g_InputEdit, g_WindowName, g_MainGui
 
@@ -285,7 +301,7 @@ WM_ACTIVATE(wParam, lParam, msg, hwnd) {
     if (wParam >= 1)
         return
     else if (wParam <= 0) {
-        if (!WinExist("RunZ.ahk")) {
+        if (!WinExist("Rim.ahk")) {
             if (!IsSet(g_Conf) || !IsObject(g_Conf) || CfgGet("Config", "KeepInputText", "1") != "1") {
                 try g_InputEdit.Value := ""
             }
@@ -489,6 +505,15 @@ InitMainGui() {
         OnMessage(0x06, WM_ACTIVATE)
 
     OnMessage(0x0200, WM_MOUSEMOVE)
+    ; 鼠标导航开关: 同步缓存 + 订阅跟随 (live 档免重启)
+    try g_MouseMoveNav := (CfgGet("Config", "ChangeCommandOnMouseMove", "0") = "1")
+    catch {
+    }
+    try {
+        if IsSet(CfgSubscribe)
+            CfgSubscribe("Config", "ChangeCommandOnMouseMove", MouseMoveNavApply)
+    } catch {
+    }
 }
 
 ; 皮肤配置重载 (与 Rim.ahk 启动逻辑同语义: 有皮肤文件用文件, 否则用 [Gui] 段)

@@ -1,98 +1,23 @@
 #Requires AutoHotkey v2.0
 
 ; === Utils - 工具函数库 ===
-; 通用辅助函数
+; 通用辅助函数 (字符串/路径/窗口小函数直接用内置 Trim/InStr/SubStr/SplitPath/WinAPI, 不再包垫片)
 
-; === 字符串工具 ===
-; 注意：AHK v2 内置 StrLower/StrUpper，不要覆盖
-
-StrTrim(str) {
-    return Trim(str)
-}
-
-StrContains(str, needle) {
-    return InStr(str, needle) > 0
-}
-
-StrStartsWith(str, prefix) {
-    return SubStr(str, 1, StrLen(prefix)) = prefix
-}
-
-StrEndsWith(str, suffix) {
-    return SubStr(str, -StrLen(suffix) + 1) = suffix
-}
-
-; === 文件工具 ===
-FileAppendLine(filePath, line) {
+; === 热键格式转换: 唯一实现见 Engine.ahk Convert2VIM/ConvertFromVim ===
+; === TC 路径唯一真相: [TotalCommander_Config].TCPath, [Config].TCPath 只做兜底读 ===
+; (配置中心 TC 页唯一写入口; 老配置只有 Config 键时照样工作, 零丢数据)
+TC_EffPath() {
     try {
-        f := FileOpen(filePath, "a")
-        f.WriteLine(line)
-        f.Close()
+        p := CfgGet("TotalCommander_Config", "TCPath", "")
+        if (p != "")
+            return p
+    } catch {
     }
-}
-
-; === 路径工具 ===
-GetFileName(path) {
-    return SubStr(path, InStr(path, "\\", 0, -1) + 1)
-}
-
-GetFileExt(path) {
-    return SubStr(path, InStr(path, ".", 0, -1) + 1)
-}
-
-GetDirectoryName(path) {
-    return SubStr(path, 1, InStr(path, "\\", 0, -1) - 1)
-}
-
-CombinePath(base, relative) {
-    if (SubStr(relative, 2, 1) = ":" || SubStr(relative, 1, 1) = "\")
-        return relative
-    return base "\" relative
-}
-
-; === 窗口工具 ===
-GetActiveWindowClass() {
     try {
-        cls := WinGetClass("A")
-        return cls
+        return CfgGet("Config", "TCPath", "")
+    } catch {
     }
     return ""
-}
-
-GetActiveProcessName() {
-    try {
-        exe := WinGetProcessName("A")
-        return exe
-    }
-    return ""
-}
-
-IsWindowActive(winTitle) {
-    return WinActive(winTitle) > 0
-}
-
-; === 热键格式转换 (展示侧; 引擎绑定侧见 Engine.ahk Convert2VIM/ConvertFromVim, 以引擎侧为准) ===
-; 方向: 未来收敛为单一 KeyCodec 模块, 合并前两对并存但禁新增第三套转换表
-ConvertToAHK(vimKey) {
-    key := vimKey
-    key := StrReplace(key, "<C-", "^")
-    key := StrReplace(key, "<A-", "!")
-    key := StrReplace(key, "<S-", "+")
-    key := StrReplace(key, "<Win-", "#")
-    key := StrReplace(key, "<", "")
-    key := StrReplace(key, ">", "")
-    return key
-}
-
-ConvertToVIM(ahkKey) {
-    key := ahkKey
-    key := StrReplace(key, "^", "<C-")
-    key := StrReplace(key, "!", "<A-")
-    key := StrReplace(key, "+", "<S-")
-    key := StrReplace(key, "#", "<Win-")
-    if (SubStr(key, 1, 1) = "<")
-        key .= ">"
-    return key
 }
 
 ; === Action 名称工具 ===
@@ -106,98 +31,22 @@ ActionToFuncName(actionName) {
     return name
 }
 
-; === 日志系统 ===
-class Logger {
-    static logFile := ""
-    static logLevel := "INFO"
-    static maxLogSize := 5 * 1024 * 1024  ; 5MB
-
-    static Init(appDir) {
-        this.logFile := appDir "\Rim.log"
-        this.logLevel := Rim.config.Get("Config", "log_level", "INFO")
-    }
-
-    static Debug(message) {
-        this.Log(message, "DEBUG")
-    }
-
-    static Info(message) {
-        this.Log(message, "INFO")
-    }
-
-    static Warn(message) {
-        this.Log(message, "WARN")
-    }
-
-    static Error(message) {
-        this.Log(message, "ERROR")
-    }
-
-    static Log(message, level := "INFO") {
-        ; 检查日志级别
-        if !this.ShouldLog(level)
-            return
-
-        timestamp := FormatTime(, "yyyy-MM-dd HH:mm:ss")
-        logLine := "[" timestamp "] [" level "] " message
-
-        ; 输出到调试窗口
-        OutputDebug logLine
-
-        ; 写入日志文件
-        if (Rim.config.Get("Config", "enable_log", "0") = "1") {
-            this.WriteLog(logLine)
-        }
-    }
-
-    static ShouldLog(level) {
-        levels := Map("DEBUG", 0, "INFO", 1, "WARN", 2, "ERROR", 3)
-        return levels.Has(level) && levels[level] >= levels[this.logLevel]
-    }
-
-    static WriteLog(logLine) {
-        try {
-            ; 检查日志文件大小，超过限制则轮转
-            if FileExist(this.logFile) {
-                f := FileOpen(this.logFile, "r")
-                size := f.Size
-                f.Close()
-
-                if (size > this.maxLogSize) {
-                    this.RotateLog()
-                }
-            }
-
-            f := FileOpen(this.logFile, "a")
-            f.WriteLine(logLine)
-            f.Close()
-        } catch as e {
-            OutputDebug T("util.log_write_fail") . e.Message
-        }
-    }
-
-    static RotateLog() {
-        backupFile := this.logFile ".bak"
-        try {
-            if FileExist(backupFile)
-                FileDelete backupFile
-            FileCopy this.logFile, backupFile
-            FileDelete this.logFile
-        } catch {
-            ; 忽略轮转错误
-        }
-    }
-}
-
-; === 兼容旧日志函数 ===
+; === 调试日志 (唯一实现: OutputDebug; 文件落盘走 RimLog, 见下) ===
+; 注: 旧 Logger 类 (Rim.log/级别过滤/轮转) 已删 —— Init 从未被调用,
+; enable_log/log_level 键不存在, 文件分支恒死. 本函数即旧实际行为
+; (INFO 门槛: DEBUG/未知级别丢弃, 与旧 ShouldLog 默认一致)
 Log(message, level := "INFO") {
-    Logger.Log(message, level)
+    if (level != "INFO" && level != "WARN" && level != "ERROR")
+        return
+    try OutputDebug "[" FormatTime(, "yyyy-MM-dd HH:mm:ss") "] [" level "] " message
+    catch {
+    }
 }
 
 ; === 统一错误日志 (RimLog) ===
 ; 全库散落 FileAppend(..., "Rim.error.log") 的唯一收敛点: 同文件、同格式、永不抛错
 ; 用法: RimLog("WARN", "GestureEngine.Dispatch failed: ...") / RimLog("ERROR", where, err)
-; 注意: 不经 Logger (Logger 依赖 Rim.config 且默认关闭文件落盘); 此处直接写 Rim.error.log
+; 注意: 调试日志走 Log() (OutputDebug), 错误落盘只走这里
 RimLog(level, msg, err := "") {
     try {
         line := A_Now . " [" . level . "] " . msg
@@ -216,77 +65,14 @@ RimLog(level, msg, err := "") {
     }
 }
 
-; === 错误处理 ===
-ShowError(message, title := "Rim Error") {
-    MsgBox message, title, 16
-}
-
-ShowInfo(message, title := "Rim") {
-    MsgBox message, title, 64
-}
-
+; === 错误处理 (ShowConfirm 唯一在用; 弹窗确认走 MsgBox 直调) ===
 ShowConfirm(message, title := "Rim") {
     return MsgBox(message, title, 36) = "Yes"
 }
 
-; === 临时文件清理 ===
-CleanupTempFiles() {
-    tempDir := A_Temp "\Rim"
-    if (!DirExist(tempDir)) {
-        return
-    }
-
-    try {
-        count := 0
-        Loop Files, tempDir "\*.*" {
-            ; 删除超过1天的临时文件
-            if (A_LoopFileTimeModified < A_Now - 86400) {
-                try {
-                    FileDelete A_LoopFileFullPath
-                    count++
-                }
-            }
-        }
-        Log(T("util.clean_temp_done", count))
-    } catch as e {
-        Log(T("util.clean_temp_fail", e.Message), "WARN")
-    }
-}
-
-; === 日志文件清理 ===
-CleanupLogFiles() {
-    logFile := Rim.appDir "\Rim.log"
-    if (!FileExist(logFile)) {
-        return
-    }
-
-    try {
-        ; 检查日志文件大小（超过5MB则清理）
-        f := FileOpen(logFile, "r")
-        size := f.Size
-        f.Close()
-
-        if (size > 5 * 1024 * 1024) {
-            ; 保留最后1MB的内容
-            f := FileOpen(logFile, "r")
-            content := f.Read()
-            f.Close()
-
-            ; 找到最后1MB的起始位置
-            startPos := StrLen(content) - 1024 * 1024
-            if (startPos > 0) {
-                newContent := SubStr(content, startPos)
-                f := FileOpen(logFile, "w")
-                f.Write(newContent)
-                f.Close()
-                Log(T("util.log_cleaned"))
-            }
-        }
-    } catch as e {
-        Log(T("util.clean_log_fail", e.Message), "WARN")
-    }
-}
-
 ; 文件尾注: PerfTimer / MemoryManager / FileWatcher / ConfigBackup 已切除
 ; (2026-09, 全仓零调用; 误删恢复见 git 历史)
+; 同批: StrTrim/StrContains/StrStartsWith/StrEndsWith/FileAppendLine/GetFileName/GetFileExt/
+; GetDirectoryName/CombinePath/GetActiveWindowClass/GetActiveProcessName/IsWindowActive/
+; ShowError/ShowInfo/CleanupTempFiles/CleanupLogFiles (v2 内置/零调用, 同上理由切除)
 

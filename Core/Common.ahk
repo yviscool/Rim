@@ -138,14 +138,9 @@ UrlEncode(url, enc := "UTF-8") {
     return encoded
 }
 
-; 切换输入法 (v2: Control 传 HWND 会错位, 直接对窗口发)
-SwitchIME(dwLayout) {
-    HKL := DllCall("LoadKeyboardLayout", "Str", dwLayout, "UInt", 1)
-    SendMessage(0x50, 0, HKL, , "A")
-}
-
+; 切英文模式: 关当前窗口 IME (当前键盘切英文半角, 布局不动).
+; XP 时代 KLID 回落已删 (缺布局即停美式键盘, 不如不动); Imm 失败直接返回
 SwitchToEngIME() {
-    ; 首选: 关当前窗口 IME (当前键盘切英文半角, 布局不动 —— 用户要的是"英文模式"不是"美式键盘")
     try {
         hwnd := DllCall("GetForegroundWindow", "Ptr")
         if (hwnd) {
@@ -153,37 +148,10 @@ SwitchToEngIME() {
             if (himc) {
                 DllCall("imm32\ImmSetOpenStatus", "Ptr", himc, "Int", 0)
                 DllCall("imm32\ImmReleaseContext", "Ptr", hwnd, "Ptr", himc)
-                return
             }
         }
     } catch {
     }
-    ; 回落: 旧布局切换 (XP 时代 KLID; 现代系统缺布局时可能停在美式, 仅保底)
-    SwitchIME(0x04090409)
-    SwitchIME(0x08040804)
-}
-
-; 获取输入状态 (0=英文, 1=中文)
-GetInputState(winTitle := "A") {
-    try hwnd := WinGetID(winTitle)
-    catch {
-        return 0
-    }
-    if (A_Cursor = "IBeam")
-        return 1
-    if WinActive(winTitle) {
-        ptrSize := !A_PtrSize ? 4 : A_PtrSize
-        cbSize := 4 + 4 + (ptrSize * 6) + 16
-        stGTI := Buffer(cbSize, 0)
-        NumPut("UInt", cbSize, stGTI, 0)
-        hwnd := DllCall("GetGUIThreadInfo", "UInt", 0, "Ptr", stGTI)
-            ? NumGet(stGTI, 8 + ptrSize, "UInt") : hwnd
-    }
-    return DllCall("SendMessage"
-        , "UInt", DllCall("imm32\ImmGetDefaultIMEWnd", "UInt", hwnd)
-        , "UInt", 0x0283
-        , "Int", 0x0005
-        , "Int", 0)
 }
 
 ; CPU 使用率: GetSystemTimes 增量算法.
@@ -257,23 +225,7 @@ GetProcessCount() {
     return proc
 }
 
-; Unicode 解码
-UnicodeDecode(text) {
-    while pos := RegExMatch(text, "\\u\w{4}") {
-        tmp := UrlEncodeEscape(SubStr(text, pos + 2, 4))
-        text := RegExReplace(text, "\\u\w{4}", tmp, "", 1)
-    }
-    return text
-}
-
-UrlEncodeEscape(text) {
-    text := "0x" . text
-    LE := Buffer(2, 0)
-    NumPut("UShort", Integer(text), LE, 0)
-    return StrGet(LE, 2)
-}
-
-; 下载 URL 为字符串 (原版 Lib, 第三方/用户脚本兼容垫片)
+; 下载 URL 为字符串 (第三方/用户脚本兼容垫片)
 UrlDownloadToString(url, headers := "") {
     try {
         req := ComObject("WinHttp.WinHttpRequest.5.1")
