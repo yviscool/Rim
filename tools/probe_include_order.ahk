@@ -21,6 +21,7 @@ EXPECTED := [
     "Core\Context.ahk",
     "Core\WindowIndex.ahk",
     "Core\Plugin.ahk",
+    "Core\Runtime.ahk",
     "Core\Command.ahk",
     "Core\ActionProtocol.ahk",
     "Core\Window.ahk",

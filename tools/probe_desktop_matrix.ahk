@@ -34,8 +34,10 @@ Main() {
     ; 终端身份确定性
     Check("terminal-id", InStr(ctx, "CASCADIA_HOSTING_WINDOW_CLASS") > 0)
     ; 输入守卫接线存在 (IME 组字/自家进程, 真机行为见 probe_input_guards + 手工 10-12)
-    Check("ime-guard", InStr(eng, "ImeComposing()") > 0)
-    Check("self-guard", InStr(eng, "IsSelfProcessPath(_selfPath)") > 0)
+    ; R2-1 后守卫复用单次 ctx (EngineCollectCtx), 不再各自 WinAPI 重查
+    Check("ime-guard", InStr(eng, "ImeComposingAt(ctx[") > 0)
+    Check("self-guard", InStr(eng, 'IsSelfProcessPath(ctx["procPath"])') > 0)
+    Check("ctx-once", InStr(eng, "ctx := EngineCollectCtx()") > 0)
     ; checklist 落盘
     list := "DESKTOP MATRIX checklist (manual, 真机打勾):`n"
     list .= "[ ] Explorer 重命名/搜索栏输入态`n"

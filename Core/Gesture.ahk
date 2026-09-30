@@ -15,7 +15,8 @@ global g_Gesture := Map(
     "boundTrigger", "",
     "threshold", 6,
     "segment", 6,
-    "poll", 10,
+    ; 轮询默认 20ms (16-30ms 档; 按下才起 timer, 松开即停, 详见 Hook.ahk)
+    "poll", 20,
     "cancelDelay", 1500,
     "showOSD", 1,
     "noMatch", "swallow",

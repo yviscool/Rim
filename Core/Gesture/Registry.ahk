@@ -145,6 +145,20 @@ class GestureRegistry {
         return false
     }
 
+    ; ---- 回滚到指定发号 (插件阶段失败时删掉本阶段新注册; 返回删除数) ----
+    static TrimSince(nextId) {
+        n := 0
+        i := this._items.Length
+        while (i >= 1) {
+            if (this._items[i].id >= nextId) {
+                this._items.RemoveAt(i)
+                n++
+            }
+            i--
+        }
+        return n
+    }
+
     ; ---- 清空注册项 (可按插件名过滤) ----
     static Clear(pluginName := "") {
         if (pluginName = "") {

@@ -9,6 +9,7 @@ RimLog(level, msg, err := "") {
     return
 }
 
+#Include ..\Core\Runtime.ahk
 #Include ..\Core\ActionProtocol.ahk
 
 class ProbeDotCls {

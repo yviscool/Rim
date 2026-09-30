@@ -15,6 +15,9 @@ catch {
 }
 ; 启动计时原点 + 错误日志轮转 (函数来自 Core/Common.ahk, 编译期可用)
 global g_BootT0 := A_TickCount
+; 启动阶段表 (RimPhaseBegin/End 打点; OnError 按当前阶段归因; BootPhases() 供诊断查询)
+global g_BootPhases := []
+global g_BootPhase := "early"
 try RotateErrorLog()
 catch {
 }
@@ -69,9 +72,13 @@ BootMark("STARTUP config-ok")
 ; 语言初始化 (尊重 [Config] Language, auto 跟系统; 此前 I18nBoot 已按 OS 语言兜底)
 I18nInit()
 
-; 皮肤配置
-if (g_Conf["Gui"]["Skin"] != "")
-    global g_SkinConf := EasyIni(A_ScriptDir "\Conf\Skins\" g_Conf["Gui"]["Skin"] ".ini")["Gui"]
+; 皮肤配置 (缺键永不炸启动; 空串保持用内联 [Gui], 语义不变)
+skinName := ""
+try skinName := g_Conf["Gui"]["Skin"]
+catch {
+}
+if (skinName != "")
+    global g_SkinConf := EasyIni(A_ScriptDir "\Conf\Skins\" skinName ".ini")["Gui"]
 else
     global g_SkinConf := g_Conf["Gui"]
 
@@ -102,7 +109,10 @@ global g_FirstChar := 0
 try g_FirstChar := Ord(g_SkinConf.Has("FirstChar") ? g_SkinConf["FirstChar"] : "a")
 if (!g_FirstChar)
     g_FirstChar := Ord("a")
-global g_DisplayRows := (g_SkinConf.Has("DisplayRows") ? g_SkinConf["DisplayRows"] : "15") + 0
+global g_DisplayRows := 0
+try g_DisplayRows := (g_SkinConf.Has("DisplayRows") ? g_SkinConf["DisplayRows"] : "15") + 0
+catch {
+}
 if (!g_DisplayRows)
     g_DisplayRows := 15
 global g_UseDisplay := false
@@ -118,19 +128,62 @@ global g_CommandFilter := ""
 global g_Plugins := []
 ; 命令注册: 结构化经 RimCommand.Register, 数据行经 LauncherCompat.AddCommand (别名+收编)
 
+; ==================== 启动阶段打点 ====================
+RimPhaseBegin(name) {
+    global g_BootPhase, g_BootPhases
+    g_BootPhase := name
+    try g_BootPhases.Push(Map("name", name, "t0", A_TickCount, "ok", ""))
+    catch {
+    }
+}
+
+RimPhaseEnd(name) {
+    global g_BootPhases
+    try {
+        for _, ph in g_BootPhases {
+            if (ph["name"] = name && ph["ok"] = "") {
+                ph["ok"] := true
+                ph["ms"] := A_TickCount - ph["t0"]
+            }
+        }
+    } catch {
+    }
+}
+
+; 阶段状态查询 (诊断/探针用; 返回数组的快照)
+BootPhases() {
+    global g_BootPhases
+    out := []
+    try {
+        for _, ph in g_BootPhases
+            out.Push(Map("name", ph["name"], "ok", ph["ok"], "ms", ph.Has("ms") ? ph["ms"] : -1))
+    } catch {
+    }
+    return out
+}
+
 ; ==================== 全局错误网 (本构建无 IsFunc/Func, 运行时错转日志不断线) ====================
 Rim_OnError(e, mode) {
     ; 全局错误网 (运行时错转日志不断线); RimLog 常驻 (错误回调只在运行期触发, Utils 必已加载)
+    global g_BootPhase, g_BootPhases
     try {
         stack := ""
         try stack := StrReplace(e.Stack, "`n", " <- ")
         catch {
         }
-        RimLog("ERROR", e.Message . " what=" . e.What . " extra=" . e.Extra . " @ " . e.Line . " " . e.File . " stack=" . stack)
+        RimLog("ERROR", "[" . g_BootPhase . "] " . e.Message . " what=" . e.What . " extra=" . e.Extra . " @ " . e.Line . " " . e.File . " stack=" . stack)
     } catch {
         try FileAppend(A_Now . " ERROR: " . e.Message . " @ " . e.Line . "`n", A_ScriptDir . "\Rim.error.log")
         catch {
         }
+    }
+    ; 当前阶段记失败 (启动期定位到具体阶段; 运行期 g_BootPhase 常驻末段, 仅 ATTRIBUTION 用)
+    try {
+        for _, ph in g_BootPhases {
+            if (ph["name"] = g_BootPhase && ph["ok"] = "")
+                ph["ok"] := false
+        }
+    } catch {
     }
     return -1
 }
@@ -195,6 +248,7 @@ global g_CommandArea := "Edit4"
 #Include Core\Context.ahk
 #Include Core\WindowIndex.ahk
 #Include Core\Plugin.ahk
+#Include Core\Runtime.ahk
 #Include Core\Command.ahk
 #Include Core\ActionProtocol.ahk
 #Include Core\Window.ahk
@@ -291,14 +345,19 @@ if (_missingSyms.Length > 0) {
 BuildTrayMenu()
 
 ; ==================== 统一插件生命周期初始化 ====================
+RimPhaseBegin("plugin-init")
 RimPluginManager.InitAll()
 RimPluginManager.RegisterAllContexts()
+RimPhaseEnd("plugin-init")
 
 ; ==================== 语义指令与工作空间注册 ====================
+RimPhaseBegin("commands")
 InitUniversalCommands()
 InitWorkspaceCommands()
+RimPhaseEnd("commands")
 
 ; ==================== 加载文件 ====================
+RimPhaseBegin("files")
 if (FileExist(g_SearchFileList))
     LoadFiles()
 else
@@ -307,28 +366,42 @@ else
         LoadFiles()
     }
 BootMark("STARTUP files-loaded")
+RimPhaseEnd("files")
 
 ; ==================== 创建 GUI (AHK v2) ====================
+RimPhaseBegin("gui")
 InitMainGui()
 BootMark("STARTUP gui-shown")
+RimPhaseEnd("gui")
 
 ; ==================== 绑定热键 (经 BindKey 统一 $ 前缀, 防 Send 回环) ====================
+RimPhaseBegin("hotkeys")
 BindLauncherHotkeys()
+RimPhaseEnd("hotkeys")
 
-; ==================== 恢复状态 ====================
-if (g_Conf["Config"]["SaveInputText"] && g_AutoConf["Auto"]["InputText"] != "")
-    Send(g_AutoConf["Auto"]["InputText"])
+; ==================== 恢复状态 (缺键永不炸启动, 语义不变) ====================
+RimPhaseBegin("state")
+if (CfgGet("Config", "SaveInputText", "0") = "1") {
+    inputText := ""
+    try inputText := g_AutoConf["Auto"]["InputText"]
+    catch {
+    }
+    if (inputText != "")
+        Send(inputText)
+}
 
-if (g_Conf["Config"]["SaveHistory"]) {
+if (CfgGet("Config", "SaveHistory", "1") = "1") {
     g_HistoryCommands := []
     LoadHistoryCommands()
 }
 
 ; 启动时维护 SendTo/开机启动 (对齐原版, 不覆盖已存在)
-UpdateSendTo(g_Conf["Config"]["CreateSendToLnk"], false)
-UpdateStartupLnk(g_Conf["Config"]["CreateStartupLnk"], false)
+UpdateSendTo(CfgGet("Config", "CreateSendToLnk", "0"), false)
+UpdateStartupLnk(CfgGet("Config", "CreateStartupLnk", "0"), false)
+RimPhaseEnd("state")
 
 ; ==================== VimEngine 最小闭环 (VimDesktop 移植) ====================
+RimPhaseBegin("vim")
 global g_VimEngine := VimEngine()
 ; 兼容赋值: 移植插件经 Rim.vim/config 访问引擎与配置
 Rim.vim := g_VimEngine
@@ -347,9 +420,15 @@ BootMark("STARTUP vimcheck-ready")
 ; 配置热应用订阅 (live/rebuild 档免重启; restart 档走重启链, 见 VimCfg_DoSave)
 ; 注意: 回调只做"读配置→改对象", 禁止阻塞 (单线程, 卡死界面)
 try CfgSubscribe("Config", "Language", (val, _sec, _key) => I18nApplyTray(val))
+; 语言 rebuild 落实: 托盘之后重建主窗, T() 全量刷新, 免重启
+try CfgSubscribe("Config", "Language", (*) => Launcher_ApplyGui())
 try CfgSubscribe("Config", "SearchFileDir", (*) => LoadFiles())
 try CfgSubscribe("Config", "SearchFileType", (*) => LoadFiles())
 try CfgSubscribe("Config", "SearchFileExclude", (*) => LoadFiles())
+try CfgSubscribe("Config", "LoadControlPanelFunctions", (*) => LoadFiles())
+; 快捷方式 live 落实: 改即生效 (ChangePath 读最新值, 幂等)
+try CfgSubscribe("Config", "CreateSendToLnk", (*) => ChangePath())
+try CfgSubscribe("Config", "CreateStartupLnk", (*) => ChangePath())
 ; 外观 rebuild 档: 重载皮肤并重建主窗 (输入与可见性由 Launcher_ApplyGui 保持)
 try CfgSubscribe("Config", "WindowAlwaysOnTop", (*) => Launcher_ApplyGui())
 for _idx, guiKey in ["Skin", "HideTitle", "ShowCurrentCommand", "DisplayRows", "WidgetWidth", "FontName", "FontSize", "FontColor", "BackgroundColor", "EditColor"] {
@@ -358,11 +437,15 @@ for _idx, guiKey in ["Skin", "HideTitle", "ShowCurrentCommand", "DisplayRows", "
 
     ; ==================== 鼠标手势 (StrokePlus 重构 P1) ====================
     ; 右键按住拖拽=手势, 短点=普通右键; 映射见 [Gesture]/[Gestures]
+    RimPhaseEnd("vim")
+    RimPhaseBegin("gestures")
     RimPluginManager.RegisterAllGestures()
     GestureEngine.Init()
     BootMark("STARTUP gestures-ready")
+    RimPhaseEnd("gestures")
 
 ; ==================== 文件监控 ====================
+RimPhaseBegin("finalize")
 SetTimer(WatchUserFileList, 3000)
 
 BootMark("STARTUP plugins-ready")
@@ -387,6 +470,7 @@ try {
     }
 } catch {
 }
+RimPhaseEnd("finalize")
 
 ; 启动胎记: 对版本 confusion, error.log 首行即构建号 (附启动总耗时)
 try {

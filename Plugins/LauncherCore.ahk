@@ -118,8 +118,13 @@ AhkRun() {
 ; ---- 原版 RunAndDisplay ----
 RunAndDisplay() {
     input := CoreInput(T("core.prompt_rundisplay"), T("core.title_rundisplay"))
-    if (input != "")
-        DisplayResult(RunAndGetOutput(input))
+    if (input = "")
+        return
+    res := RunAndGetOutput(input)
+    if (!res["ok"] && res["output"] = "")
+        DisplayResult(T("core.run_failed", input) . (res["error"] != "" ? "`n" . res["error"] : ""))
+    else
+        DisplayResult(res["output"])
 }
 
 ; ---- 原版 WinRRun ----

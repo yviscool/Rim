@@ -14,7 +14,7 @@ RestartRim(*) {
     try FileAppend(A_Now . " RESTART begin`n", A_ScriptDir . "\Rim.error.log")
     catch {
     }
-    SaveAutoConf()
+    SaveAutoConfNow()
     ; 先起新实例再退旧进程: 原生 Reload 若卡在清理阶段会青黄不接 (旧已退、新未生,
     ; 日志停在 RESTART begin 且无进程残留, 10:23 复现). 新实例的 #SingleInstance Force
     ; 会收走旧进程; 即使旧进程卡死, 新实例已在位, 用户永远有可用实例
@@ -133,7 +133,7 @@ EscFunction(*) {
 }
 
 ExitRim(*) {
-    SaveAutoConf()
+    SaveAutoConfNow()
     ExitApp
 }
 

@@ -50,6 +50,17 @@ StatsBall_Cfg(key, def) {
     return def
 }
 
+; 手改垃圾值永不炸构造: 非数字回落默认 (后钳制不变)
+StatsBall_IntCfg(key, def) {
+    try {
+        v := StatsBall_Cfg(key, "")
+        if (v != "" && IsInteger(v))
+            return Integer(v)
+    } catch {
+    }
+    return def
+}
+
 ; ---------- 热应用: 重读 [StatsBall] → 活对象 (配置中心 live 档回调) ----------
 StatsBall_ApplyConfig(*) {
     global g_StatsBall
@@ -158,27 +169,27 @@ StatsBall_Boost(*) {
 ; ============================================================
 class StatsBallObj {
     __New() {
-        this.interval := Integer(StatsBall_Cfg("RefreshMs", "1000"))
+        this.interval := StatsBall_IntCfg("RefreshMs", 1000)
         if (this.interval < 500)
             this.interval := 500
         if (this.interval > 5000)
             this.interval := 5000
-        this.opacity := Integer(StatsBall_Cfg("Opacity", "255"))
+        this.opacity := StatsBall_IntCfg("Opacity", 255)
         if (this.opacity < 80)
             this.opacity := 80
         if (this.opacity > 255)
             this.opacity := 255
         this.snapEdge := StatsBall_Cfg("SnapEdge", "0") = "1"
-        this.threshold := Integer(StatsBall_Cfg("AlertThreshold", "85"))
+        this.threshold := StatsBall_IntCfg("AlertThreshold", 85)
         this.topMost := StatsBall_Cfg("TopMost", "1") = "1"
         this.lockPos := StatsBall_Cfg("LockPos", "0") = "1"
         ; 挂件几何: 三段横条默认 156x40 (等比对齐原版)
-        this.ww := Integer(StatsBall_Cfg("StripW", "156"))
+        this.ww := StatsBall_IntCfg("StripW", 156)
         if (this.ww < 120)
             this.ww := 120
         if (this.ww > 480)
             this.ww := 480
-        this.hh := Integer(StatsBall_Cfg("StripH", "40"))
+        this.hh := StatsBall_IntCfg("StripH", 40)
         if (this.hh < 32)
             this.hh := 32
         if (this.hh > 80)
@@ -232,6 +243,7 @@ class StatsBallObj {
         this.lastKey := ""
         this.lastAlertTick := 0
         this.lastTopTick := 0
+        this.lastFullTick := 0
         this.topText := ""
         this.downX := 0
         this.downY := 0
@@ -703,10 +715,24 @@ class StatsBallObj {
             } catch {
             }
         }
-        s := ""
-        try s := StatsBall_Sample()
-        catch {
+        ; 分层采样: CPU/内存全量 1s 一次, 网速走 250ms 快车道并入, 渲染与面板读合并快照.
+        ; TopProcs 永不进此路径 (仅 RefreshPanel 内面板打开 + 5s 节流).
+        s := this.lastSample
+        try {
+            if (this.lastFullTick = 0 || A_TickCount - this.lastFullTick >= 1000) {
+                s := StatsBall_Sample()
+                this.lastFullTick := A_TickCount
+            }
+        } catch {
             return
+        }
+        if (!IsObject(s))
+            return
+        try {
+            n := StatsBall_SampleNet()
+            if (IsObject(n))
+                s := StatsBall_MergeSample(s, n)
+        } catch {
         }
         this.lastSample := s
         ; hist 定长 60

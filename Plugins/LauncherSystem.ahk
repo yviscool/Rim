@@ -261,8 +261,17 @@ ListWindow() {
 
     ids := WinGetList(, , , "Program Manager")
     for thisId in ids {
-        title := WinGetTitle("ahk_id " . thisId)
-        name := WinGetProcessName("ahk_id " . thisId)
+        ; 逐窗降级: 枚举中途窗口消失/拒绝查询 (Error 87) 只跳过本窗, 不炸整表
+        title := ""
+        name := ""
+        try title := WinGetTitle("ahk_id " . thisId)
+        catch {
+            continue
+        }
+        try name := WinGetProcessName("ahk_id " . thisId)
+        catch {
+            name := ""
+        }
         if (title = "") {
             continue
         }

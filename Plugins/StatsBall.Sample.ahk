@@ -53,6 +53,50 @@ StatsBall_Sample() {
     return cache
 }
 
+; 网速快车道 (250ms 节流; Tick 以 UI 节奏刷新 CPU/内存全量时, 网速单独跟高频).
+; EMA/峰值状态由 StatsBall_NetRate 内部持有, 调得越频越平滑, 变 dt 自适应.
+StatsBall_SampleNet() {
+    static cache := {up: 0, dn: 0, rawUp: 0, rawDn: 0, peakUp: 0, peakDn: 0, netDt: 0, netValid: 0}
+    static netTick := 0
+    now := DllCall("kernel32\GetTickCount64", "UInt64")
+    if (netTick && now - netTick < 250)
+        return cache
+    netTick := now
+    try {
+        net := StatsBall_NetRate()
+        if IsObject(net) {
+            cache.up := net.up
+            cache.dn := net.dn
+            cache.rawUp := net.rawUp
+            cache.rawDn := net.rawDn
+            cache.peakUp := net.peakUp
+            cache.peakDn := net.peakDn
+            cache.netDt := net.dt
+            cache.netValid := net.valid
+        }
+    } catch {
+    }
+    return cache
+}
+
+; 全量快照与网速快照合并 (返回新对象, 不碰 StatsBall_Sample 的共享缓存)
+StatsBall_MergeSample(a, n) {
+    o := {cpu: 0, memPct: 0, availGB: 0, totalGB: 0, up: 0, dn: 0}
+    try {
+        o.cpu := a.cpu
+        o.memPct := a.memPct
+        o.availGB := a.availGB
+        o.totalGB := a.totalGB
+    } catch {
+    }
+    try {
+        o.up := n.up
+        o.dn := n.dn
+    } catch {
+    }
+    return o
+}
+
 StatsBall_Level(memPct) {
     m := Integer(memPct)
     if (m >= 85)

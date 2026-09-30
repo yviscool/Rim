@@ -9,6 +9,7 @@ RimLog(level, msg, err := "") {
     g_LastRimLog := level . "|" . msg
 }
 
+#Include ..\Core\Runtime.ahk
 #Include ..\Core\ActionProtocol.ahk
 #Include ..\Core\Execution.ahk
 
@@ -52,6 +53,10 @@ Main() {
     Check("defer-file-body", InStr(g_LastRimLog, "RUN_FAILED") > 0, g_LastRimLog)
     ActionTracePush("run", "notepad.exe", "probe")
     Check("trace", InStr(ActionLastTrace(), "run|notepad.exe") > 0)
+    ; wshkey| 旧别名不断功能 (静态锁分支存在; 真 Send 不在 headless 执行)
+    execSrc := FileRead(A_ScriptDir . "\..\Core\Execution.ahk", "UTF-8")
+    Check("wshkey-alias", InStr(execSrc, 'SubStr(action, 1, 7) = "wshkey|"') > 0
+        && InStr(execSrc, "Send(SubStr(action, 8))") > 0)
     out := A_ScriptDir . "\..\probe_action_protocol.out.txt"
     try FileDelete(out)
     catch {

@@ -71,6 +71,16 @@ class RimCommand {
         return cmd
     }
 
+    ; 注销指令 (插件阶段回滚用; 成功 true, 不存在 false)
+    static Unregister(id) {
+        if (RimCommand.Registry.Has(id)) {
+            RimCommand.Registry.Delete(id)
+            RimCommand.Seq++
+            return true
+        }
+        return false
+    }
+
     ; 收编行清理 (LoadFiles 重建语义: 只清 Category=Ingested 的收编行,
     ; 插件直注/通用指令 (真实分类) 保留; 有删除才 bump Seq. 返回清理数)
     static ClearIngested() {
@@ -338,6 +348,99 @@ class RimCommand {
         } catch {
         }
         return row
+    }
+
+    ; ---- 搜索索引 (R2-2): bigram/单字倒排 + Seq 纪元失效 ----
+    ; 只覆盖默认开关 (showExt=false, searchFull=false) 的子串查询;
+    ; TCMatch 模糊/开关查询/空查询走全量扫描 (模糊子序列不可预过滤).
+    ; 候选经 InStr 复核后输出, 与全量扫描同集合、同注册序 (探针逐项锁死).
+    static SeaGrams := Map()
+    static SeaLow := Map()
+    static SeaIds := []
+    static SeaEpoch := -1
+
+    static SeaEnsure() {
+        if (RimCommand.SeaEpoch = RimCommand.Seq)
+            return
+        grams := Map()
+        lows := Map()
+        ids := []
+        seq := 0
+        for id, cmd in RimCommand.Registry {
+            row := ""
+            try row := RimCommand.SearchRow(cmd)
+            catch {
+                continue
+            }
+            seq++
+            ids.Push(id)
+            low := StrLower(row["search"])
+            lows[seq] := low
+            L := StrLen(low)
+            if (L = 0)
+                continue
+            seen := Map()
+            i := 1
+            while (i <= L) {
+                seen[SubStr(low, i, 1)] := true
+                if (i < L)
+                    seen[SubStr(low, i, 2)] := true
+                i++
+            }
+            for g in seen {
+                if (!grams.Has(g))
+                    grams[g] := []
+                grams[g].Push(seq)
+            }
+        }
+        RimCommand.SeaGrams := grams
+        RimCommand.SeaLow := lows
+        RimCommand.SeaIds := ids
+        RimCommand.SeaEpoch := RimCommand.Seq
+    }
+
+    ; 候选 id 数组 (注册序); "" = 回退全量扫描 (候选过多时全扫更划算).
+    ; 查询 gram 缺席索引 → 零命中 (超集为空), 返回 [] (非 "").
+    static SeaCandidates(qlow) {
+        try RimCommand.SeaEnsure()
+        catch {
+            return ""
+        }
+        if (qlow = "")
+            return ""
+        grams := RimCommand.SeaGrams
+        total := RimCommand.SeaIds.Length
+        if (total = 0)
+            return []
+        qgrams := Map()
+        L := StrLen(qlow)
+        if (L = 1)
+            qgrams[qlow] := true
+        else {
+            i := 1
+            while (i < L) {
+                qgrams[SubStr(qlow, i, 2)] := true
+                i++
+            }
+        }
+        baseList := ""
+        for g in qgrams {
+            if (!grams.Has(g))
+                return []
+            lst := grams[g]
+            if (baseList = "" || lst.Length < baseList.Length)
+                baseList := lst
+        }
+        if (baseList.Length > total * 0.6)
+            return ""
+        out := []
+        lows := RimCommand.SeaLow
+        ids := RimCommand.SeaIds
+        for _, sq in baseList {
+            if (InStr(lows[sq], qlow))
+                out.Push(ids[sq])
+        }
+        return out
     }
 
     ; 获取指令

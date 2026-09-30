@@ -7,7 +7,7 @@
 ; 错误码: OK/EMPTY/UNKNOWN_KIND/UNKNOWN_COMMAND/RECURSION/VALIDATE_FAIL/HANDLER_FAIL
 ; 字符串协议冻结为 ABI, 只增不改; 双向兜底保留但收敛到 ActionDispatch 一处
 
-global g_ActionTrace := []
+
 
 ActionParse(raw, source := "") {
     r := Trim(String(raw))
@@ -79,21 +79,21 @@ ActionDispatch(actMap, actionArg := "") {
 }
 
 ActionTracePush(kind, target, source) {
-    global g_ActionTrace
     try {
-        g_ActionTrace.Push(Map("t", A_TickCount, "kind", kind, "target", SubStr(target, 1, 80), "source", source))
-        if (g_ActionTrace.Length > 50)
-            g_ActionTrace.RemoveAt(1)
+        Runtime.Trace.Push(Map("t", A_TickCount, "kind", kind, "target", SubStr(target, 1, 80), "source", source))
+        if (Runtime.Trace.Length > 50)
+            Runtime.Trace.RemoveAt(1)
+    } catch {
     }
 }
 
 ActionLastTrace() {
-    global g_ActionTrace
     out := ""
     try {
-        for _, it in g_ActionTrace {
+        for _, it in Runtime.Trace {
             out .= it["kind"] . "|" . it["target"] . "(" . it["source"] . ") <- "
         }
+    } catch {
     }
     return RTrim(out, " <- ")
 }
@@ -168,15 +168,21 @@ ActionRunFunction(fn, fnArg := "", origin := "", quiet := false, rethrow := fals
     } catch {
         return false
     }
+    ref := ""
+    try ref := ActionResolveFunc(fn)
+    catch {
+    }
+    if (!IsObject(ref))
+        return false
     if (fnArg != "") {
         try {
-            %fn%(fnArg)
+            ref.Call(fnArg)
             return true
         } catch {
         }
     }
     try {
-        %fn%()
+        ref.Call()
         return true
     } catch as e {
         if (rethrow)
@@ -204,6 +210,44 @@ ActionArmCombo(actStr) {
     return false
 }
 
+; 动态解析缓存 (名 → Func/类对象, "" 表死名; 定义集启动后静态, 无需失效.
+; 双解引用只走首次, 后续调用零解析开销)
+ActionFuncCache() {
+    static c := Map()
+    return c
+}
+
+ActionResolveFunc(fn) {
+    cache := ActionFuncCache()
+    if (cache.Has(fn))
+        return cache[fn]
+    ref := ""
+    try {
+        cand := %fn%
+        if (Type(cand) = "Func")
+            ref := cand
+    } catch {
+    }
+    cache[fn] := ref
+    return ref
+}
+
+ActionResolveClass(clsName) {
+    cache := ActionFuncCache()
+    k := "class:" . clsName
+    if (cache.Has(k))
+        return cache[k]
+    ref := ""
+    try {
+        cand := %clsName%
+        if (IsObject(cand))
+            ref := cand
+    } catch {
+    }
+    cache[k] := ref
+    return ref
+}
+
 ; 运行时前检: 与 probe_dead_refs 同词表语义 (裸函数/点式/Registry 三形态),
 ; 未知名字直接判 false, 调用方记 UNKNOWN_FUNCTION, 不再靠 %fn%() 抛 "Variable not found"
 ActionIsCallable(fn) {
@@ -215,7 +259,7 @@ ActionIsCallable(fn) {
         if (parts.Length != 2 || parts[1] = "" || parts[2] = "")
             return false
         try {
-            clsRef := %parts[1]%
+            clsRef := ActionResolveClass(parts[1])
             if (IsObject(clsRef) && HasMethod(clsRef, parts[2]))
                 return true
         } catch {
@@ -229,10 +273,9 @@ ActionIsCallable(fn) {
         }
     } catch {
     }
-    ; 裸函数名: 双解引用取 Func 对象 (IsFunc 在此构建不存在, 调用即抛, 实测锤实)
+    ; 裸函数名: 缓存 Func 对象 (IsFunc 在此构建不存在, 调用即抛, 实测锤实)
     try {
-        ref := %fn%
-        if (Type(ref) = "Func")
+        if (IsObject(ActionResolveFunc(fn)))
             return true
     } catch {
     }
@@ -246,7 +289,7 @@ ActionCallDotted(fn, fnArg := "") {
     if (parts.Length != 2 || parts[1] = "" || parts[2] = "")
         return false
     try {
-        clsRef := %parts[1]%
+        clsRef := ActionResolveClass(parts[1])
         if (!IsObject(clsRef))
             return false
         if (fnArg != "")

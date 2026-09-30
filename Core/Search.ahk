@@ -3,36 +3,58 @@
 
 ; === Search - 搜索逻辑 (从 RunZ Core/Search.ahk 移植) ===
 
+; 单条收集 (SearchCollectMatches 全量/索引双路径共用, 语义逐字一致)
+SearchCollectOne(id, cmd, query, showExt, searchFull, seenTargets, matchItems, excludedObj) {
+    row := ""
+    try row := RimCommand.SearchRow(cmd, showExt, searchFull)
+    catch {
+        return
+    }
+    try {
+        if (IsObject(excludedObj) && excludedObj.Has(row["rankKey"]))
+            return
+    } catch {
+    }
+
+    if (query = "" || MatchCommand(row["search"], query)) {
+        if (seenTargets.Has(row["targetKey"]))
+            return
+        seenTargets[row["targetKey"]] := true
+        exactHit := false
+        try {
+            exactHit := SI_IsExactHitRow(row, query)
+        } catch {
+        }
+        matchItems.Push(Map("idline", "command | " . row["id"], "show", row["show"], "exact", exactHit, "row", row))
+    }
+}
+
 ; 收集匹配 (Registry 唯一真相源; 返回 matchItems 数组, 每项 {idline, show, exact, row}).
 ; query 为空串时返回全池 (首屏用). 调用方负责头退化与渲染.
-SearchCollectMatches(query, showExt := false, searchFull := false) {
-    global g_ExcludedCommandsObj
+; 索引路径: 默认开关 + 非模糊 + 非空查询走 SeaCandidates 候选 (注册序, 复核后输出,
+; 与全量同集合同序); 其余 (TCMatch/开关查询/候选过多/forceFull) 走全量扫描.
+SearchCollectMatches(query, showExt := false, searchFull := false, forceFull := false) {
+    global g_ExcludedCommandsObj, g_EnableTCMatch
     ; 同目标只展示首个命中
     seenTargets := Map()
     matchItems := []
     if (IsSet(RimCommand) && IsObject(RimCommand)) {
-        for id, cmd in RimCommand.Registry {
-            row := ""
-            try row := RimCommand.SearchRow(cmd, showExt, searchFull)
+        cands := ""
+        if (!forceFull && query != "" && !showExt && !searchFull && !g_EnableTCMatch) {
+            try cands := RimCommand.SeaCandidates(StrLower(query))
             catch {
-                continue
+                cands := ""
             }
-            try {
-                if (IsObject(g_ExcludedCommandsObj) && g_ExcludedCommandsObj.Has(row["rankKey"]))
+        }
+        if (IsObject(cands)) {
+            for _, cid in cands {
+                if (!RimCommand.Registry.Has(cid))
                     continue
-            } catch {
+                SearchCollectOne(cid, RimCommand.Registry[cid], query, showExt, searchFull, seenTargets, matchItems, g_ExcludedCommandsObj)
             }
-
-            if (query = "" || MatchCommand(row["search"], query)) {
-                if (seenTargets.Has(row["targetKey"]))
-                    continue
-                seenTargets[row["targetKey"]] := true
-                exactHit := false
-                try {
-                    exactHit := SI_IsExactHitRow(row, query)
-                } catch {
-                }
-                matchItems.Push(Map("idline", "command | " . row["id"], "show", row["show"], "exact", exactHit, "row", row))
+        } else {
+            for id, cmd in RimCommand.Registry {
+                SearchCollectOne(id, cmd, query, showExt, searchFull, seenTargets, matchItems, g_ExcludedCommandsObj)
             }
         }
     }

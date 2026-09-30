@@ -43,6 +43,16 @@ class ProbeBad extends RimPlugin {
     }
 }
 
+class ProbePlugC extends RimPlugin {
+    static Name => "ProbeC"
+    static Dependencies => ["ProbeD"]
+}
+
+class ProbePlugD extends RimPlugin {
+    static Name => "ProbeD"
+    static Dependencies => ["ProbeC"]
+}
+
 Main() {
     global fails
     RimPluginManager.Plugins := Map()
@@ -53,13 +63,19 @@ Main() {
     RimPluginManager.GestureOwners := Map()
     RimPluginManager.Conflicts := []
     RimPluginManager.Failures := []
-    r1 := RimPluginManager.RegisterEx(ProbePlugA)
-    Check("register-ex-ok", r1["ok"] && r1["id"] = "ProbeA" && r1["version"] = "2.1.0")
-    Check("register-compat", RimPluginManager.Register(ProbePlugA) = true)
+    r1 := RimPluginManager.Register(ProbePlugA)
+    Check("register-ok", r1["ok"] && r1["id"] = "ProbeA" && r1["version"] = "2.1.0")
+    r1b := RimPluginManager.Register(ProbePlugA)
+    Check("register-replace-ok", r1b["ok"] && r1b["replaced"] = "ProbeA")
     Check("conflict-on-replace", RimPluginManager.Conflicts.Length >= 1)
-    RimPluginManager.RegisterEx(ProbePlugB)
-    miss := RimPluginManager.CheckDependencies()
-    Check("missing-dep", miss.Length >= 1 && miss[1]["dep"] = "ProbeMissing")
+    RimPluginManager.Register(ProbePlugB)
+    RimPluginManager.Register(ProbePlugC)
+    RimPluginManager.Register(ProbePlugD)
+    rep := RimPluginManager.CheckDependencies()
+    Check("missing-dep", rep["missing"].Length >= 1 && rep["missing"][1]["dep"] = "ProbeMissing")
+    Check("missing-disabled", rep["disabled"].Length >= 1)
+    Check("order-keeps-healthy", rep["order"].Length >= 1)
+    Check("cycle-detected", rep["cycles"].Length >= 1)
     Check("disabled-not-enabled", !RimPluginManager.EnabledPlugins.Has("probeb"))
     Check("claim-first", RimPluginManager.ClaimCommand("MyCmd", "ProbeA") = true)
     Check("claim-conflict", RimPluginManager.ClaimCommand("MyCmd", "ProbeB") = false)

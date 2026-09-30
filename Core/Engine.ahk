@@ -20,21 +20,71 @@ DialogShouldPassthrough(winClass, ctrlClass, ctrlNN) {
     ; (CheckIsInput 不认 Combo 系, 此处补; 其他窗类不受影响)
     if (ctrlClass = "ComboBox" || ctrlClass = "ComboBoxEx32")
         return true
-    if RegExMatch(String(ctrlNN), "i)^ComboBox\d*$")
+    ; 控件 NN 匹配: 静态前缀 + 全数字后缀 (原两处 RegExMatch, 热路径省正则编译)
+    nn := StrLower(String(ctrlNN))
+    if (_DlgNnKind(nn, "combobox") > 0)
         return true
     ; RimContext 不可用 (探针/早期) 时的 Edit 兜底
     if (ctrlClass = "Edit")
         return true
-    if RegExMatch(String(ctrlNN), "i)^Edit\d+$")
+    if (_DlgNnKind(nn, "edit") = 2)
         return true
     return false
 }
 
-; IME 组字判定 (WinAPI 直调, 失败一律回假):
+; 控件 NN 形态判定 (DialogShouldPassthrough 专用, 无正则):
+; 0=不匹配, 1=裸名相等 ("combobox"), 2=前缀+全数字后缀 ("edit1").
+; 原语义: ComboBox 系裸名/带数字全透传; Edit 系仅类名或带数字 NN 透传 (裸 "Edit" NN 不透传).
+_DlgNnKind(nn, prefix) {
+    if (nn = prefix)
+        return 1
+    if (SubStr(nn, 1, StrLen(prefix)) != prefix)
+        return 0
+    rest := SubStr(nn, StrLen(prefix) + 1)
+    if (rest = "")
+        return 0
+    Loop Parse, rest {
+        if (A_LoopField < "0" || A_LoopField > "9")
+            return 0
+    }
+    return 2
+}
+
+; 单次活动窗口上下文采集 (KeyHandler 入口唯一 WinAPI 批量点):
+; 一次拿齐 hwnd/类名/进程路径+名/焦点控件, 后续守卫与 CheckWin 全复用, 不再各自重查.
+; 每个查询独立 try, 失败字段回空/0, 永不抛错.
+EngineCollectCtx() {
+    ctx := Map("hwnd", 0, "class", "", "procPath", "", "procName", "", "focus", 0, "focusClass", "", "focusNN", "")
+    try ctx["hwnd"] := WinExist("A")
+    catch {
+    }
+    try ctx["class"] := WinGetClass("A")
+    catch {
+    }
+    try ctx["procPath"] := WinGetProcessPath("A")
+    catch {
+    }
+    try ctx["procName"] := WinGetProcessName("A")
+    catch {
+    }
+    try ctx["focus"] := ControlGetFocus("A")
+    catch {
+    }
+    if (ctx["focus"]) {
+        try ctx["focusClass"] := ControlGetClass(ctx["focus"])
+        catch {
+        }
+        try ctx["focusNN"] := ControlGetClassNN(ctx["focus"])
+        catch {
+        }
+    }
+    return ctx
+}
+
+; IME 组字判定 (hwnd 由调用方传入, KeyHandler 复用 ctx["hwnd"] 不再重查):
 ; 有组字串 (GCS_COMPSTR 非空) 即组字中. headless/无 IME/控制台/提权窗恒回假.
-ImeComposing() {
+ImeComposingAt(hwndA) {
     try {
-        hwndA := WinExist("A")
         if (!hwndA)
             return false
         hImc := DllCall("imm32\ImmGetContext", "Ptr", hwndA, "Ptr")
@@ -52,6 +102,14 @@ ImeComposing() {
     } catch {
     }
     return false
+}
+
+ImeComposing() {
+    hwndA := 0
+    try hwndA := WinExist("A")
+    catch {
+    }
+    return ImeComposingAt(hwndA)
 }
 
 ; 自家进程判定 (纯逻辑可单测): 进程路径等于自身解释器/编译体即自家窗口
@@ -98,6 +156,8 @@ class VimEngine {
     winGlobal := ""
     debugMode := false
     lastAction := ""
+    ; 窗口注册表版本: SetWin/DeleteWin 递增, CheckWin 缓存按此失效 (同 hwnd 下新注册窗不命中旧缓存)
+    winEpoch := 0
     ; 自家启动器窗口标题: 激活时直接透传, 不进 vim 分发 (输入框打字安全)
     SelfWinTitle := ""
 
@@ -162,6 +222,7 @@ class VimEngine {
             win.WinClass := winClass
         if (winFile != "")
             win.WinFile := winFile
+        this.winEpoch += 1
         return win
     }
 
@@ -176,6 +237,7 @@ class VimEngine {
     DeleteWin(name) {
         if this.WinList.Has(name) {
             this.WinList.Delete(name)
+            this.winEpoch += 1
         }
     }
 
@@ -368,6 +430,140 @@ class VimEngine {
         this.MapKey(key, action, winName, modeName)
     }
 
+    ; 解绑 (插件阶段回滚用; 只删映射表, 不 Hotkey Off —— 残留钩子无映射即透传, 比误关别窗同键安全)
+    UnmapKey(key, winName := "", modeName := "normal") {
+        win := this.GetWin(winName)
+        if !IsObject(win)
+            return false
+        key := NormalizeVimKey(key)
+        modeObj := win.modeList.Has(modeName) ? win.modeList[modeName] : ""
+        if !IsObject(modeObj)
+            return false
+        had := modeObj.keymapList.Has(key)
+        if (had)
+            modeObj.keymapList.Delete(key)
+        for _, lst in [modeObj.keymoreList, modeObj.nowaitList, modeObj.keycommentList] {
+            try {
+                if (lst.Has(key))
+                    lst.Delete(key)
+            }
+        }
+        ; 剪掉已无映射的前缀残留 (多键的前缀曾进 keymoreList, 如 gg 留下的 g)
+        prune := []
+        for pre in modeObj.keymoreList {
+            keep := false
+            for mk in modeObj.keymapList {
+                if (SubStr(mk, 1, StrLen(pre)) = pre && StrLen(mk) > StrLen(pre)) {
+                    keep := true
+                    break
+                }
+            }
+            if (!keep)
+                prune.Push(pre)
+        }
+        for _, pre in prune
+            modeObj.keymoreList.Delete(pre)
+        if (win.KeyList.Has(key)) {
+            still := false
+            for _, m in win.modeList {
+                if (m.keymapList.Has(key)) {
+                    still := true
+                    break
+                }
+            }
+            if (!still)
+                win.KeyList.Delete(key)
+        }
+        return had
+    }
+
+    ; 按键快照 (插件阶段回滚基准): {wins: [...], modes: Map, keys: Map, actions: [...]}
+    SnapshotKeys() {
+        snap := Map("wins", [], "modes", Map(), "keys", Map(), "actions", [])
+        for name in this.WinList
+            snap["wins"].Push(name)
+        for name, win in this.WinList {
+            for modeName, modeObj in win.modeList {
+                snap["modes"][name . Chr(1) . modeName] := true
+                for key in modeObj.keymapList
+                    snap["keys"][name . Chr(1) . modeName . Chr(1) . key] := true
+            }
+        }
+        for aname in this.ActionList
+            snap["actions"].Push(aname)
+        return snap
+    }
+
+    ; 回滚到快照 (删本阶段新增映射/窗口/模式/动作; 返回 Map{keys, wins, modes, actions})
+    RollbackKeys(snap) {
+        done := Map("keys", 0, "wins", 0, "modes", 0, "actions", 0)
+        if (!IsObject(snap) || !snap.Has("keys"))
+            return done
+        cur := []
+        for name, win in this.WinList {
+            for modeName, modeObj in win.modeList {
+                for key in modeObj.keymapList
+                    cur.Push([name, modeName, key])
+            }
+        }
+        for _, t in cur {
+            k := t[1] . Chr(1) . t[2] . Chr(1) . t[3]
+            if (!snap["keys"].Has(k)) {
+                this.UnmapKey(t[3], t[1], t[2])
+                done["keys"]++
+            }
+        }
+        goneModes := []
+        for name, win in this.WinList {
+            for modeName, modeObj in win.modeList {
+                mk := name . Chr(1) . modeName
+                if (!snap["modes"].Has(mk) && modeObj.keymapList.Count = 0)
+                    goneModes.Push([name, modeName])
+            }
+        }
+        for _, t in goneModes {
+            try {
+                if (this.WinList.Has(t[1])) {
+                    this.WinList[t[1]].modeList.Delete(t[2])
+                    done["modes"]++
+                }
+            }
+        }
+        goneWins := []
+        for name in this.WinList {
+            found := false
+            for _, w in snap["wins"] {
+                if (w = name) {
+                    found := true
+                    break
+                }
+            }
+            if (!found)
+                goneWins.Push(name)
+        }
+        for _, name in goneWins {
+            this.DeleteWin(name)
+            done["wins"]++
+        }
+        goneActions := []
+        for aname in this.ActionList {
+            found := false
+            for _, a in snap["actions"] {
+                if (a = aname) {
+                    found := true
+                    break
+                }
+            }
+            if (!found)
+                goneActions.Push(aname)
+        }
+        for _, aname in goneActions {
+            this.ActionList.Delete(aname)
+            done["actions"]++
+        }
+        return done
+    }
+
     ; === nowait 管理 ===
     SetNoWait(key, winName := "", modeName := "normal") {
         win := this.GetWin(winName)
@@ -510,6 +706,10 @@ class VimEngine {
         ; 注册/运行两侧统一归一 (ini 小写 <c-b> 与运行时大写 <C-B> 归一, 见 NormalizeVimKey)
         vimKey := NormalizeVimKey(vimKey)
 
+        ; 单次上下文采集: 本函数后续所有守卫与 CheckWin 全复用 ctx, 单键只批量查一次.
+        ; 接线顺序不变量 (probe_input_guards 锁死): 自家窗 → 自家进程 → IME → 对话框 → CheckWin
+        ctx := EngineCollectCtx()
+
         ; 自家窗口: 直接透传 (Send 不会回环, 因注册带 $ 前缀)
         if (this.SelfWinTitle != "") {
             try {
@@ -523,11 +723,7 @@ class VimEngine {
         ; 自家进程守卫: 配置中心/手势UI等子窗一律透传 ([global] 字母映射不再劫自家编辑框).
         ; 接线不变量 (probe_input_guards 锁死): 必须在 CheckWin 之前, 逐字键零经过分发
         try {
-            _selfPath := ""
-            try _selfPath := WinGetProcessPath("A")
-            catch {
-            }
-            if (_selfPath != "" && IsSelfProcessPath(_selfPath)) {
+            if (ctx["procPath"] != "" && IsSelfProcessPath(ctx["procPath"])) {
                 Send(this.ConvertFromVim(vimKey, true))
                 return
             }
@@ -537,7 +733,7 @@ class VimEngine {
         ; IME 组字保护: 组字中全透传 (提交/取消走原生语义), 组字结束自动恢复分发.
         ; 接线不变量 (probe_input_guards 锁死): 自家守卫之后、CheckWin 之前
         try {
-            if (ImeComposing()) {
+            if (ImeComposingAt(ctx["hwnd"])) {
                 Send(this.ConvertFromVim(vimKey, true))
                 return
             }
@@ -545,47 +741,32 @@ class VimEngine {
         }
 
         ; 文件对话框输入保护: #32770 且焦点在输入控件 (文件名框等) 时直接透传,
-        ; Typora/记事本另存为不再吃掉 o/i 等键. 现取类名 (CheckWin 有 50ms 缓存,
+        ; Typora/记事本另存为不再吃掉 o/i 等键. 用 ctx 现取值 (CheckWin 有 hwnd 缓存,
         ; 对话框刚弹出时缓存还是父窗, 不能用); TCDialog 不依赖窗内映射, 不受影响.
         try {
-            _dlgCls := WinGetClass("A")
-            if (_dlgCls = "#32770") {
-                _fHwnd := 0
-                try _fHwnd := ControlGetFocus("A")
-                catch {
-                }
-                if (_fHwnd) {
-                    _cc := ""
-                    _nn := ""
-                    try _cc := ControlGetClass(_fHwnd)
-                    catch {
-                    }
-                    try _nn := ControlGetClassNN(_fHwnd)
-                    catch {
-                    }
-                    if (DialogShouldPassthrough(_dlgCls, _cc, _nn)) {
-                        Send(this.ConvertFromVim(vimKey, true))
-                        ; 与其他透传分支对齐清状态: 父窗残留 KeyTemp (如列表里按了 g
-                        ; 又进对话框) 不得污染对话框后的按键
-                        try {
-                            _cw := this.CheckWin()
-                            _w := this.GetWin(_cw)
-                            if IsObject(_w) {
-                                _w.KeyTemp := ""
-                                _w.Count := 0
-                                try _w.HideMore()
-                            }
-                        } catch {
+            if (ctx["class"] = "#32770" && ctx["focus"]) {
+                if (DialogShouldPassthrough(ctx["class"], ctx["focusClass"], ctx["focusNN"])) {
+                    Send(this.ConvertFromVim(vimKey, true))
+                    ; 与其他透传分支对齐清状态: 父窗残留 KeyTemp (如列表里按了 g
+                    ; 又进对话框) 不得污染对话框后的按键
+                    try {
+                        _cw := this.CheckWin(ctx)
+                        _w := this.GetWin(_cw)
+                        if IsObject(_w) {
+                            _w.KeyTemp := ""
+                            _w.Count := 0
+                            try _w.HideMore()
                         }
-                        return
+                    } catch {
                     }
+                    return
                 }
             }
         } catch {
         }
 
-        ; 获取当前窗口信息
-        winName := this.CheckWin()
+        ; 获取当前窗口信息 (复用 ctx, 命中缓存时 0 问 WinAPI)
+        winName := this.CheckWin(ctx)
         if (winName = "") {
             Send(this.ConvertFromVim(vimKey, true))
             return
@@ -776,32 +957,51 @@ class VimEngine {
     }
 
     ; === 窗口检测 (对齐原版: exe 优先于 class, 解决 TConvertForm 撞车) ===
-    CheckWin() {
-        ; 前台窗缓存: 50ms TTL (连击同窗命中率极高, 3 问 WinAPI → 命中时 0 问);
-        ; 窗口切换慢于 50ms 人眼无感, TTL 过期重查即跟上
-        static cacheName := "", cacheTick := 0
-        if (cacheName != "" && A_TickCount - cacheTick < 50)
-            return cacheName
-        ; 返回值形态取值 (此构建 &var 输出型在部分函数上行为异常, try 吞错会导致全盲回退)
+    ; ctx 复用: KeyHandler 入口已批量采集, 传 ctx 则 0 问 WinAPI; 探针/旧调用无参则现查.
+    ; 缓存按 hwnd 键控 (窗口一切换即失效, 杜绝 TTL 内命中旧窗) + winEpoch (注册表变化即失效).
+    CheckWin(ctx := "") {
+        static cacheHwnd := 0, cacheName := "", cacheTick := 0, cacheEpoch := -1
+        hwnd := 0
         winClass := ""
         winExe := ""
-        try {
-            winClass := WinGetClass("A")
-        } catch {
-            winClass := ""
+        if (IsObject(ctx)) {
+            try hwnd := ctx["hwnd"] + 0
+            catch {
+            }
+            try winClass := ctx["class"]
+            catch {
+            }
+            try winExe := ctx["procName"]
+            catch {
+            }
         }
-        try {
-            winExe := WinGetProcessName("A")
-        } catch {
-            winExe := ""
+        if (cacheName != "" && hwnd = cacheHwnd && cacheEpoch = this.winEpoch
+            && A_TickCount - cacheTick < 2000)
+            return cacheName
+        ; 缺字段才补查 (返回值形态取值, 此构建 &var 输出型在部分函数上行为异常)
+        if (hwnd = 0 && winClass = "" && winExe = "") {
+            try hwnd := WinExist("A")
+            catch {
+            }
+        }
+        if (winClass = "") {
+            try winClass := WinGetClass("A")
+            catch {
+                winClass := ""
+            }
+        }
+        if (winExe = "") {
+            try winExe := WinGetProcessName("A")
+            catch {
+                winExe := ""
+            }
         }
 
         ; 先按 exe 匹配 (P9: 索引优先, 缺失回退线性)
         try {
             idxHit := WinIdx_Match(winExe, winClass, this)
             if (idxHit != "" && this.WinList.Has(idxHit)) {
-                cacheName := idxHit
-                cacheTick := A_TickCount
+                cacheHwnd := hwnd, cacheName := idxHit, cacheTick := A_TickCount, cacheEpoch := this.winEpoch
                 return idxHit
             }
         }
@@ -809,8 +1009,7 @@ class VimEngine {
             if (name = "__global__")
                 continue
             if (win.WinFile != "" && winExe = win.WinFile) {
-                cacheName := name
-                cacheTick := A_TickCount
+                cacheHwnd := hwnd, cacheName := name, cacheTick := A_TickCount, cacheEpoch := this.winEpoch
                 return name
             }
         }
@@ -819,13 +1018,11 @@ class VimEngine {
             if (name = "__global__")
                 continue
             if (win.WinClass != "" && winClass = win.WinClass) {
-                cacheName := name
-                cacheTick := A_TickCount
+                cacheHwnd := hwnd, cacheName := name, cacheTick := A_TickCount, cacheEpoch := this.winEpoch
                 return name
             }
         }
-        cacheName := "__global__"
-        cacheTick := A_TickCount
+        cacheHwnd := hwnd, cacheName := "__global__", cacheTick := A_TickCount, cacheEpoch := this.winEpoch
         return "__global__"
     }
 

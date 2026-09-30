@@ -30,7 +30,8 @@ Main() {
     Check("no-fullresult-instr", !RegExMatch(searchSrc, "InStr\(fullResult"))
     Check("no-gcommands-loop", !InStr(searchSrc, "for index, element in g_Commands"))
     Check("registry-loop", InStr(searchSrc, "for id, cmd in RimCommand.Registry") > 0)
-    Check("excluded-obj", InStr(searchSrc, 'g_ExcludedCommandsObj.Has(row["rankKey"])') > 0)
+    Check("excluded-obj", InStr(searchSrc, 'excludedObj.Has(row["rankKey"])') > 0
+        && InStr(searchSrc, "SearchCollectOne(id, cmd, query, showExt, searchFull, seenTargets, matchItems, g_ExcludedCommandsObj)") > 0)
     Check("seen-targets", InStr(searchSrc, 'seenTargets[row["targetKey"]] := true') > 0)
     Check("topk-wired", InStr(searchSrc, "Search_TopK(nonExact, topK)") > 0)
     Check("no-searchidx", !InStr(searchSrc, "SearchIdx_"))

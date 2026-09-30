@@ -11,18 +11,67 @@ ClearInput() {
     g_InputEdit.Focus()
 }
 
-; 运行命令并获取输出 (v2: FileRead 为返回值式)
-RunAndGetOutput(command) {
-    tempFileName := "Rim.stdout.log"
-    fullCommand := A_ComSpec ' /C "' command ' > ' tempFileName '"'
-    RunWait(fullCommand, A_Temp, "Hide")
+; 运行命令并获取输出: 唯一临时文件 (Tick+PID, 防并发覆盖) + 超时 (默认 5s, 超时杀进程) + finally 清理.
+; 返回 Map{ok, output, exitCode, timedOut, error, file}; 超时/失败 ok=false, output 为已读到的部分输出.
+RunAndGetOutput(command, timeoutMs := 5000) {
+    uniq := "Rim.stdout." . DllCall("kernel32\GetCurrentProcessId", "UInt") . "." . A_TickCount . ".log"
+    tmpPath := A_Temp . "\" . uniq
+    fullCommand := A_ComSpec . ' /C "' . command . ' > "' . tmpPath . '" 2>&1"'
+    pid := 0
     try {
-        result := FileRead(A_Temp "\" tempFileName, "UTF-8")
-    } catch {
-        result := ""
+        Run(fullCommand, A_Temp, "Hide", &pid)
+    } catch Error as e {
+        try RimLog("ERROR", "RunAndGetOutput spawn failed: " . SubStr(String(command), 1, 80), e)
+        catch {
+        }
+        return Map("ok", false, "output", "", "exitCode", -1, "timedOut", false, "error", e.Message, "file", "")
     }
-    try FileDelete(A_Temp "\" tempFileName)
-    return result
+    timedOut := false
+    exitCode := 0
+    try {
+        if (timeoutMs > 0 && pid) {
+            ; 超时等待: 子进程在时限内不退出则杀掉, 绝不永久阻塞输入线程
+            errLevel := ProcessWaitClose(pid, timeoutMs / 1000)
+            if (errLevel = 0) {
+                timedOut := true
+                try ProcessClose(pid)
+                catch {
+                }
+                try {
+                    pid2 := pid
+                    DllCall("kernel32\TerminateProcess", "Ptr", DllCall("kernel32\OpenProcess", "UInt", 1, "Int", 0, "UInt", pid2, "Ptr"), "UInt", 1)
+                } catch {
+                }
+                try RimLog("WARN", "RunAndGetOutput timeout(" . timeoutMs . "ms) kill: " . SubStr(String(command), 1, 80))
+                catch {
+                }
+            }
+            try exitCode := ProcessExist(pid) ? -1 : 0
+            catch {
+            }
+        } else if (pid) {
+            ProcessWaitClose(pid)
+        }
+    } catch Error as e {
+        try RimLog("ERROR", "RunAndGetOutput wait failed", e)
+        catch {
+        }
+    }
+    output := ""
+    try {
+        if (FileExist(tmpPath))
+            output := FileRead(tmpPath, "UTF-8")
+    } catch Error as e {
+        try RimLog("WARN", "RunAndGetOutput read failed: " . tmpPath, e)
+        catch {
+        }
+    }
+    try FileDelete(tmpPath)
+    catch {
+    }
+    if (timedOut)
+        return Map("ok", false, "output", output, "exitCode", -1, "timedOut", true, "error", "timeout", "file", "")
+    return Map("ok", true, "output", output, "exitCode", exitCode, "timedOut", false, "error", "", "file", "")
 }
 
 ; 核心命令执行
@@ -78,11 +127,17 @@ RunCommand(originCmd) {
     if (cmdType = "command" && IsSet(RimCommand)) {
         usage := ""
         try usage := RimCommand.CheckArgs(cmd, g_Arg)
-        catch {
+        catch Error as e {
+            try RimTryLog("RunCommand.CheckArgs", e, cmd)
+            catch {
+            }
         }
         if (usage != "") {
             try DisplayResult(usage)
-            catch {
+            catch Error as e {
+                try RimTryLog("RunCommand.DisplayUsage", e, cmd)
+                catch {
+                }
             }
             return
         }
@@ -194,51 +249,73 @@ OpenPath(filePath) {
 
 ; === 统一动作/命令执行器 (Unified Action & Command Dispatcher) ===
 ; 递归守卫: RimCommand.Execute ↔ ExecuteAction 双向互调, 动作串自指 (如 Action="command|self")
-; 会无界递归; 深度超 10 直接丢弃并记日志 (调用链见日志 action 字段)
-; 统一入口: 先经 ActionDispatch 真执行 (command/function/legacy/combo),
-; OK/HANDLER_FAIL 表示分发层已接管 (执行或记死), 不再重进 Body;
-; OK_DEFER/UNKNOWN_COMMAND/解析失败才落到 ExecuteAction_Body (前缀处理器 + run/file/key 等 + 递归)
-ExecuteAction(action := "", actionArg := "", source := "") {
-    static execDepth := 0
-    execDepth += 1
-    if (execDepth > 10) {
-        execDepth -= 1
-        try RimLog("ERROR", "ExecuteAction recursion overflow, drop: " . SubStr(action, 1, 120))
+; 会无界递归; 深度超 10 直接丢弃并记日志 (调用链见日志 action 字段).
+; 统一入口: 先经 ActionDispatch 真执行 (command/function/legacy/combo).
+; 只有 OK (已执行) / HANDLER_FAIL (已接管, 含记死) 才跳过 Body;
+; OK_DEFER (run|file|key|dir|cmd|url 无人可接) 与 UNKNOWN_COMMAND/解析失败才落到 Body.
+; ok=true 不等于已执行, 错判则文件/网址/按键静默死亡 (血泪).
+; 分发异常 (ActionParse/ActionDispatch 抛错): 记录并结束, 绝不自动下坠 Body,
+; 否则"分发失败"会被误认为"无人处理"导致重复执行或静默失败.
+; 结果形态: Map{code, handled, error, source}; code ∈ OK|OK_DEFER|HANDLER_FAIL|UNKNOWN_COMMAND|RECURSION|DISPATCH_ERROR|EMPTY.
+ActionResult(code, handled, error := "", source := "") {
+    return Map("code", code, "handled", handled, "error", String(error), "source", String(source))
+}
+
+; 统一动作/命令执行器 (唯一入口, 返回结构化结果; 调用方忽略返回值即"发后不管")
+ExecuteAction(action := "", actionArg := "", source := "", depth := 0) {
+    if (depth > 10) {
+        try RimLog("ERROR", "ExecuteAction recursion overflow, drop: " . SubStr(String(action), 1, 120))
         catch {
         }
-        return
+        return ActionResult("RECURSION", true, "depth overflow", source)
+    }
+    parsed := ""
+    try {
+        parsed := ActionParse(action, source)
+    } catch Error as e {
+        try RimLog("ERROR", "ActionParse throw src=" . source, e)
+        catch {
+        }
+        return ActionResult("DISPATCH_ERROR", true, e.Message, source)
+    }
+    fallCode := "OK_DEFER"
+    if (!IsObject(parsed) || !parsed.Has("ok") || !parsed["ok"]) {
+        code := ""
+        try code := parsed["code"]
+        catch {
+            code := "EMPTY"
+        }
+        fallCode := code != "" ? code : "EMPTY"
+        try RimLog("WARN", "ActionParse " . fallCode . " src=" . source . " raw=" . SubStr(String(action), 1, 80))
+        catch {
+        }
+    } else {
+        disp := ""
+        try {
+            disp := ActionDispatch(parsed, actionArg)
+        } catch Error as e {
+            ; 分发异常: 记录并结束, 不下坠 Body (止血点)
+            try RimLog("ERROR", "ActionDispatch throw src=" . source . " raw=" . SubStr(String(action), 1, 80), e)
+            catch {
+            }
+            return ActionResult("DISPATCH_ERROR", true, e.Message, source)
+        }
+        code := ""
+        try code := disp["code"]
+        catch {
+        }
+        if (code = "OK" || code = "HANDLER_FAIL")
+            return ActionResult(code, true, disp.Has("msg") ? disp["msg"] : "", source)
+        fallCode := code != "" ? code : "OK_DEFER"
     }
     try {
-        try {
-            parsed := ActionParse(action, source)
-            if (!parsed["ok"]) {
-                try RimLog("WARN", "ActionParse " . parsed["code"] . " src=" . source . " raw=" . SubStr(String(action), 1, 80))
-                catch {
-                }
-; 统一入口: 先经 ActionDispatch 真执行.
-; 只有 OK (已执行) / HANDLER_FAIL (已接管, 含记死) 才跳过 Body;
-; OK_DEFER (run|file|key|dir|cmd|url 无人可接) 与 UNKNOWN_COMMAND 必须落到 Body,
-; ok=true 不等于已执行, 错判则文件/网址/按键静默死亡 (血泪).
-            } else {
-                disp := ActionDispatch(parsed, actionArg)
-                code := ""
-                try code := disp["code"]
-                catch {
-                }
-                if (code = "OK" || code = "HANDLER_FAIL")
-                    return
-            }
-        } catch {
-        }
-        try {
-            global g_LogSid
-            if (IsSet(g_LogSid) && g_LogSid)
-                LogTrace(g_LogSid, "exec", SubStr(String(action), 1, 60))
-        }
-        ExecuteAction_Body(action, actionArg)
-    } finally {
-        execDepth -= 1
+        global g_LogSid
+        if (IsSet(g_LogSid) && g_LogSid)
+            LogTrace(g_LogSid, "exec", SubStr(String(action), 1, 60))
+    } catch {
     }
+    ExecuteAction_Body(action, actionArg, depth)
+    return ActionResult(fallCode, true, "", source)
 }
 
 ; command|id 与裸 ID 的 RimCommand 分发合流点 (原两处手写 IsSet+Registry.Has, 现收敛一处)
@@ -250,7 +327,7 @@ ExecuteCommandId(id, actionArg := "") {
     return false
 }
 
-ExecuteAction_Body(action := "", actionArg := "") {
+ExecuteAction_Body(action := "", actionArg := "", depth := 0) {
     global g_VimEngine
     if (action = "") {
         if (IsSet(g_VimEngine) && IsObject(g_VimEngine))
@@ -313,6 +390,10 @@ ExecuteAction_Body(action := "", actionArg := "") {
     else if (SubStr(action, 1, 4) = "key|") {
         Send(SubStr(action, 5))
     }
+    ; wshkey| 旧动作兼容: 与 key| 同义直通 (SendLevel 差异可忽略, 老行不断功能)
+    else if (SubStr(action, 1, 7) = "wshkey|") {
+        Send(SubStr(action, 8))
+    }
     else if (SubStr(action, 1, 4) = "dir|") {
         OpenPath(SubStr(action, 5))
     }
@@ -321,7 +402,7 @@ ExecuteAction_Body(action := "", actionArg := "") {
     }
     else if (SubStr(action, 1, 8) = "command|") {
         if (!ExecuteCommandId(SubStr(action, 9), actionArg))
-            ExecuteAction(SubStr(action, 9), actionArg)
+            ExecuteAction(SubStr(action, 9), actionArg, "", depth + 1)
     }
     else if (SubStr(action, 1, 4) = "url|") {
         url := SubStr(action, 5)
@@ -346,7 +427,17 @@ ExecuteAction_Body(action := "", actionArg := "") {
             try {
                 %fn%(actionArg)
                 return
-            } catch {
+            } catch Error as e1 {
+                try %fn%()
+                catch Error as e2 {
+                    try RimTryLog("ExecuteAction.Body:" . fn, e2, action)
+                    catch {
+                    }
+                    try RimLog("EXEC_FAILED", action . " fn=" . fn . " argErr=" . e1.Message, e2)
+                    catch {
+                    }
+                }
+                return
             }
         }
         try %fn%()

@@ -65,6 +65,25 @@ RimLog(level, msg, err := "") {
     }
 }
 
+; === 统一 try/catch 日志 (RimTryLog) ===
+; 规则: 热路径允许降级但至少限频记录一次; 配置解析/动作执行/插件注册禁止裸 catch.
+; 用法: try { ... } catch Error as e { RimTryLog("ExecuteAction.Body.run", e, target) }
+; throttleMs 内同一 context 只记一次 (防每键/每 Tick 刷屏).
+RimTryLog(context, err := "", detail := "", throttleMs := 5000) {
+    static lastHit := Map()
+    try {
+        now := A_TickCount
+        if (lastHit.Has(context) && now - lastHit[context] < throttleMs)
+            return
+        lastHit[context] := now
+        msg := String(context)
+        if (detail != "")
+            msg .= " | " . SubStr(String(detail), 1, 160)
+        RimLog("WARN", msg, err)
+    } catch {
+    }
+}
+
 ; === 错误处理 (ShowConfirm 唯一在用; 弹窗确认走 MsgBox 直调) ===
 ShowConfirm(message, title := "Rim") {
     return MsgBox(message, title, 36) = "Yes"

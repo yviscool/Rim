@@ -30,21 +30,32 @@ SubStrByByte(text, length) {
 ; === 文件读取 (UTF-8 显式解码) ===
 ; 注意: 无 BOM 的 UTF-8 文件若行尾是 CJK, `Loop read` 会吞换行 (已实测 381→349 行)!
 ; 所有读配置/索引处必须走这里, 不得直接 Loop read
+; 结构化文件读取: Map{code, content, error}; code ∈ OK|NOT_FOUND|READ_FAIL|EMPTY.
+; 调用方按 code 处理, 不得把"文件不存在/读失败"当空文件吞掉.
 ReadTextFile(filePath, encoding := "UTF-8") {
+    if (!FileExist(filePath))
+        return Map("code", "NOT_FOUND", "content", "", "error", "not found: " . filePath)
+    content := ""
     try {
         content := FileRead(filePath, encoding)
-    } catch {
-        return ""
+    } catch Error as e {
+        try RimTryLog("ReadTextFile", e, filePath)
+        catch {
+        }
+        return Map("code", "READ_FAIL", "content", "", "error", e.Message)
     }
-    ; 剥 BOM
     if (SubStr(content, 1, 1) = Chr(0xFEFF))
         content := SubStr(content, 2)
-    return content
+    if (content = "")
+        return Map("code", "EMPTY", "content", "", "error", "")
+    return Map("code", "OK", "content", content, "error", "")
 }
 
-; 按行读取, 返回数组 (自动处理 CRLF/LF/CR)
+
+
+; 按行读取, 返回数组 (自动处理 CRLF/LF/CR; 不存在/读失败/空文件一律回 [])
 ReadFileLines(filePath, encoding := "UTF-8") {
-    content := ReadTextFile(filePath, encoding)
+    content := ReadTextFile(filePath, encoding)["content"]
     if (content = "")
         return []
     lines := StrSplit(content, "`n", "`r")

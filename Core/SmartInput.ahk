@@ -78,16 +78,64 @@ SI_CommandCores() {
     return out
 }
 
+; 全表小写并行数组 (与 SI_CommandCores 同序同纪元; ghost 大表扫描免逐字 StrLower).
+; 空表不缓存 (与 SI_CommandCores 同策略, 探针子集每次重算反正便宜).
+SI_CommandCoresLow() {
+    static lowCache := [], lowSeq := -1
+    cores := SI_CommandCores()
+    if (cores.Length = 0)
+        return []
+    seq := -1
+    try seq := RimCommand.Seq + 0
+    catch {
+    }
+    if (lowSeq = seq && lowCache.Length = cores.Length)
+        return lowCache
+    low := []
+    for _, c in cores {
+        try low.Push(StrLower(c))
+        catch {
+            low.Push("")
+        }
+    }
+    lowCache := low
+    lowSeq := seq
+    return low
+}
+
+; 全表前缀命中 (与 SI_MatchPrefixPure 同语义: 首个比 prefix 长的前缀命中; 原序).
+SI_MatchPrefixTable(prefix) {
+    if (prefix = "")
+        return ""
+    p := StrLower(prefix)
+    plen := StrLen(prefix)
+    cores := SI_CommandCores()
+    lows := SI_CommandCoresLow()
+    n := cores.Length
+    if (lows.Length < n)
+        n := lows.Length
+    i := 1
+    while (i <= n) {
+        c := cores[i]
+        if (c != "" && StrLen(c) > plen && SubStr(lows[i], 1, plen) == p)
+            return c
+        i++
+    }
+    return ""
+}
+
 SI_FindGhost(prefix) {
     global g_CurrentCommandList
-    cands := []
+    ; 小源 (头/可见列表/会话/历史) 线性保序扫描; 大表走缓存小写数组.
+    ; 顺序与旧"全拼 cands 后一次 MatchPrefixPure"逐项一致: 小源优先, 全表兜底.
+    small := []
     ; 1. 列表头优先: 回车跑的就是它, ghost 与执行目标永远一致 (精确置顶后更稳定).
     ;    列表行统一 "command|<id>", 先拆包取核再解名
     try {
         if (g_CurrentCommandList.Length > 0) {
             headCore := SI_NameOf(SI_CoreOfPure(HistSplit(g_CurrentCommandList[1])["el"]))
             if (headCore != "")
-                cands.Push(headCore)
+                small.Push(headCore)
         }
     } catch {
     }
@@ -96,21 +144,23 @@ SI_FindGhost(prefix) {
         for _i, element in g_CurrentCommandList {
             if (_i > 30)
                 break
-            cands.Push(SI_NameOf(SI_CoreOfPure(HistSplit(element)["el"])))
+            small.Push(SI_NameOf(SI_CoreOfPure(HistSplit(element)["el"])))
         }
     } catch {
     }
-    ; 3. 会话/历史/全表 (可见列表无前缀命中时才兜底, 比如整句含参复现)
+    ; 3. 会话/历史 (可见列表无前缀命中时才兜底, 比如整句含参复现)
     ;    历史输入态 (含参) 在历史裸核之前: 整句复现优先于裸命令
     for _i, cand in SI_InputHistAll()
-        cands.Push(cand)
+        small.Push(cand)
     for _i, cand in SI_HistoryInputs()
-        cands.Push(cand)
+        small.Push(cand)
     for _i, cand in SI_HistoryCores()
-        cands.Push(cand)
-    for _i, cand in SI_CommandCores()
-        cands.Push(cand)
-    return SI_MatchPrefixPure(prefix, cands)
+        small.Push(cand)
+    hit := SI_MatchPrefixPure(prefix, small)
+    if (hit != "")
+        return hit
+    ; 4. 全表兜底 (原 cands 尾段, 同序)
+    return SI_MatchPrefixTable(prefix)
 }
 
 SI_PushUnique(pool, seen, cand) {
@@ -628,18 +678,26 @@ SI_NoteInput(input) {
 
 ; ---------------- 延迟校验 (整框底色) ----------------
 
+; 校验延迟缓存 (配置读进状态, 5s TTL; 改配置最多 5s 生效, 每击键不再读配置)
+SI_ValidateDelay() {
+    static delay := 300, lastRead := 0
+    if (A_TickCount - lastRead > 5000) {
+        try {
+            delay := Integer(CfgGet("SmartInput", "ValidateDelay", "300"))
+        } catch {
+        }
+        if (delay < 50)
+            delay := 50
+        lastRead := A_TickCount
+    }
+    return delay
+}
+
 SI_ScheduleValidate() {
     if !SI_Enabled()
         return
-    delay := 300
     try {
-        delay := Integer(CfgGet("SmartInput", "ValidateDelay", "300"))
-    } catch {
-    }
-    if (delay < 50)
-        delay := 50
-    try {
-        SetTimer(SI_Validate, -delay)
+        SetTimer(SI_Validate, -SI_ValidateDelay())
     } catch {
     }
 }
@@ -669,6 +727,75 @@ SI_Validate(*) {
     }
 }
 
+; 规范化前缀集合 (会话/历史/全表小写名的全部前缀; Seq+池签名纪元, 变化自失效).
+; SI_CheckState 每 300ms 防抖调一次, 原三表 StrLower 逐项扫描收敛为一次 O(1) 命中.
+; 签名碰撞只影响底色 (未知↔已知), 下次池变化自愈, 不影响执行.
+SI_PoolSig() {
+    sig := "x"
+    try sig := String(RimCommand.Seq)
+    catch {
+    }
+    try {
+        h := SI_InputHistAll()
+        s := h.Length
+        for _, v in h
+            s += StrLen(v)
+        sig .= ":" . s
+    } catch {
+        sig .= ":x"
+    }
+    try {
+        global g_HistoryCommands
+        s := g_HistoryCommands.Length
+        for _, v in g_HistoryCommands
+            s += StrLen(v)
+        sig .= ":" . s
+    } catch {
+        sig .= ":x"
+    }
+    return sig
+}
+
+SI_PrefixSet() {
+    static set := Map(), epoch := ""
+    sig := SI_PoolSig()
+    if (epoch = sig && set.Count > 0)
+        return set
+    set := Map()
+    try {
+        for _, cand in SI_InputHistAll()
+            SI_PrefixSetAdd(set, cand)
+    } catch {
+    }
+    try {
+        for _, cand in SI_HistoryCores()
+            SI_PrefixSetAdd(set, cand)
+    } catch {
+    }
+    try {
+        for _, cand in SI_CommandCores()
+            SI_PrefixSetAdd(set, cand)
+    } catch {
+    }
+    epoch := sig
+    return set
+}
+
+SI_PrefixSetAdd(set, nm) {
+    try {
+        low := StrLower(nm)
+        if (low = "")
+            return
+        i := 1
+        L := StrLen(low)
+        while (i <= L) {
+            set[SubStr(low, 1, i)] := true
+            i++
+        }
+    } catch {
+    }
+}
+
 ; 1=已知, 0=未知命令头, -1=中性 (空/特殊前缀)
 SI_CheckState(input) {
     if (input == "")
@@ -687,21 +814,9 @@ SI_CheckState(input) {
             return 1
     } catch {
     }
-    hl := StrLower(head)
-    hlen := StrLen(head)
     try {
-        for _i, cand in SI_InputHistAll() {
-            if (cand != "" && SubStr(StrLower(cand), 1, hlen) == hl)
-                return 1
-        }
-        for _i, cand in SI_HistoryCores() {
-            if (cand != "" && SubStr(StrLower(cand), 1, hlen) == hl)
-                return 1
-        }
-        for _i, cand in SI_CommandCores() {
-            if (cand != "" && SubStr(StrLower(cand), 1, hlen) == hl)
-                return 1
-        }
+        if (SI_PrefixSet().Has(StrLower(head)))
+            return 1
     } catch {
         return -1
     }

@@ -142,7 +142,15 @@ class GestureHook {
             g_Gesture["downMods"] := ""
         }
 
-        pollInterval := g_Gesture["poll"] > 0 ? g_Gesture["poll"] : 10
+        ; 轮询只在按下会话内启用 (OnUp/Esc/Relay 即停, OnPoll 兼自停兜底);
+        ; 周期钳制 16-120ms: 低于 16ms 的高频空转省掉, 用户设大值予以尊重
+        pollInterval := 20
+        try {
+            cfgPoll := g_Gesture["poll"] + 0
+            if (cfgPoll >= 16)
+                pollInterval := Min(cfgPoll, 120)
+        } catch {
+        }
         SetTimer(GestureHook_PollTimer, pollInterval)
         ; 右键会话内吞掉左键单击: 点一下左键即锁存音量模式 (R 仍按住时滚轮调音量),
         ; 避免这次左键点透到下层窗口. 会话结束 (R 松开) 时解绑. VolLatch=0 时不启用.
@@ -197,11 +205,16 @@ class GestureHook {
             return
     }
 
-    ; ---- 采样轮询 (防卡死与轨迹跟进) ----
+    ; ---- 采样轮询 (防卡死与轨迹跟进; 仅按下会话内运行) ----
     static OnPoll() {
         global g_Gesture
-        if (!g_Gesture["down"])
+        if (!g_Gesture["down"]) {
+            ; 自停兜底: 非常规路径漏停 timer 时, 下一次空转即摘掉, 不常驻唤醒
+            try SetTimer(GestureHook_PollTimer, 0)
+            catch {
+            }
             return
+        }
 
         CoordMode("Mouse", "Screen")
         ; Esc 取消手势

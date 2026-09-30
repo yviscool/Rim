@@ -37,8 +37,8 @@ Main() {
     ; 接线静态断言: KeyHandler 内守卫存在, 且在该函数 CheckWin 之前
     src := FileRead(A_ScriptDir . "\..\Core\Engine.ahk", "UTF-8")
     khPos := InStr(src, "KeyHandler(thisHotkey)")
-    kh := InStr(src, "DialogShouldPassthrough(_dlgCls, _cc, _nn)", false, khPos)
-    cw := InStr(src, "winName := this.CheckWin()", false, kh)
+    kh := InStr(src, "DialogShouldPassthrough(ctx[", false, khPos)
+    cw := InStr(src, "winName := this.CheckWin(ctx)", false, khPos)
     Check("wire-call", khPos > 0 && kh > 0 && cw > 0 && kh < cw)
     Check("wire-func", InStr(src, "DialogShouldPassthrough(winClass, ctrlClass, ctrlNN)") > 0)
     out := A_ScriptDir . "\..\probe_dialog_input.out.txt"
