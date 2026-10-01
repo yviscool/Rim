@@ -32,7 +32,11 @@ StatsBall_Sample() {
     } catch {
     }
     net := ""
-    try net := StatsBall_NetRate()
+    ; NetRate 单一归属: 全仓只允许 SampleNet() 直调 NetRate (Tick 内 Sample()+SampleNet()
+    ; 背靠背会把 dt 压到 <50ms, 直调两次即第二次清零覆盖 —— 网速恒 0 的根因).
+    ; Sample() 的网速经 SampleNet() 间接拿, 背靠背第二次命中 250ms 节流直接回缓存,
+    ; 不再进 NetRate, EMA 不被洗掉.
+    try net := StatsBall_SampleNet()
     catch {
         net := ""
     }
@@ -43,12 +47,12 @@ StatsBall_Sample() {
     if IsObject(net) {
         cache.up := net.up
         cache.dn := net.dn
-        cache.rawUp := net.rawUp
-        cache.rawDn := net.rawDn
-        cache.peakUp := net.peakUp
-        cache.peakDn := net.peakDn
-        cache.netDt := net.dt
-        cache.netValid := net.valid
+        try cache.rawUp := net.rawUp
+        try cache.rawDn := net.rawDn
+        try cache.peakUp := net.peakUp
+        try cache.peakDn := net.peakDn
+        try cache.netDt := net.HasProp("netDt") ? net.netDt : net.dt
+        try cache.netValid := net.HasProp("netValid") ? net.netValid : net.valid
     }
     return cache
 }
@@ -56,7 +60,10 @@ StatsBall_Sample() {
 ; 网速快车道 (250ms 节流; Tick 以 UI 节奏刷新 CPU/内存全量时, 网速单独跟高频).
 ; EMA/峰值状态由 StatsBall_NetRate 内部持有, 调得越频越平滑, 变 dt 自适应.
 StatsBall_SampleNet() {
-    static cache := {up: 0, dn: 0, rawUp: 0, rawDn: 0, peakUp: 0, peakDn: 0, netDt: 0, netValid: 0}
+    ; 缓存同时暴露 dt/valid 与 netDt/netValid 两套别名 (NetRate 原生形 vs 快照形),
+    ; 调用方按任一命名取数都不空.
+    static cache := {up: 0, dn: 0, rawUp: 0, rawDn: 0, peakUp: 0, peakDn: 0,
+        dt: 0, valid: 0, netDt: 0, netValid: 0}
     static netTick := 0
     now := DllCall("kernel32\GetTickCount64", "UInt64")
     if (netTick && now - netTick < 250)
@@ -73,13 +80,16 @@ StatsBall_SampleNet() {
             cache.peakDn := net.peakDn
             cache.netDt := net.dt
             cache.netValid := net.valid
+            cache.dt := net.dt
+            cache.valid := net.valid
         }
     } catch {
     }
     return cache
 }
 
-; 全量快照与网速快照合并 (返回新对象, 不碰 StatsBall_Sample 的共享缓存)
+; 全量快照与网速快照合并 (返回新对象, 不碰 StatsBall_Sample 的共享缓存).
+; n 无效 (首 tick/基线重置, valid=0) 时回落 a 自带的网速, 禁止用 0 覆盖真值.
 StatsBall_MergeSample(a, n) {
     o := {cpu: 0, memPct: 0, availGB: 0, totalGB: 0, up: 0, dn: 0}
     try {
@@ -90,8 +100,24 @@ StatsBall_MergeSample(a, n) {
     } catch {
     }
     try {
-        o.up := n.up
-        o.dn := n.dn
+        nValid := 0
+        try nValid := n.HasProp("netValid") ? n.netValid : n.valid
+        catch {
+            try nValid := n.valid
+        }
+        if (nValid > 0) {
+            o.up := n.up
+            o.dn := n.dn
+        } else {
+            try o.up := a.up
+            catch {
+                try o.up := n.up
+            }
+            try o.dn := a.dn
+            catch {
+                try o.dn := n.dn
+            }
+        }
     } catch {
     }
     return o
@@ -230,7 +256,14 @@ StatsBall_NetRate() {
         return result
     }
     dt := (now - prevTick) / 1000.0
-    if (dt < 0.05 || dt > 10.0) {
+    ; 短间隔 (<50ms, 多为同拍背靠背重复调用): 保住上次结果与基线直接返回,
+    ; 不推进 prevTick、不洗 EMA/峰值, 下次有效调用仍能吃到完整差分.
+    ; 长间隔 (>10s, 休眠/挂起): 基线已烂才重置.
+    if (dt < 0.05) {
+        result.interfaces := curCount
+        return result
+    }
+    if (dt > 10.0) {
         tmp := prevLuid, prevLuid := curLuid, curLuid := tmp
         tmp := prevRx, prevRx := curRx, curRx := tmp
         tmp := prevTx, prevTx := curTx, curTx := tmp
