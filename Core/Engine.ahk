@@ -1431,3 +1431,31 @@ NormalizeVimKey(key) {
     cache[key] := out
     return out
 }
+
+; 窗口默认模式应用 (ini [窗名] default_mode): 读 CfgGet, 窗与模式俱在才 SetMode,
+; 否则 false (缺键/缺窗/非法值静默忽略, 不断启动; 调用方: Rim.ahk VimdCheckHotKey
+; 启动编译 + DoSaveBody 即时生效; 探针直调测真逻辑)
+VimdApplyDefaultMode(winName) {
+    try {
+        global g_VimEngine
+        if !IsObject(g_VimEngine)
+            return false
+        mode := ""
+        try mode := CfgGet(winName, "default_mode", "")
+        catch {
+            return false
+        }
+        if (mode = "")
+            return false
+        win := g_VimEngine.GetWin(winName)
+        if !IsObject(win)
+            return false
+        if !win.modeList.Has(mode)
+            return false
+        ; 注意: Engine.SetMode 只建表不切态, 切态一律直写 currentMode (对齐 Gen_InsertMode)
+        win.currentMode := mode
+        return true
+    } catch {
+        return false
+    }
+}

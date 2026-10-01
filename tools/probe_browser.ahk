@@ -10,6 +10,8 @@ T(key, *) => key
 
 #Include ..\Core\Plugin.ahk
 #Include ..\Core\Engine.ahk
+#Include ..\Lib\EasyIni.ahk
+#Include ..\Core\ConfigSchema.ahk
 #Include ..\Plugins\Browser.ahk
 
 Assert(cond, msg) {
@@ -21,6 +23,7 @@ Assert(cond, msg) {
 }
 
 engine := VimEngine()
+global g_VimEngine := engine
 Browser_Keymaps(engine)
 
 ; --- 1) 窗口注册 ---
@@ -115,6 +118,16 @@ Assert(insertMap[NormalizeVimKey("<Esc>")] = "<Bw_NormalMode>", "insert-esc")
 Assert(insertMap[NormalizeVimKey("<C-[>")] = "<Bw_NormalMode>", "insert-ctrl-lbracket")
 Assert(!insertMap.Has("j"), "insert-passthrough")
 
+; --- 2b) 默认模式走通用 ini (插件内无硬编码; 纯 keymaps 后保持 normal) ---
+for _, bwName in ["Browser_Chrome", "Browser_Edge", "Browser_Firefox"]
+    Assert(engine.GetWin(bwName).currentMode = "normal", "no-hardcoded-" . bwName)
+; 真实 rim.ini 三窗 default_mode=insert, 经 VimdApplyDefaultMode 生效
+global g_Conf := EasyIni(A_ScriptDir . "\..\Conf\rim.ini")
+for _, bwName in ["Browser_Chrome", "Browser_Edge", "Browser_Firefox"] {
+    Assert(VimdApplyDefaultMode(bwName) = true, "ini-apply-" . bwName)
+    Assert(engine.GetWin(bwName).currentMode = "insert", "ini-insert-" . bwName)
+}
+
 ; --- 3) 动作↔函数一一对应 (源码扫描) ---
 src := FileRead(A_ScriptDir . "\..\Plugins\Browser.ahk", "UTF-8")
 src := StrReplace(src, "`r`n", "`n") ; fresh clone 经 .gitattributes 洗出 CRLF, 归一再断言
@@ -147,6 +160,15 @@ while (pos := RegExMatch(src, 'engine\.MapKey\(.+?, "(<Bw_[A-Za-z0-9_]+>)"', &k,
     pos += StrLen(k[0])
 }
 FileAppend("PASS: maps-registered`n", "*")
+
+; --- 3b) 新标签自动进 insert (新标签聚焦地址栏) ---
+pos := RegExMatch(src, 'm)^Bw_NewTab\(\) \{$', &m)
+Assert(pos > 0, "newtab-func")
+body := SubStr(src, pos, InStr(src, "`n}`n", false, pos) - pos)
+Assert(InStr(body, 'Send("^t")') > 0 && InStr(body, 'Bw_SetMode("insert")') > 0, "newtab-insert")
+
+; --- 3c) 插件内无硬编码默认 insert (走通用 ini default_mode) ---
+Assert(InStr(src, 'currentMode := "insert"') = 0, "no-hardcoded-src")
 
 ; --- 4) 模式切换有提示 (对齐 VimEditor: 切模式弹 ToolTip 600ms 自消) ---
 Assert(InStr(src, 'Bw_InsertMode() {`n    Bw_SetMode("insert")`n    ToolTip(') > 0, "tip-insert")

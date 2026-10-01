@@ -534,8 +534,13 @@ VimdCheckHotKey() {
             ; 原先整段跳过导致 ini 改键全部无声失效, 且 <S-Q>/<S-O> 等 Shift 映射丢失)
             setClass := CfgGet(sectionName, "set_class", "")
             setFile := CfgGet(sectionName, "set_file", "")
-            if (setClass = "" && setFile = "")
+            if (setClass = "" && setFile = "") {
+                ; 纯覆盖节 (如只有 default_mode): 不建窗, 只应用默认模式
+                try VimdApplyDefaultMode(sectionName)
+                catch {
+                }
                 continue
+            }
             ; 单窗 vim 持久开关: 本节 vim_enable=0 则整节不编译进 vim (两层一起停, 重启仍有效; Win+W 只管临时)
             if (Trim(CfgGet(sectionName, "vim_enable", "1")) = "0")
                 continue
@@ -548,6 +553,9 @@ VimdCheckHotKey() {
             }
             for _k, _v in section {
                 if (SubStr(_k, 1, 4) = "set_" || SubStr(_k, 1, 7) = "enable_")
+                    continue
+                ; default_mode 是窗口元配置, 不是热键 (不跳过会被绑成名叫 default_mode 的热键)
+                if (_k = "default_mode")
                     continue
                 _v := Trim(_v)
                 if (_v = "" || SubStr(_v, 1, 1) = ";")
@@ -567,6 +575,10 @@ VimdCheckHotKey() {
                 if !g_VimEngine.ActionList.Has(_v)
                     g_VimEngine.SetAction(_v, _v)
                 g_VimEngine.MapKey(_k, _v, sectionName, mode)
+            }
+            ; 默认模式压轴应用 (覆盖按键编译中的 SetMode, ini 压过插件硬编码)
+            try VimdApplyDefaultMode(sectionName)
+            catch {
             }
         }
     }

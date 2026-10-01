@@ -142,7 +142,7 @@ Typora / console sections exist as match-ready placeholders with no default keys
 
 ### 3.5 Browsers (Chrome / Edge / Firefox, `Browser` plugin)
 
-Scroll: `j/k/h/l`, `d/u` half page, `Ctrl+D/U`, `Ctrl+F/B` full page, `gg/G` top/bottom, `0/$`; tabs: `t` new, `x` close, `X` reopen, `J/K` (`gn/gp` aliases) prev/next, `g1..g8`/`g0` jump; history: `H/L` back/forward, `r` reload, `R` hard reload; `o` address bar, `/` find, `n/N` next/previous match (auto-insert); `zi/zo/z0` zoom, `b` bookmark, `gh` history, `gd` downloads; `i/a` insert, `Esc` normal, `?` help. `f` is deliberately unmapped and passed through, reserving it for Surfingkeys / Vimium-style link hints (they can coexist).
+Scroll: `j/k/h/l`, `d/u` half page, `Ctrl+D/U`, `Ctrl+F/B` full page, `gg/G` top/bottom, `0/$`; tabs: `t` new, `x` close, `X` reopen, `J/K` (`gn/gp` aliases) prev/next, `g1..g8`/`g0` jump; history: `H/L` back/forward, `r` reload, `R` hard reload; `o` address bar, `/` find, `n/N` next/previous match (auto-insert); `zi/zo/z0` zoom, `b` bookmark, `gh` history, `gd` downloads; `i/a` insert, `Esc` normal, `?` help. Starts in insert by default (`[Browser_*] default_mode`, changeable in the config center). `f` is deliberately unmapped and passed through, reserving it for Surfingkeys / Vimium-style link hints (they can coexist).
 
 ### 3.6 Excel (`XLMAIN`, `Excel` plugin, VimDesktop key layer replica, no COM)
 
@@ -150,13 +150,15 @@ Move: `h/j/k/l`, `H/J/K/L` extend selection, `gg/G` sheet start/end (`Ctrl+Home/
 
 ### 3.7 Everything (`EVERYTHING`, `Everything` plugin)
 
-`j/k` move, `gg/G`/`0` first/last, `Enter` opens natively, `i` or `/` focuses the search box (auto-insert), `Esc` normal, `?` help. Everything passes through while the search/rename box is focused; unmapped letters in normal mode pass through as quick search, nothing is swallowed.
+`j/k` move, `gg/G`/`0` first/last, `Enter` opens natively, `i` or `/` focuses the search box (auto-insert), `Esc` normal, `?` help. Everything passes through while the search/rename box is focused; unmapped letters in normal mode pass through as quick search, nothing is swallowed. Starts in insert by default (`[Everything] default_mode`, changeable in the config center).
 
 ### 3.8 PDF (SumatraPDF + Foxit, `Pdf` plugin)
 
 SumatraPDF matched by class name; Foxit (volatile class names) matched by `FoxitReader.exe` / `FoxitPDFReader.exe` fallback. `j/k/h/l` scroll, `d/u` page (Space), `Ctrl+D/U` big page (PgDn/PgUp), `gg/G` start/end, `0/$`, `/` find (auto-insert), `n/N` next/previous match (F3), `zi/zo/z0` zoom (best-effort), `Esc` normal, `?` help.
 
 Customize in the config UI, or as `key=<action>[=mode]` ini lines such as `dd=<deletedLine>[=normal]`. Action names come from the General plugin (arrows/window/tab/mouse actions) and per-app plugins.
+
+Default mode: add `default_mode=insert` (or `normal`) to a window section and it starts in that mode, overriding plugin hardcoding (e.g. Everything/Browser insert defaults can be flipped back). The config center key tab has a "Default mode" dropdown following the window selection; `(follow default)` deletes the key (full revert needs a restart). Invalid values land in the restart bucket, never breaking startup.
 
 ## 4. Tray and Config Center
 

@@ -20,6 +20,11 @@ VimCfg_BuildKeysTab(g) {
     g.Add("Button", "x240 y445 w70", T("cfg.keys_add")).OnEvent("Click", VimCfg_KeyAdd)
     g.Add("Button", "x+10 w70", T("cfg.keys_edit")).OnEvent("Click", VimCfg_KeyEdit)
     g.Add("Button", "x+10 w70", T("cfg.keys_delete")).OnEvent("Click", VimCfg_KeyDel)
+    ; 默认模式 (与左列窗口选择联动; 改动即 MarkDirty, 走保存 live 直达引擎)
+    g.Add("Text", "x490 y449 w80", T("cfg.keys_defmode"))
+    cbdef := g.Add("ComboBox", "x575 y445 w150 h25", [])
+    cbdef.OnEvent("Change", VimCfg_KeyDefModeChange)
+    g_VimCfg["kdef"] := cbdef
     g_VimCfg["kw"] := lbw
     g_VimCfg["km"] := lbm
     g_VimCfg["ke"] := ed
@@ -98,6 +103,94 @@ VimCfg_KeyWinPickInner(*) {
     try {
         lbm.Choose(pickIdx)
         VimCfg_KeyModePick(lbm)
+    }
+    VimCfg_KeyDefModeReload()
+}
+
+; 默认模式下拉: 跟随窗口选择; 首项恒为跟随默认 (删键语义), 其后为该窗真实模式
+VimCfg_KeyDefModeReload() {
+    global g_VimCfg, g_VimEngine, g_Conf
+    if !g_VimCfg.Has("kdef")
+        return
+    cb := g_VimCfg["kdef"]
+    wname := g_VimCfg.Has("kwin") ? g_VimCfg["kwin"] : ""
+    follow := ""
+    try follow := T("cfg.keys_deffollow")
+    catch {
+        follow := "(跟随默认)"
+    }
+    items := [follow]
+    if (wname != "" && IsSet(g_VimEngine) && IsObject(g_VimEngine)) {
+        try {
+            w := g_VimEngine.GetWin(wname)
+            if IsObject(w) {
+                for mname, _ in w.modeList
+                    items.Push(mname)
+            }
+        }
+    }
+    cur := ""
+    if (wname != "" && IsObject(g_Conf)) {
+        try cur := CfgGet(wname, "default_mode", "")
+        catch {
+        }
+    }
+    ; 脏数据优先显示 (未保存的修改不被 ini 旧值盖掉; 删除=跟随默认)
+    if (wname != "" && g_VimCfg.Has("dirty")) {
+        try {
+            for sk, d in g_VimCfg["dirty"] {
+                pos := InStr(sk, Chr(1))
+                if (SubStr(sk, 1, pos - 1) = wname && SubStr(sk, pos + 1) = "default_mode") {
+                    if (d["del"])
+                        cur := ""
+                    else
+                        cur := d["val"]
+                }
+            }
+        }
+    }
+    try {
+        cb.Delete()
+        cb.Add(items)
+        cb.Text := cur != "" ? cur : follow
+    }
+}
+
+VimCfg_KeyDefModeChange(*) {
+    global g_VimCfg, g_VimEngine
+    if !g_VimCfg.Has("kdef")
+        return
+    wname := g_VimCfg.Has("kwin") ? g_VimCfg["kwin"] : ""
+    if (wname = "")
+        return
+    txt := ""
+    try txt := Trim(g_VimCfg["kdef"].Text)
+    follow := ""
+    try follow := T("cfg.keys_deffollow")
+    catch {
+        follow := "(跟随默认)"
+    }
+    if (txt = "" || txt = follow) {
+        ; 跟随默认 = 删键 (完全恢复要重启, 保存时进重启单明示)
+        VimCfg_MarkDirty(wname, "default_mode", "", true)
+    } else {
+        ok := false
+        try {
+            if (IsSet(g_VimEngine) && IsObject(g_VimEngine)) {
+                w := g_VimEngine.GetWin(wname)
+                if IsObject(w) && w.modeList.Has(txt)
+                    ok := true
+            }
+        }
+        if (!ok) {
+            ; 手写非法值直接打回, 不进脏表 (DoSave 的重启单只是二手兜底)
+            VimCfg_KeyDefModeReload()
+            return
+        }
+        VimCfg_MarkDirty(wname, "default_mode", txt)
+    }
+    try VimCfg_RefreshWarnBar()
+    catch {
     }
 }
 

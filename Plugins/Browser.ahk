@@ -10,6 +10,8 @@
 ;   omnibar 模糊搜索. normal 模式下 f 未映射, 直接透传 (给扩展留键).
 ; 输入框保护: insert 模式除 <Esc>/<C-[> 外零映射 (逐字透传); normal 下在输入框里
 ;   打字前先按 i (与 VimDesktop General 一致); o// 动作自动切 insert.
+; 默认模式 insert (cVim/Vimium 语义: 新窗新标签聚焦地址栏, 本来就要打字),
+;   走通用 ini [Browser_*] default_mode, 插件内不硬编码 (可被翻转).
 ; 地址栏/查找条 Esc: insert 模式 <Esc> 经 Bw_NormalMode 原样 Send("{Escape}"),
 ;   查找条能正常关闭.
 
@@ -249,6 +251,8 @@ Bw_End() {
 
 Bw_NewTab() {
     Send("^t")
+    ; 新标签聚焦地址栏, 跟进 insert (无提示, 地址栏聚焦本身即反馈)
+    Bw_SetMode("insert")
 }
 
 Bw_CloseTab() {

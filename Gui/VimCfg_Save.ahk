@@ -337,6 +337,27 @@ VimCfg_DoSaveBody(dirty) {
     for sk, d in dirty {
         pos := InStr(sk, Chr(1))
         sec := SubStr(sk, 1, pos - 1)
+        ; default_mode: 窗口默认模式, live 直达引擎 (非法值/删除进重启单;
+        ; 不拦截会掉进 vimLive 被当热键 MapKey, 灾难)
+        if (d["key"] = "default_mode") {
+            if (!d["del"]) {
+                modeOk := false
+                try modeOk := IsSet(g_VimEngine) && IsObject(g_VimEngine)
+                    && IsObject(g_VimEngine.GetWin(sec)) && g_VimEngine.GetWin(sec).modeList.Has(d["val"])
+                catch {
+                    modeOk := false
+                }
+                if (modeOk) {
+                    ; 直写切态 (SetMode 只建表, 对齐 Gen_InsertMode)
+                    try g_VimEngine.GetWin(sec).currentMode := d["val"]
+                    catch {
+                    }
+                    continue
+                }
+            }
+            needRestart.Push("[" sec "] " . d["key"])
+            continue
+        }
         isNewSec := secHad.Has(sec) ? !secHad[sec] : false
         scope := VimCfg_ItemScope(sec, d["key"], d["del"], isNewSec)
         if (scope = "restart") {

@@ -142,7 +142,7 @@ Typora / CMD 窗口节已预留（匹配规则就绪），暂无默认键位，�
 
 ### 3.5 浏览器（Chrome / Edge / Firefox，`Browser` 插件）
 
-滚动：`j/k/h/l`、`d/u` 半页、`Ctrl+D/U`、`Ctrl+F/B` 整页、`gg/G` 顶底、`0/$` 行首尾；标签：`t` 新建、`x` 关闭、`X` 恢复、`J/K`（`gn/gp` 同义）前后、`g1..g8`/`g0` 跳转；历史：`H/L` 后退前进、`r` 刷新、`R` 硬刷新；`o` 地址栏、`/` 查找、`n/N` 上下匹配（自动进 insert）；`zi/zo/z0` 缩放、`b` 收藏、`gh` 历史、`gd` 下载；`i/a` 进输入、`Esc` 回普通、`?` 帮助。`f` 故意留空透传，给 Surfingkeys / Vimium 类扩展的链接提示让路（两者可混用）。
+滚动：`j/k/h/l`、`d/u` 半页、`Ctrl+D/U`、`Ctrl+F/B` 整页、`gg/G` 顶底、`0/$` 行首尾；标签：`t` 新建、`x` 关闭、`X` 恢复、`J/K`（`gn/gp` 同义）前后、`g1..g8`/`g0` 跳转；历史：`H/L` 后退前进、`r` 刷新、`R` 硬刷新；`o` 地址栏、`/` 查找、`n/N` 上下匹配（自动进 insert）；`zi/zo/z0` 缩放、`b` 收藏、`gh` 历史、`gd` 下载；`i/a` 进输入、`Esc` 回普通、`?` 帮助。默认进 insert（`[Browser_*] default_mode`，可在配置中心改回）。`f` 故意留空透传，给 Surfingkeys / Vimium 类扩展的链接提示让路（两者可混用）。
 
 ### 3.6 Excel（`XLMAIN`，`Excel` 插件，复刻 VimDesktop 按键层，免 COM）
 
@@ -150,13 +150,15 @@ Typora / CMD 窗口节已预留（匹配规则就绪），暂无默认键位，�
 
 ### 3.7 Everything（`EVERYTHING`，`Everything` 插件）
 
-`j/k` 上下、`gg/G`/`0` 首尾、`Enter` 原生打开、`i` 或 `/` 聚焦搜索框（自动进 insert）、`Esc` 回普通、`?` 帮助。搜索框/重命名框聚焦时全部透传；normal 下未映射字母透传即快搜，不吞键。
+`j/k` 上下、`gg/G`/`0` 首尾、`Enter` 原生打开、`i` 或 `/` 聚焦搜索框（自动进 insert）、`Esc` 回普通、`?` 帮助。搜索框/重命名框聚焦时全部透传；normal 下未映射字母透传即快搜，不吞键。默认进 insert（`[Everything] default_mode`，可在配置中心改回）。
 
 ### 3.8 PDF（SumatraPDF + 福昕，`Pdf` 插件）
 
 Sumatra 按类名精确匹配，福昕（类名多变）按 `FoxitReader.exe` / `FoxitPDFReader.exe` 兜底。`j/k/h/l` 滚动、`d/u` 翻页（Space）、`Ctrl+D/U` 大翻页（PgDn/PgUp）、`gg/G` 首尾、`0/$`、`/` 查找（自动进 insert）、`n/N` 上下匹配（F3）、`zi/zo/z0` 缩放（best-effort）、`Esc` 回普通、`?` 帮助。
 
 自定义：在配置中心可视化改，或按 ini 格式 `按键=<动作>[=模式]` 写，如 `dd=<deletedLine>[=normal]`。动作名参考 General 插件（方向/窗口管理/标签页/鼠标模拟等）与各应用插件。
+
+默认模式：窗口节加一行 `default_mode=insert`（或 `normal`），该窗启动即进此模式，覆盖插件硬编码（如 Everything 默认 insert、浏览器默认 insert 都可被翻转）。配置中心按键页右下“默认模式”下拉与窗口选择联动，`(跟随默认)` 即删键（完全恢复要重启）。非法值保存时进重启单，不会断启动。
 
 ## 四、托盘与配置中心
 
