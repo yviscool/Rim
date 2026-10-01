@@ -290,6 +290,9 @@ global g_CommandArea := "Edit4"
 ; VimDesktop 风格插件 (需 VimEngine, 已接线)
 #Include *i Plugins\Explorer.ahk
 #Include *i Plugins\Browser.ahk
+#Include *i Plugins\Excel.ahk
+#Include *i Plugins\Everything.ahk
+#Include *i Plugins\Pdf.ahk
 #Include *i Plugins\Terminal.ahk
 #Include *i Plugins\TCCompare.ahk
 #Include *i Plugins\WinMerge.ahk

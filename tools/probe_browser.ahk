@@ -117,6 +117,7 @@ Assert(!insertMap.Has("j"), "insert-passthrough")
 
 ; --- 3) 动作↔函数一一对应 (源码扫描) ---
 src := FileRead(A_ScriptDir . "\..\Plugins\Browser.ahk", "UTF-8")
+src := StrReplace(src, "`r`n", "`n") ; fresh clone 经 .gitattributes 洗出 CRLF, 归一再断言
 registered := Map()
 pos := 1
 while (pos := RegExMatch(src, 'engine\.SetAction\("(<Bw_[A-Za-z0-9_]+>)"', &m, pos)) {
