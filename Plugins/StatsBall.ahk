@@ -579,6 +579,13 @@ class StatsBallObj {
         }
         this.downTick := 0
         this.dragging := false
+        ; 锁定时远距离松手: 立刻弹回记录位 (不等 Tick; 点击加速不受影响)
+        if (wasDrag && this.lockPos) {
+            try this.g.Show("x" . this.x . " y" . this.y . " NoActivate")
+            catch {
+            }
+            return
+        }
         if (wasDrag) {
             this.SnapAndSave()
             return
@@ -710,8 +717,20 @@ class StatsBallObj {
         if (!this.dragging) {
             try {
                 WinGetPos(&sx, &sy, , , "ahk_id " . this.ballHwnd)
-                this.x := sx
-                this.y := sy
+                if (this.lockPos && (sx != this.x || sy != this.y)) {
+                    ; 锁定时强制回位: 拖拽结算/系统/外部旁路挪窗, 下一 tick 弹回;
+                    ; 未锁定走原校准 (缓存<=实时, 存盘准)
+                    ; TEMP-DIAG3: 回位即记 (定案即删, 看谁在挪窗)
+                    try FileAppend(A_Now . " SB-SNAPBACK from=" . sx . "," . sy . " to=" . this.x . "," . this.y . "`n", A_ScriptDir . "\Rim.error.log")
+                    catch {
+                    }
+                    try this.g.Show("x" . this.x . " y" . this.y . " NoActivate")
+                    catch {
+                    }
+                } else {
+                    this.x := sx
+                    this.y := sy
+                }
             } catch {
             }
         }

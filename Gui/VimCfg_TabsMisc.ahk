@@ -498,8 +498,15 @@ VimCfg_CheckConflicts() {
         for secName, _sec in G.GetSections() {
             if (knownSecs.Has(secName) || SubStr(secName, 1, 12) = "GestureApp:")
                 continue
-            if (G.Get(secName, "set_class", "") = "" && G.Get(secName, "set_file", "") = "")
+            if (G.Get(secName, "set_class", "") = "" && G.Get(secName, "set_file", "") = "") {
+                ; 纯覆盖节 (如只有 default_mode): 引擎有同名窗即合法覆盖, 不告警;
+                ; 窗名对不上 (拼写错误) 照样告警
+                try {
+                    if (G.Get(secName, "default_mode", "") != "" && IsSet(g_VimEngine) && IsObject(g_VimEngine) && IsObject(g_VimEngine.GetWin(secName)))
+                        continue
+                }
                 out.Push(Map("level", "warn", "text", T("cfg.warn_unknown_sec", secName)))
+            }
         }
     }
     ; 10. 未注册动作 (引擎 keymap 全扫, 截断 10 条; 自定义后注册的不在此列)

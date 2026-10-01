@@ -7,12 +7,24 @@
 ; 2) Rim.ahk 接线: 纯覆盖节 + 按键循环跳过 + 编译压轴三处俱在
 ; 3) DoSaveBody 即时生效拦截 + 配置中心 UI 接线俱在 (源码断言)
 ; 4) 真实 rim.ini 含 [Everything] default_mode=insert
-T(key, *) => key
+; T 桩必须保留参数 (告警文本带段名, 否则 InStr 永远匹配不上; 纯 key 形态与生产一致)
+T(key, args*) {
+    out := String(key)
+    for _, a in args {
+        try out .= "|" . String(a)
+        catch {
+        }
+    }
+    return out
+}
 
 #Include ..\Lib\EasyIni.ahk
 #Include ..\Core\Plugin.ahk
 #Include ..\Core\ConfigSchema.ahk
 #Include ..\Core\Engine.ahk
+#Include ..\Gui\VimCfg_TabsMisc.ahk
+#Include ..\Plugins\Browser.ahk
+#Include ..\Plugins\Everything.ahk
 
 Assert(cond, msg) {
     if (!cond) {
@@ -33,6 +45,8 @@ global g_Conf := EasyIni(A_ScriptDir . "\..\Conf\rim.ini")
 Assert(IsObject(g_Conf), "conf-load")
 
 global g_VimEngine := VimEngine()
+Browser_Keymaps(g_VimEngine)
+Everything_Keymaps(g_VimEngine)
 g_VimEngine.SetWin("W1", "C1", "e1.exe")
 w1 := g_VimEngine.GetWin("W1")
 Assert(w1.currentMode = "normal", "init-normal")
@@ -77,6 +91,40 @@ Assert(InStr(iniSrc, "[Everything]") > 0, "ini-section")
 Assert(InStr(iniSrc, "default_mode=insert") > 0, "ini-value")
 tplSrc := ReadNorm(A_ScriptDir . "\..\Conf\rim.template.ini")
 Assert(InStr(tplSrc, "default_mode=insert") > 0, "tpl-value")
+
+; --- 5) 健康检查: 纯覆盖节不误报, 拼错窗名照样报 ---
+res := VimCfg_CheckConflicts()
+hit := ""
+for _, item in res {
+    try txt := String(item["text"])
+    catch {
+        continue
+    }
+    for _, wn in ["Browser_Chrome", "Browser_Edge", "Browser_Firefox", "Everything"] {
+        if InStr(txt, wn)
+            hit .= wn . ";"
+    }
+}
+Assert(hit = "", "health-no-false-positive")
+; 反例: 无引擎窗的纯覆盖节必须告警 (证明检查没被关掉)
+try g_Conf.AddSection("Typo_WinX")
+catch {
+}
+try g_Conf.Set("Typo_WinX", "default_mode", "insert")
+catch {
+}
+res := VimCfg_CheckConflicts()
+found := false
+for _, item in res {
+    try {
+        if InStr(String(item["text"]), "Typo_WinX")
+            found := true
+    }
+}
+Assert(found, "health-typo-still-warns")
+try g_Conf.DeleteSection("Typo_WinX")
+catch {
+}
 
 try FileDelete(A_ScriptDir . "\..\probe_default_mode.out.txt")
 FileAppend("probe-default-mode-ok`n", A_ScriptDir . "\..\probe_default_mode.out.txt")
