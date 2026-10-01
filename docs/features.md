@@ -115,6 +115,8 @@ Tray → Gesture Manager: record new strokes, add shape samples, CRUD, blacklist
 
 Keys are per-application (matched by process/class/title); each app section can set a multi-key timeout (`set_time_out`, 800 ms default). `h/j/k/l` and friends only take over inside configured apps.
 
+Modes and switches (shared by all Vim windows): most windows have `normal` / `insert` states, `i` enters input, `Esc` returns to normal and passes `Esc` through; `?` pops a condensed key list inside the app (matching the tables below); numeric prefixes work on repeatable actions (e.g. `3j`); `Win+W` toggles takeover per window independently (immediate, no restart); adding `vim_enable=0` to a window section disables it persistently (survives restart).
+
 ### 3.1 Global hotkeys (defaults)
 
 | Hotkey | Action |
@@ -136,13 +138,29 @@ Move: `h` parent dir, `j`/`k` up/down, `l` enter (super return), `a` select all;
 
 `i` insert mode, `Esc` back to normal; in normal mode `h/j/k/l` move, `w/b/e` word jumps, `0`/`Shift+4` line ends, `dd` delete line, `yy` yank line, `p` paste, `u` undo, `Ctrl+R` redo, `x` delete char, `a/o/I/A/O` insert variants, `v` visual mode, `/` search, `n/N` next/previous match.
 
-Typora / console sections exist as match-ready placeholders with no default keys yet — add your own. To permanently disable takeover for an editor, set `vim_enable=0` in its window section (survives restart).
+Typora / console sections exist as match-ready placeholders with no default keys yet — add your own. To permanently disable takeover for a window, set `vim_enable=0` in its window section (survives restart, see above).
+
+### 3.5 Browsers (Chrome / Edge / Firefox, `Browser` plugin)
+
+Scroll: `j/k/h/l`, `d/u` half page, `Ctrl+D/U`, `Ctrl+F/B` full page, `gg/G` top/bottom, `0/$`; tabs: `t` new, `x` close, `X` reopen, `J/K` (`gn/gp` aliases) prev/next, `g1..g8`/`g0` jump; history: `H/L` back/forward, `r` reload, `R` hard reload; `o` address bar, `/` find, `n/N` next/previous match (auto-insert); `zi/zo/z0` zoom, `b` bookmark, `gh` history, `gd` downloads; `i/a` insert, `Esc` normal, `?` help. `f` is deliberately unmapped and passed through, reserving it for Surfingkeys / Vimium-style link hints (they can coexist).
+
+### 3.6 Excel (`XLMAIN`, `Excel` plugin, VimDesktop key layer replica, no COM)
+
+Move: `h/j/k/l`, `H/J/K/L` extend selection, `gg/G` sheet start/end (`Ctrl+Home/End`), `0` first column, `$` region right edge, `gk/gj/gh/gl` (`sk/sj/sh/sl` aliases) region edges; pages: `Ctrl+D/U`, `Space/Shift+Space`; edit: `i` (sends F2 into the cell), `a` append at row end, `I` ribbon key tips; clipboard: `x` cut, `dd/D` clear, `yy/Y` copy, `yr/yc` copy entire row/column, `p` paste, `P` paste special, `yh/yl/yk/yj` copy from neighbor, `Fj/Fl` fill down/right (`Ctrl+D/R`); find: `/` find, `R` replace, `go` go-to (F5, auto-insert); sheets: `gt/gT` next/previous (`Ctrl+PgDn/PgUp`); `sr/sc/sa` select row/column/all; `or/oc/Or/Oc` insert rows/columns (Chinese-UI context-menu sequences); `ZZ` save and close, `ZQ` close only (answer the save dialog yourself, no silent COM discard). Safety: unmapped single characters are swallowed in normal mode (so nothing gets typed into cells); type with `i`; `u` undo, `Ctrl+R` redo. Deep-COM features (autofilter, colors, merge) are out of scope.
+
+### 3.7 Everything (`EVERYTHING`, `Everything` plugin)
+
+`j/k` move, `gg/G`/`0` first/last, `Enter` opens natively, `i` or `/` focuses the search box (auto-insert), `Esc` normal, `?` help. Everything passes through while the search/rename box is focused; unmapped letters in normal mode pass through as quick search, nothing is swallowed.
+
+### 3.8 PDF (SumatraPDF + Foxit, `Pdf` plugin)
+
+SumatraPDF matched by class name; Foxit (volatile class names) matched by `FoxitReader.exe` / `FoxitPDFReader.exe` fallback. `j/k/h/l` scroll, `d/u` page (Space), `Ctrl+D/U` big page (PgDn/PgUp), `gg/G` start/end, `0/$`, `/` find (auto-insert), `n/N` next/previous match (F3), `zi/zo/z0` zoom (best-effort), `Esc` normal, `?` help.
 
 Customize in the config UI, or as `key=<action>[=mode]` ini lines such as `dd=<deletedLine>[=normal]`. Action names come from the General plugin (arrows/window/tab/mouse actions) and per-app plugins.
 
 ## 4. Tray and Config Center
 
-Right-click tray: show launcher, gesture manager, config center, StatsBall toggle, suspend, restart, quit. The config center edits launcher, radar, smart input, hotkeys, plugin switches, TC, and Vim maps; `[Plugins]` toggles each of the 18 plugins individually (see `Conf/rim.template.ini`).
+Right-click tray: show launcher, gesture manager, config center, StatsBall toggle, suspend, restart, quit. The config center edits launcher, radar, smart input, hotkeys, plugin switches, TC, and Vim maps; `[Plugins]` toggles each plugin individually (see `Conf/rim.template.ini`).
 
 ## 5. StatsBall
 

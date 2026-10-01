@@ -742,3 +742,36 @@ if (menuOpen && g_TCLastCmd != 572)
 ; ✅ 附带教训：`cmd | head` 后取 $? 拿到的是 head 的码，假绿过一次；
 ;   判退出码一律重定向到文件再 echo
 ```
+
+### 错误 40：`.gitattributes eol=crlf` 会洗掉源码扫描探针的 `` `n `` 断言 —— fresh clone 必挂
+
+```ahk
+; ❌ 实测翻车 (还原 RimTip 工作树后 probe_browser 首挂 tip-insert)：
+;   `git checkout` 按 `*.ahk text eol=crlf` 把 Write 工具生成的 LF 文件洗成 CRLF，
+;   探针 `InStr(src, 'Foo() {`n    Bar(')` 里 `{` 与 `` `n `` 之间多了个 `` `r ``，
+;   永远匹配不上。本机 LF 工作树全绿，一换机器 / 重 clone 就红，极难察觉
+; ✅ 凡读源码做 InStr/RegEx `^...$` 断言的探针，读完先归一：
+;   src := StrReplace(src, "`r`n", "`n")
+;   （Loop Parse 形态天然安全：`Loop Parse, content, "`n", "`r"` 已 strip `r，见错误 16）
+; ✅ 附带：`git status` 报 M 但 `git diff` 为空，即纯换行漂移（内容一致），
+;   转回 LF（`python -c` 批量 replace）即可，不要顺手"修"出实质改动
+```
+
+### 错误 41：同一键 `MapKey` 两次 —— 后胜无告警，探针才抓得住
+
+```ahk
+; ❌ 实测翻车 (Excel 插件 `u` 绑了两次翻页，撤销映射被静默覆盖)：
+;   MapKey 只写 keymapList[key] := action，无重复警告；手写 50+ 映射时极易复制粘贴带出双绑
+; ✅ 收尾必跑 wiring 探针（动作↔函数 + 映射抽查双锁，见 probe_desktop_apps）；
+;   同键双绑一律视为 bug，先删后加，不要"覆盖式修改"
+```
+
+### 错误 42：探针扫描 `MapKey` 引用会撞内置 `<Pass>`/`<>` —— 白名单放行
+
+```ahk
+; ❌ 实测翻车 (probe_desktop_apps 误报 Xl_-unreg <Pass>)：
+;   WireCheck 用 `engine\.MapKey\(.+?, "(<...>)"` 收集动作名，
+;   Count 前缀用的 `<Pass>` 是引擎关键字，从未经 SetAction 注册
+; ✅ 收集循环里先排除：`if (k[1] != "<Pass>" && k[1] != "<>")` 再查注册表；
+;   新增引擎内置动作时同步更新此白名单
+```

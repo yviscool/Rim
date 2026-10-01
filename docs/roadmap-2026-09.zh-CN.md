@@ -79,3 +79,13 @@ Rim 已经形成一条完整的 Windows 输入工作流：启动阶段加载配�
 - 暂不根据现有 100% benchmark 宣称识别准确率达标；在独立真实数据和负样本完成前，只把它作为回归和性能测试。
 
 这一路线先保护输入安全和可发布性，再收口配置、插件、执行边界，最后做索引和训练闭环。每一步都有独立验收证据，也不会把性能优化和行为重构混在同一个难以回滚的版本里。
+
+---
+
+## 2026-10 追记（对照上文验收）
+
+* P1-6 插件契约第二版（#6：Id/Version/ApiVersion/Dependencies/Capabilities、依赖排序、冲突检测、阶段失败报告）已落地，见 `Core/Plugin.ahk`。
+* 统一动作协议（#5：ActionParse/ActionDispatch、`OK`/`OK_DEFER` 下坠、死引用探针）已落地；`probe_dead_refs` + `probe_ini_roundtrip` CI 常驻。
+* 应用 Vim 从 TC/Explorer/记事本扩展到浏览器（Chrome/Edge/Firefox）、Excel（VimDesktop 按键层复刻，免 COM）、Everything、PDF（SumatraPDF/福昕），见 `docs/features.md §3.5–3.8`，探针 `probe_browser`/`probe_desktop_apps` 锁死。
+* matrix 本表已补 13–16 行（四窗真机核对）；`i18n_audit` 保持 `missing_core: []`。
+* 结转下一轮：Outlook/播放器 Vim（T0 收尾）、新窗手势层（`GestureApp:*` 补齐）、全探针 CRLF 横扫（`.gitattributes eol=crlf` 会洗掉源码扫描探针的 `` `n `` 断言，见 AGENTS.md 错误 40）。

@@ -21,7 +21,7 @@ Rim combines three desktop workflows: a searchable command launcher, modal keybo
 > Full user guide (launcher command tables, gesture tables, Vim key tables): [Features in Detail](docs/features.md).
 
 - **Launcher:** find and run indexed files, configured commands, and fallback actions. Ghost completion, history search, and `;`/`:`/`|`/`@` prefixes included — see the guide.
-- **Application-aware keyboard controls:** define modes, key sequences, counts, and actions per window or process. Total Commander, Explorer, and Notepad ship with default mappings, tabulated in the guide.
+- **Application-aware keyboard controls:** define modes, key sequences, counts, and actions per window or process. Total Commander, Explorer, Notepad, browsers (Chrome/Edge/Firefox), Excel, Everything, and PDF readers ship with default mappings, tabulated in the guide.
 - **Mouse gestures:** draw with the configured mouse button, map direction sequences or gesture templates to actions, and customize application-specific rules and exclusions. Holding the trigger also enables wheel shortcuts: cycle taskbar windows, or L-click once for volume mode — see [Features in Detail](docs/features.md) and [Wheel gestures](docs/gesture-wheel.md).
 - **Desktop monitor:** an optional floating radar displays CPU, memory, and network activity, with configurable refresh and alert settings.
 - **Configuration UI:** manage launcher, hotkey, plugin, Total Commander, gesture, and related settings from the tray menu.
@@ -39,9 +39,9 @@ These global bindings come from the default `Conf/rim.ini`. They can be changed 
 | `Win+Esc` | Toggle the launcher |
 | `Alt+Space` | Toggle the launcher |
 | `Alt+E` | Toggle Total Commander |
-| `Win+W` | Toggle the VimEditor integration |
+| `Win+W` | Toggle Vim takeover for the active window |
 
-Vim-style keys such as `h`, `j`, `k`, and `l` are application-specific mappings, not global defaults. For example, the default configuration maps them for Explorer and Notepad. Right-button drag is the default gesture trigger; a short click remains an ordinary right click.
+Vim-style keys such as `h`, `j`, `k`, and `l` are application-specific mappings, not global defaults. The default configuration maps them per app — file managers, editors, browsers, spreadsheets, search tools, and readers each get their own mode set (see the guide). `Win+W` toggles takeover for whatever window is active, independently per window. Right-button drag is the default gesture trigger; a short click remains an ordinary right click.
 
 ## Requirements
 
@@ -102,7 +102,7 @@ tools/        Localization audit and smoke-test scripts
 
 ## Development and Checks
 
-The CI workflow (`.github/workflows/i18n.yml`, jobs `audit` + `smoke`) gates on: localization coverage (`i18n_audit --check`), parse smoke (`smoke_parse`), hybrid register parity (`smoke_register`, en zero-missing), SmartInput/command/context/plugin/workspace/gesture/audit probes, dispatch invariants (`probe_nohook/global_hook/terminal/vim_hotkeys/gesture_state`), gesture store/unified/fix/ui probes, gesture benchmark (P95≤50ms, accuracy≥90), a config-service gate (no direct `g_Conf.Get/Set` outside the allowlist), include-order plus ~23 contract probes (exit code decides, `*.out.txt` is supplementary). To run the same checks locally:
+The CI workflow (`.github/workflows/i18n.yml`, jobs `audit` + `smoke`) gates on: localization coverage (`i18n_audit --check`), parse smoke (`smoke_parse`), hybrid register parity (`smoke_register`, en zero-missing), SmartInput/command/context/plugin/workspace/gesture/audit probes, dispatch invariants (`probe_nohook/global_hook/terminal/vim_hotkeys/gesture_state`), gesture store/unified/fix/ui probes, gesture benchmark (P95≤50ms, accuracy≥90), a config-service gate (no direct `g_Conf.Get/Set` outside the allowlist), include-order plus the contract probes under `tools/probe_*.ahk` (exit code decides, `*.out.txt` is supplementary). To run the same checks locally:
 
 ```powershell
 python tools/i18n_audit.py audit --check
