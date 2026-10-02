@@ -355,25 +355,34 @@ StatsBall_NetResetResult(&result, &smoothUp, &smoothDn, &peakUp, &peakDn, &hasRa
 ; Top-N 内存进程 (Toolhelp 快照, 无 WMI; 仅面板打开时调用)
 ; PROCESSENTRY32W 实测布局 (ctypes+内核双验证, 2026-09): cbSize=568
 ; (pcPriClassBase 占 8 字节!), pid@8, exe@40+4=44; cb 不对即 A_LastError=24
-StatsBall_TopProcs(n := 3) {
+StatsBall_TopProcs(n := 3, sortKey := "ws", sortDir := -1) {
     out := []
     if (n < 1)
         return out
     try {
+        static prevT := Map()   ; pid -> {kt_us: 上次内核态, ut_us: 上次用户态, tick: 上次采样毫秒}
+        static prevTick := 0
+        nowTick := A_TickCount
+        sysTotal := 0
+        idle0 := 0, kernel0 := 0, user0 := 0
+        if (DllCall("kernel32\GetSystemTimes", "UInt64*", &idle0, "UInt64*", &kernel0, "UInt64*", &user0))
+            sysTotal := (kernel0 + user0 + idle0) / 10
+        dSys := (prevTick > 0 && prevT.Has("__sys")) ? sysTotal - prevT["__sys"] : 0
+        prevT["__sys"] := sysTotal
         hSnap := DllCall("kernel32\CreateToolhelp32Snapshot", "UInt", 0x2, "UInt", 0, "Ptr")
         if (hSnap = -1)
             return out
         try {
             static pe := Buffer(568, 0), pmc := Buffer(72, 0)
-            topExe := []
-            topWs := []
-            topPid := []
+            allPs := []
             NumPut("UInt", 568, pe, 0)
             ok := DllCall("kernel32\Process32FirstW", "Ptr", hSnap, "Ptr", pe)
             while (ok) {
                 pid := NumGet(pe, 8, "UInt")
                 exe := StrGet(pe.Ptr + 44, 260)
                 ws := 0
+                kUs := 0
+                uUs := 0
                 try {
                     hProc := DllCall("kernel32\OpenProcess", "UInt", 0x1000, "Int", 0, "UInt", pid, "Ptr")
                     if (hProc) {
@@ -381,31 +390,65 @@ StatsBall_TopProcs(n := 3) {
                             NumPut("UInt", 72, pmc, 0)
                             if (DllCall("psapi\GetProcessMemoryInfo", "Ptr", hProc, "Ptr", pmc, "UInt", 72))
                                 ws := NumGet(pmc, 8, "Ptr")
+                            ct := Buffer(16, 0)
+                            et := Buffer(16, 0)
+                            kt := Buffer(16, 0)
+                            ut := Buffer(16, 0)
+                            if (DllCall("kernel32\GetProcessTimes", "Ptr", hProc, "Ptr", ct, "Ptr", et, "Ptr", kt, "Ptr", ut)) {
+                                kLo := NumGet(kt, 0, "UInt"), kHi := NumGet(kt, 4, "Int")
+                                uLo := NumGet(ut, 0, "UInt"), uHi := NumGet(ut, 4, "Int")
+                                kUs := (kHi * 4294967296 + kLo) / 10
+                                uUs := (uHi * 4294967296 + uLo) / 10
+                            }
                         } finally {
                             DllCall("kernel32\CloseHandle", "Ptr", hProc)
                         }
                     }
                 } catch {
                 }
-                if (exe != "" && ws > 0) {
-                    pos := 1
-                    while (pos <= topWs.Length && topWs[pos] >= ws)
-                        pos++
-                    if (pos <= n) {
-                        topWs.InsertAt(pos, ws)
-                        topExe.InsertAt(pos, exe)
-                        topPid.InsertAt(pos, pid)
-                        if (topWs.Length > n) {
-                            topWs.Pop()
-                            topExe.Pop()
-                            topPid.Pop()
-                        }
-                    }
+                cpuPct := 0
+                if (prevT.Has(pid) && prevTick > 0 && nowTick > prevTick && (kUs + uUs) > 0) {
+                    dProc := (kUs + uUs) - (prevT[pid].k + prevT[pid].u)
+                    if (dProc > 0 && dSys > 0)
+                        cpuPct := Min(100, dProc / dSys * 100)
                 }
+                if (kUs + uUs > 0)
+                    prevT[pid] := {k: kUs, u: uUs}
+                if (exe != "" && ws > 0)
+                    allPs.Push({exe: exe, ws: ws, pid: pid, cpu: cpuPct})
                 ok := DllCall("kernel32\Process32NextW", "Ptr", hSnap, "Ptr", pe)
             }
-            for i, ws in topWs
-                out.Push({exe: topExe[i], ws: ws, pid: topPid[i]})
+            ; 按 sortKey/sortDir 排序后取前 n (简单插入排序, 进程数 ~数百, 每秒一次可接受)
+            sorted := allPs.Clone()
+            i := 2
+            while (i <= sorted.Length) {
+                j := i
+                while (j > 1) {
+                    cmp := 0
+                    switch sortKey {
+                        case "cpu": cmp := sorted[j].cpu - sorted[j-1].cpu
+                        case "name": cmp := StrCompare(sorted[j].exe, sorted[j-1].exe, "C")
+                        default: cmp := sorted[j].ws - sorted[j-1].ws
+                    }
+                    if sortDir > 0
+                        cmp := -cmp
+                    if (cmp <= 0)
+                        break
+                    tmp := sorted[j]
+                    sorted[j] := sorted[j-1]
+                    sorted[j-1] := tmp
+                    j--
+                }
+                i++
+            }
+            k := 0
+            for _, row in sorted {
+                k++
+                if (k > n)
+                    break
+                out.Push(row)
+            }
+            prevTick := nowTick
         } finally {
             DllCall("kernel32\CloseHandle", "Ptr", hSnap)
         }

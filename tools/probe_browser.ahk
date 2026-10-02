@@ -112,6 +112,12 @@ Assert(edgeWin.modeList["normal"].keymapList[NormalizeVimKey("J")] = "<Bw_NextTa
 Assert(firefoxWin.modeList["normal"].keymapList["j"] = "<Bw_Down>", "firefox-parity")
 Assert(firefoxWin.modeList["normal"].keymapList["t"] = "<Bw_NewTab>", "firefox-tab")
 
+; 回归: insert 默认模式下数字必须透传 (否则地址栏输不出数字),
+; Count 处理必须跳过 insert 模式与组合中 (g1/z0 等两键映射)
+engineSrc := FileRead(A_ScriptDir . "\..\Core\Engine.ahk", "UTF-8")
+engineSrc := StrReplace(engineSrc, "`r`n", "`n")
+Assert(InStr(engineSrc, 'modeName != "insert" && win.KeyTemp = ""') > 0, "digit-count-skip-insert")
+
 ; insert 模式: 只留出口
 insertMap := chromeWin.modeList["insert"].keymapList
 Assert(insertMap[NormalizeVimKey("<Esc>")] = "<Bw_NormalMode>", "insert-esc")

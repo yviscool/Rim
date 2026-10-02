@@ -1,7 +1,7 @@
 #Requires AutoHotkey v2.0
 #Warn All, Off
 
-; 回归探针: 效率三窗 (Excel / Everything / Pdf)
+; 回归探针: 效率窗 (Excel / Pdf)
 ; 1) 窗口注册 (类+exe; 福昕类名多变, 按 exe 匹配)
 ; 2) 核心映射抽查 + insert 出口
 ; 3) 动作↔函数一一对应 (三文件源码扫描)
@@ -12,7 +12,6 @@ T(key, *) => key
 #Include ..\Core\Plugin.ahk
 #Include ..\Core\Engine.ahk
 #Include ..\Plugins\Excel.ahk
-#Include ..\Plugins\Everything.ahk
 #Include ..\Plugins\Pdf.ahk
 
 Assert(cond, msg) {
@@ -25,16 +24,12 @@ Assert(cond, msg) {
 
 engine := VimEngine()
 Excel_Keymaps(engine)
-Everything_Keymaps(engine)
 Pdf_Keymaps(engine)
 
 ; --- 1) 窗口注册 ---
 xlWin := engine.GetWin("Excel")
 Assert(IsObject(xlWin), "xl-exists")
 Assert(xlWin.WinClass = "XLMAIN" && xlWin.WinFile = "EXCEL.EXE", "xl-id")
-evWin := engine.GetWin("Everything")
-Assert(IsObject(evWin), "ev-exists")
-Assert(evWin.WinClass = "EVERYTHING" && evWin.WinFile = "Everything.exe", "ev-id")
 sumWin := engine.GetWin("Pdf_Sumatra")
 foxWin := engine.GetWin("Pdf_Foxit")
 foxNewWin := engine.GetWin("Pdf_FoxitNew")
@@ -61,12 +56,6 @@ Assert(XlMap("/") = "<Xl_Find>" && XlMap("go") = "<Xl_GoTo>", "xl-findgoto")
 Assert(XlMap("1") = "<Pass>", "xl-count")
 Assert(xlWin.modeList["insert"].keymapList[NormalizeVimKey("<Esc>")] = "<Xl_NormalMode>", "xl-insert-esc")
 
-evNormal := evWin.modeList["normal"].keymapList
-EvMap(raw) => evNormal.Has(NormalizeVimKey(raw)) ? evNormal[NormalizeVimKey(raw)] : "<MISSING>"
-Assert(EvMap("j") = "<Ev_Down>" && EvMap("k") = "<Ev_Up>", "ev-jk")
-Assert(EvMap("gg") = "<Ev_Top>" && EvMap("G") = "<Ev_Bottom>", "ev-topbottom")
-Assert(EvMap("i") = "<Ev_SearchFocus>" && EvMap("/") = "<Ev_SearchFocus>", "ev-search")
-Assert(EvMap("<Esc>") = "<Ev_NormalMode>", "ev-esc")
 
 pdfNormal := sumWin.modeList["normal"].keymapList
 PdfMap(raw) => pdfNormal.Has(NormalizeVimKey(raw)) ? pdfNormal[NormalizeVimKey(raw)] : "<MISSING>"
@@ -111,14 +100,12 @@ WireCheck(path, prefix) {
     FileAppend("PASS: " . prefix . "-wired=" . n . "`n", "*")
 }
 WireCheck(A_ScriptDir . "\..\Plugins\Excel.ahk", "Xl_")
-WireCheck(A_ScriptDir . "\..\Plugins\Everything.ahk", "Ev_")
 WireCheck(A_ScriptDir . "\..\Plugins\Pdf.ahk", "Pdf_")
 
 ; --- 4) Before 守卫 headless 默认 (=false) + NormalMode 白名单源码 ---
 Assert(Xl_Before("<Xl_Down>", xlWin) = false, "xl-before-default")
-Assert(Ev_Before("<Ev_Down>", evWin) = false, "ev-before-default")
 Assert(Pdf_Before("<Pdf_Down>", sumWin) = false, "pdf-before-default")
-for _, spec in [["Excel", "Xl"], ["Everything", "Ev"], ["Pdf", "Pdf"]] {
+for _, spec in [["Excel", "Xl"], ["Pdf", "Pdf"]] {
     content := FileRead(A_ScriptDir . "\..\Plugins\" . spec[1] . ".ahk", "UTF-8")
     content := StrReplace(content, "`r`n", "`n")
     Assert(InStr(content, 'if (actionName = "<' . spec[2] . '_NormalMode>")`n        return false') > 0, spec[2] . "-before-whitelist")

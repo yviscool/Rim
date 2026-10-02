@@ -148,17 +148,13 @@ Typora / CMD 窗口节已预留（匹配规则就绪），暂无默认键位，�
 
 移动：`h/j/k/l`、`H/J/K/L` 扩展选择、`gg/G` 表首尾（`Ctrl+Home/End`）、`0` 首列、`$` 区域右沿、`gk/gj/gh/gl`（`sk/sj/sh/sl` 同义）区域边缘；翻页：`Ctrl+D/U`、`Space/Shift+Space`；编辑：`i`（发 F2 进单元格）、`a` 行尾追加、`I` 功能区键提示；剪贴：`x` 剪切、`dd/D` 清除、`yy/Y` 复制、`yr/yc` 整行列复制、`p` 粘贴、`P` 选择性粘贴、`yh/yl/yk/yj` 邻格复制、`Fj/Fl` 向下/右填充（`Ctrl+D/R`）；查找：`/` 查找、`R` 替换、`go` 定位（F5，自动进 insert）；工作表：`gt/gT` 前后（`Ctrl+PgDn/PgUp`）；`sr/sc/sa` 选整行/列/全；`or/oc/Or/Oc` 插行列（中文界面右键菜单序列）；`ZZ` 保存并关闭、`ZQ` 只关闭（保存弹窗自己点，无 COM 静默弃存）。安全：normal 下未映射单字符一律吞掉（防写进单元格），打字按 `i`；`u` 撤销、`Ctrl+R` 重做。深 COM 功能（自动筛选、颜色、合并）本期不做。
 
-### 3.7 Everything（`EVERYTHING`，`Everything` 插件）
-
-`j/k` 上下、`gg/G`/`0` 首尾、`Enter` 原生打开、`i` 或 `/` 聚焦搜索框（自动进 insert）、`Esc` 回普通、`?` 帮助。搜索框/重命名框聚焦时全部透传；normal 下未映射字母透传即快搜，不吞键。默认进 insert（`[Everything] default_mode`，可在配置中心改回）。
-
-### 3.8 PDF（SumatraPDF + 福昕，`Pdf` 插件）
+### 3.7 PDF（SumatraPDF + 福昕，`Pdf` 插件）
 
 Sumatra 按类名精确匹配，福昕（类名多变）按 `FoxitReader.exe` / `FoxitPDFReader.exe` 兜底。`j/k/h/l` 滚动、`d/u` 翻页（Space）、`Ctrl+D/U` 大翻页（PgDn/PgUp）、`gg/G` 首尾、`0/$`、`/` 查找（自动进 insert）、`n/N` 上下匹配（F3）、`zi/zo/z0` 缩放（best-effort）、`Esc` 回普通、`?` 帮助。
 
 自定义：在配置中心可视化改，或按 ini 格式 `按键=<动作>[=模式]` 写，如 `dd=<deletedLine>[=normal]`。动作名参考 General 插件（方向/窗口管理/标签页/鼠标模拟等）与各应用插件。
 
-默认模式：窗口节加一行 `default_mode=insert`（或 `normal`），该窗启动即进此模式，覆盖插件硬编码（如 Everything 默认 insert、浏览器默认 insert 都可被翻转）。配置中心按键页右下“默认模式”下拉与窗口选择联动，`(跟随默认)` 即删键（完全恢复要重启）。非法值保存时进重启单，不会断启动。
+默认模式：窗口节加一行 `default_mode=insert`（或 `normal`），该窗启动即进此模式，覆盖插件硬编码（如浏览器默认 insert 可被翻转）。配置中心按键页右下“默认模式”下拉与窗口选择联动，`(跟随默认)` 即删键（完全恢复要重启）。非法值保存时进重启单，不会断启动。
 
 ## 四、托盘与配置中心
 

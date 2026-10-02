@@ -18,7 +18,6 @@ headless 探针 (`tools/probe_desktop_matrix.ahk`) 只覆盖数学与协议存�
 | 11 | 提权窗口 | 管理员程序的对话框按键 | 只读透传；`Send` 受 UIPI 限制可能丢键，重要操作请提权运行 Rim |
 | 12 | 自家窗口 | 配置中心/手势 UI 编辑框打字（配了 `[global]` 字母映射时） | 无劫持（进程守卫；`probe_input_guards`） |
 | 13 | 浏览器 Vim | Chrome/Edge/Firefox 下 `i`/`Esc` 模式提示、`?` 键表、`f` 穿透到 Surfingkeys | 提示 600ms 自消；`f` 不触发 Rim 动作 |
-| 14 | Everything | 搜框打字、`i` 聚焦搜框、结果区 `j/k` | 搜框畅打（Edit 透传）；`i` 一次聚焦（ClassNN 漂移则回退 Shift+Tab，记版本） |
 | 15 | Excel | 公式栏/单元格编辑中打字、`Esc` 退出编辑、未映射字母 | 编辑态零劫持（EXCEL6 守卫）；normal 下裸字母被吞不进单元格；`Esc` 切回 normal |
 | 16 | PDF | Sumatra 查找条打字、福昕窗口匹配 | 查找条透传；福昕命中窗口名（`Pdf_Foxit`/`Pdf_FoxitNew` 二选一，记 exe 名） |
 

@@ -148,17 +148,13 @@ Scroll: `j/k/h/l`, `d/u` half page, `Ctrl+D/U`, `Ctrl+F/B` full page, `gg/G` top
 
 Move: `h/j/k/l`, `H/J/K/L` extend selection, `gg/G` sheet start/end (`Ctrl+Home/End`), `0` first column, `$` region right edge, `gk/gj/gh/gl` (`sk/sj/sh/sl` aliases) region edges; pages: `Ctrl+D/U`, `Space/Shift+Space`; edit: `i` (sends F2 into the cell), `a` append at row end, `I` ribbon key tips; clipboard: `x` cut, `dd/D` clear, `yy/Y` copy, `yr/yc` copy entire row/column, `p` paste, `P` paste special, `yh/yl/yk/yj` copy from neighbor, `Fj/Fl` fill down/right (`Ctrl+D/R`); find: `/` find, `R` replace, `go` go-to (F5, auto-insert); sheets: `gt/gT` next/previous (`Ctrl+PgDn/PgUp`); `sr/sc/sa` select row/column/all; `or/oc/Or/Oc` insert rows/columns (Chinese-UI context-menu sequences); `ZZ` save and close, `ZQ` close only (answer the save dialog yourself, no silent COM discard). Safety: unmapped single characters are swallowed in normal mode (so nothing gets typed into cells); type with `i`; `u` undo, `Ctrl+R` redo. Deep-COM features (autofilter, colors, merge) are out of scope.
 
-### 3.7 Everything (`EVERYTHING`, `Everything` plugin)
-
-`j/k` move, `gg/G`/`0` first/last, `Enter` opens natively, `i` or `/` focuses the search box (auto-insert), `Esc` normal, `?` help. Everything passes through while the search/rename box is focused; unmapped letters in normal mode pass through as quick search, nothing is swallowed. Starts in insert by default (`[Everything] default_mode`, changeable in the config center).
-
-### 3.8 PDF (SumatraPDF + Foxit, `Pdf` plugin)
+### 3.7 PDF (SumatraPDF + Foxit, `Pdf` plugin)
 
 SumatraPDF matched by class name; Foxit (volatile class names) matched by `FoxitReader.exe` / `FoxitPDFReader.exe` fallback. `j/k/h/l` scroll, `d/u` page (Space), `Ctrl+D/U` big page (PgDn/PgUp), `gg/G` start/end, `0/$`, `/` find (auto-insert), `n/N` next/previous match (F3), `zi/zo/z0` zoom (best-effort), `Esc` normal, `?` help.
 
 Customize in the config UI, or as `key=<action>[=mode]` ini lines such as `dd=<deletedLine>[=normal]`. Action names come from the General plugin (arrows/window/tab/mouse actions) and per-app plugins.
 
-Default mode: add `default_mode=insert` (or `normal`) to a window section and it starts in that mode, overriding plugin hardcoding (e.g. Everything/Browser insert defaults can be flipped back). The config center key tab has a "Default mode" dropdown following the window selection; `(follow default)` deletes the key (full revert needs a restart). Invalid values land in the restart bucket, never breaking startup.
+Default mode: add `default_mode=insert` (or `normal`) to a window section and it starts in that mode, overriding plugin hardcoding (e.g. Browser insert defaults can be flipped back). The config center key tab has a "Default mode" dropdown following the window selection; `(follow default)` deletes the key (full revert needs a restart). Invalid values land in the restart bucket, never breaking startup.
 
 ## 4. Tray and Config Center
 

@@ -21,7 +21,7 @@ Rim combines three desktop workflows: a searchable command launcher, modal keybo
 > Full user guide (launcher command tables, gesture tables, Vim key tables): [Features in Detail](docs/features.md).
 
 - **Launcher:** find and run indexed files, configured commands, and fallback actions. Ghost completion, history search, and `;`/`:`/`|`/`@` prefixes included — see the guide.
-- **Application-aware keyboard controls:** define modes, key sequences, counts, and actions per window or process. Total Commander, Explorer, Notepad, browsers (Chrome/Edge/Firefox), Excel, Everything, and PDF readers ship with default mappings, tabulated in the guide.
+- **Application-aware keyboard controls:** define modes, key sequences, counts, and actions per window or process. Total Commander, Explorer, Notepad, browsers (Chrome/Edge/Firefox), Excel, and PDF readers ship with default mappings, tabulated in the guide.
 - **Mouse gestures:** draw with the configured mouse button, map direction sequences or gesture templates to actions, and customize application-specific rules and exclusions. Holding the trigger also enables wheel shortcuts: cycle taskbar windows, or L-click once for volume mode — see [Features in Detail](docs/features.md) and [Wheel gestures](docs/gesture-wheel.md).
 - **Desktop monitor:** an optional floating radar displays CPU, memory, and network activity, with configurable refresh and alert settings.
 - **Configuration UI:** manage launcher, hotkey, plugin, Total Commander, gesture, and related settings from the tray menu.

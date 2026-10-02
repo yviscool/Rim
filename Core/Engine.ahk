@@ -830,7 +830,9 @@ class VimEngine {
 
         ; 数字键处理（Count, 上限 MaxCount, 仅映射窗/组合中生效）
         ; vim 语义: 0 不能开头 Count ("0" 单独=行首, 由映射处理)
-        if RegExMatch(vimKey, "^(\d)$", &match) {
+        ; insert 模式数字即原文透传 (默认 insert 的浏览器/终端否则永远输不出数字);
+        ; 组合中 (KeyTemp 非空, 如 g1/z0) 数字不进 Count, 交给组合查表
+        if (modeName != "insert" && win.KeyTemp = "" && RegExMatch(vimKey, "^(\d)$", &match)) {
             digit := Integer(match[1])
             if (digit = 0 && win.Count = 0) {
                 ; 回落正常映射查找 (0=<home> 等)

@@ -6,7 +6,7 @@
 ;    合法→true 并切模式; 非法值/缺键/缺窗→false 且模式不动
 ; 2) Rim.ahk 接线: 纯覆盖节 + 按键循环跳过 + 编译压轴三处俱在
 ; 3) DoSaveBody 即时生效拦截 + 配置中心 UI 接线俱在 (源码断言)
-; 4) 真实 rim.ini 含 [Everything] default_mode=insert
+; 4) 真实 rim.ini 三窗 default_mode=insert
 ; T 桩必须保留参数 (告警文本带段名, 否则 InStr 永远匹配不上; 纯 key 形态与生产一致)
 T(key, args*) {
     out := String(key)
@@ -24,7 +24,6 @@ T(key, args*) {
 #Include ..\Core\Engine.ahk
 #Include ..\Gui\VimCfg_TabsMisc.ahk
 #Include ..\Plugins\Browser.ahk
-#Include ..\Plugins\Everything.ahk
 
 Assert(cond, msg) {
     if (!cond) {
@@ -46,7 +45,6 @@ Assert(IsObject(g_Conf), "conf-load")
 
 global g_VimEngine := VimEngine()
 Browser_Keymaps(g_VimEngine)
-Everything_Keymaps(g_VimEngine)
 g_VimEngine.SetWin("W1", "C1", "e1.exe")
 w1 := g_VimEngine.GetWin("W1")
 Assert(w1.currentMode = "normal", "init-normal")
@@ -87,7 +85,6 @@ Assert(InStr(keysSrc, "VimCfg_KeyDefModeChange") > 0, "ui-change")
 
 ; --- 4) 真实配置含首个用户 ---
 iniSrc := ReadNorm(A_ScriptDir . "\..\Conf\rim.ini")
-Assert(InStr(iniSrc, "[Everything]") > 0, "ini-section")
 Assert(InStr(iniSrc, "default_mode=insert") > 0, "ini-value")
 tplSrc := ReadNorm(A_ScriptDir . "\..\Conf\rim.template.ini")
 Assert(InStr(tplSrc, "default_mode=insert") > 0, "tpl-value")
@@ -100,7 +97,7 @@ for _, item in res {
     catch {
         continue
     }
-    for _, wn in ["Browser_Chrome", "Browser_Edge", "Browser_Firefox", "Everything"] {
+    for _, wn in ["Browser_Chrome", "Browser_Edge", "Browser_Firefox"] {
         if InStr(txt, wn)
             hit .= wn . ";"
     }

@@ -443,6 +443,8 @@ class StatsBallObj {
             OnMessage(0x201, this.OnLDown.Bind(this))
             OnMessage(0x202, this.OnLUp.Bind(this))
             OnMessage(0x203, this.OnLDbl.Bind(this))
+            OnMessage(0x0138, this.OnCtlColor.Bind(this))
+            this.boostFn := this.BoostLater.Bind(this)
             this.msgInstalled := true
         } catch {
         }
@@ -591,12 +593,17 @@ class StatsBallObj {
             return
         }
         ; 纯点击(在球上抬起)=一键加速; 面板走双击/右键菜单/托盘命令
+        ; 双击会先走一次 LUp, 延迟到双击判定窗口之后再加速, 双击开面板即取消
         try {
             MouseGetPos(&mx2, &my2, &mw2)
             if (mw2 = this.ballHwnd)
-                this.QuickBoost()
+                SetTimer(this.boostFn, -DllCall("User32.dll\GetDoubleClickTime", "UInt"))
         } catch {
         }
+    }
+
+    BoostLater(*) {
+        try this.QuickBoost()
     }
 
     OnLDbl(wParam, lParam, msg, hwnd) {
@@ -604,8 +611,8 @@ class StatsBallObj {
             return
         if (!this.HitBall())
             return
+        try SetTimer(this.boostFn, 0)
         try this.OpenPanel()
-        try this.DoBoost()
     }
 
     ; 兜底 (平时跟随走 OnMMove 即时消息, 这里只处理异常态):
@@ -916,21 +923,21 @@ class StatsBallObj {
             this.CreatePanel()
         this.panelOpen := true
         try this.panelG.Show("NoActivate")
-        ; 面板贴球放置 (按实时矩形): 优先球左侧, 空间不够放右侧, 双向钳制
+        ; 面板贴球放置 (按实时矩形): 默认在雷达球正上方居中, 上方空间不够则放下方, 双向钳制
         try {
             sw := SysGet(78)
             sh := SysGet(79)
-            pw := 384
-            ph := 302
+            pw := 300
+            ph := 440
             br := this.BallRect()
-            px := br.x - pw - 12
+            px := br.x + (br.w - pw) // 2
             if (px < 8)
-                px := br.x + br.w + 12
+                px := 8
             if (px + pw > sw - 8)
-                px := sw - pw - 8
-            py := br.y + br.h - ph
+                px := sw - 8 - pw
+            py := br.y - ph - 32
             if (py < 8)
-                py := 8
+                py := br.y + br.h + 12
             if (py + ph > sh - 48)
                 py := sh - 48 - ph
             this.panelG.Show("x" . px . " y" . py . " NoActivate")
@@ -956,44 +963,133 @@ class StatsBallObj {
 
     CreatePanel() {
         this.panelG := Gui("+ToolWindow +AlwaysOnTop", T("statsball.panel_title"))
-        this.panelG.SetFont("s10 cBlack", "Segoe UI")
-        this.panelStatus := this.panelG.AddText("x12 y10 w360 h24", T("statsball.loading"))
-        this.panelCpu := this.panelG.AddText("x12 y38 w360 h40", "")
-        this.panelMem := this.panelG.AddText("x12 y82 w360 h40", "")
-        this.panelNet := this.panelG.AddText("x12 y126 w360 h40", "")
-        this.panelTop := this.panelG.AddText("x12 y170 w360 h80", "")
-        this.boostBtn := this.panelG.AddButton("x12 y258 w170 h32", T("statsball.boost_now"))
+        this.panelG.BackColor := "FFFFFF"
+        this.panelG.SetFont("s10 c333333", "Segoe UI")
+        this.panelStatus := this.panelG.AddText("x20 y16 w260 h24", T("statsball.loading"))
+        ; 进程列表 (任务管理器风格: 进程 | CPU | 内存, 单元格蓝底深浅按占比)
+        ; 表头用 Button 做可点排序开关 (Text 不支持 Click)
+        this.sortKey := "ws"
+        this.sortDir := -1    ; -1=降序(大在前), +1=升序
+        this.hNameBtn := this.panelG.AddButton("x20 y48 w100 h24", "进程")
+        this.hCpuBtn := this.panelG.AddButton("x125 y48 w60 h24", "CPU")
+        this.hMemBtn := this.panelG.AddButton("x195 y48 w80 h24", "内存")
+        this.hNameBtn.OnEvent("Click", (*) => this.ToggleSort("name"))
+        this.hCpuBtn.OnEvent("Click", (*) => this.ToggleSort("cpu"))
+        this.hMemBtn.OnEvent("Click", (*) => this.ToggleSort("ws"))
+        this.procNames := []
+        this.procCpus := []
+        this.procMems := []
+        this.cellBg := Map()    ; 控件 hwnd -> 颜色字符串 (WM_CTLCOLORSTATIC 上色)
+        this.cellBrush := Map() ; 颜色字符串 -> HBRUSH
+        rowY := 76
+        loop 10 {
+            lbl := this.panelG.AddText("x20 y" . rowY . " w100 h26", "")
+            cpu := this.panelG.AddText("x125 y" . rowY . " w60 h26 Right", "")
+            mem := this.panelG.AddText("x195 y" . rowY . " w80 h26 Right", "")
+            this.procNames.Push(lbl)
+            this.procCpus.Push(cpu)
+            this.procMems.Push(mem)
+            rowY += 30
+        }
+        this.boostBtn := this.panelG.AddButton("x20 y392 w128 h30", T("statsball.boost_now"))
         this.boostBtn.OnEvent("Click", this.DoBoost.Bind(this))
-        this.closeBtn := this.panelG.AddButton("x202 y258 w170 h32", T("statsball.close"))
+        this.closeBtn := this.panelG.AddButton("x152 y392 w128 h30", T("statsball.close"))
         this.closeBtn.OnEvent("Click", this.ClosePanel.Bind(this))
         this.panelG.OnEvent("Close", this.ClosePanel.Bind(this))
-        this.panelG.Show("w384 h302 Hide")
+        this.panelG.Show("w300 h440 Hide")
         this.panelHwnd := this.panelG.Hwnd
+    }
+
+    ToggleSort(key) {
+        if (this.sortKey = key)
+            this.sortDir := -this.sortDir
+        else {
+            this.sortKey := key
+            this.sortDir := (key = "name") ? 1 : -1
+        }
+        this.UpdateSortHeaders()
+        try this.RefreshPanel(this.lastSample)
+    }
+
+    UpdateSortHeaders() {
+        marks := ["name", "cpu", "ws"]
+        btns := [this.hNameBtn, this.hCpuBtn, this.hMemBtn]
+        base := ["进程", "CPU", "内存"]
+        loop 3 {
+            if (this.sortKey = marks[A_Index]) {
+                try btns[A_Index].Text := base[A_Index] . (this.sortDir = 1 ? " ↑" : " ↓")
+            } else {
+                try btns[A_Index].Text := base[A_Index]
+            }
+        }
+    }
+
+    OnCtlColor(wParam, lParam, msg, hwnd) {
+        try {
+            hCtl := lParam
+            if (this.cellBg.Has(hCtl)) {
+                c := this.cellBg[hCtl]
+                if (!this.cellBrush.Has(c)) {
+                    rgb := Integer("0x" . SubStr(c, 5, 2) . SubStr(c, 3, 2) . SubStr(c, 1, 2))  ; RRGGBB -> 0xBBGGRR
+                    this.cellBrush[c] := DllCall("Gdi32.dll\CreateSolidBrush", "UInt", rgb, "Ptr")
+                }
+                return this.cellBrush[c]
+            }
+        } catch {
+        }
+    }
+
+    SetCellBg(ctrl, rgbHex) {
+        try {
+            this.cellBg[ctrl.Hwnd] := rgbHex
+            DllCall("User32.dll\InvalidateRect", "Ptr", ctrl.Hwnd, "Ptr", 0, "Int", 1)
+        } catch {
+        }
     }
 
     RefreshPanel(s) {
         if (!this.panelG || !this.panelOpen)
             return
-        lv := StatsBall_Level(s.memPct)
-        lvTxt := lv = 2 ? T("statsball.level_hot") : (lv = 1 ? T("statsball.level_warm") : T("statsball.level_cool"))
-        try this.panelStatus.Value := T("statsball.status_fmt", Integer(s.memPct), lvTxt
-            , StatsBall_FormatGB(s.availGB), StatsBall_FormatGB(s.totalGB))
-        try this.panelCpu.Value := "CPU " . Integer(s.cpu) . "%`n" . StatsBall_Spark(this.histCpu)
-        try this.panelMem.Value := "MEM " . Integer(s.memPct) . "%`n" . StatsBall_Spark(this.histMem)
-        try this.panelNet.Value := "↓" . StatsBall_FormatRate(s.dn) . "  ↑" . StatsBall_FormatRate(s.up) . "`n" . StatsBall_Spark(this.histNet)
-        ; Top 进程是高成本快照, 面板打开后每 5 秒刷新一次.
-        if (this.topText = "" || A_TickCount - this.lastTopTick >= 5000) {
+        try this.panelStatus.Value := T("statsball.panel_title")
+        ; Top 进程是高成本快照, 面板打开后每秒刷新一次 (动态变化).
+        if (this.topText = "" || A_TickCount - this.lastTopTick >= 1000) {
             try {
-                rows := StatsBall_TopProcs(3)
-                topTxt := ""
-                for _, r in rows
-                    topTxt .= r.exe . "  " . Round(r.ws / 1048576) . "MB`n"
-                this.topText := (topTxt = "") ? T("statsball.top_empty") : topTxt
+                rows := StatsBall_TopProcs(10, this.sortKey, this.sortDir)
+                maxWs := 0
+                maxCpu := 0
+                for _, r in rows {
+                    if (r.ws > maxWs)
+                        maxWs := r.ws
+                    if (r.cpu > maxCpu)
+                        maxCpu := r.cpu
+                }
+                idx := 0
+                for _, r in rows {
+                    idx++
+                    try this.procNames[idx].Value := r.exe
+                    try this.procCpus[idx].Value := Round(r.cpu, 1) . " %"
+                    mb := Round(r.ws / 1048576)
+                    try this.procMems[idx].Value := mb . " MB"
+                    ; 任务管理器式蓝底深浅 (占比越大底色越深)
+                    fMem := (maxWs > 0) ? r.ws / maxWs : 0
+                    fCpu := (maxCpu > 0) ? r.cpu / maxCpu : 0
+                    shM := Round(245 - fMem * 120)
+                    shC := Round(245 - fCpu * 120)
+                    this.SetCellBg(this.procMems[idx], Format("{:02X}{:02X}{:02X}", shM - 30, shM - 5, 255))
+                    this.SetCellBg(this.procCpus[idx], Format("{:02X}{:02X}{:02X}", shC - 30, shC - 5, 255))
+                }
+                loop 10 - idx {
+                    try this.procNames[idx + A_Index].Value := ""
+                    try this.procCpus[idx + A_Index].Value := ""
+                    this.SetCellBg(this.procCpus[idx + A_Index], "FFFFFF")
+                    try this.procMems[idx + A_Index].Value := ""
+                    this.SetCellBg(this.procMems[idx + A_Index], "FFFFFF")
+                }
+                this.topText := rows.Length
                 this.lastTopTick := A_TickCount
             } catch {
             }
         }
-        try this.panelTop.Value := T("statsball.top_title") . "`n" . this.topText
     }
 
     ; 加速结果文案 (DoBoost 面板与 QuickBoost 土司共用)
