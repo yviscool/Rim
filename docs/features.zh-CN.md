@@ -140,9 +140,11 @@
 
 Typora / CMD 窗口节已预留（匹配规则就绪），暂无默认键位，可自行添加。持久关闭某窗口的接管：在其窗口节加 `vim_enable=0`（重启仍有效，见上）。
 
-### 3.5 浏览器（Chrome / Edge / Firefox，`Browser` 插件）
+### 3.5 浏览器（Chrome / Edge / Firefox，`Browser` 插件，默认关闭）
 
-滚动：`j/k/h/l`、`d/u` 半页、`Ctrl+D/U`、`Ctrl+F/B` 整页、`gg/G` 顶底、`0/$` 行首尾；标签：`t` 新建、`x` 关闭、`X` 恢复、`J/K`（`gn/gp` 同义）前后、`g1..g8`/`g0` 跳转；历史：`H/L` 后退前进、`r` 刷新、`R` 硬刷新；`o` 地址栏、`/` 查找、`n/N` 上下匹配（自动进 insert）；`zi/zo/z0` 缩放、`b` 收藏、`gh` 历史、`gd` 下载；`i/a` 进输入、`Esc` 回普通、`?` 帮助。默认进 insert（`[Browser_*] default_mode`，可在配置中心改回）。`f` 故意留空透传，给 Surfingkeys / Vimium 类扩展的链接提示让路（两者可混用）。
+默认关闭（`[Plugins] Browser=0`），浏览器按键原样透传。重新启用时设 `Browser=1`，并为需要的窗口补 `default_mode=insert` 节。
+
+滚动：`j/k/h/l`、`d/u` 半页、`Ctrl+D/U`、`Ctrl+F/B` 整页、`gg/G` 顶底、`0/$` 行首尾；标签：`t` 新建、`x` 关闭、`X` 恢复、`J/K`（`gn/gp` 同义）前后、`g1..g8`/`g0` 跳转；历史：`H/L` 后退前进、`r` 刷新、`R` 硬刷新；`o` 地址栏、`/` 查找、`n/N` 上下匹配（自动进 insert）；`zi/zo/z0` 缩放、`b` 收藏、`gh` 历史、`gd` 下载；`i/a` 进输入、`Esc` 回普通、`?` 帮助。配 `default_mode=insert` 时默认进 insert。`f` 故意留空透传，给 Surfingkeys / Vimium 类扩展的链接提示让路（两者可混用）。
 
 ### 3.6 Excel（`XLMAIN`，`Excel` 插件，复刻 VimDesktop 按键层，免 COM）
 
@@ -154,7 +156,7 @@ Sumatra 按类名精确匹配，福昕（类名多变）按 `FoxitReader.exe` / 
 
 自定义：在配置中心可视化改，或按 ini 格式 `按键=<动作>[=模式]` 写，如 `dd=<deletedLine>[=normal]`。动作名参考 General 插件（方向/窗口管理/标签页/鼠标模拟等）与各应用插件。
 
-默认模式：窗口节加一行 `default_mode=insert`（或 `normal`），该窗启动即进此模式，覆盖插件硬编码（如浏览器默认 insert 可被翻转）。配置中心按键页右下“默认模式”下拉与窗口选择联动，`(跟随默认)` 即删键（完全恢复要重启）。非法值保存时进重启单，不会断启动。
+默认模式：窗口节加一行 `default_mode=insert`（或 `normal`），该窗启动即进此模式，覆盖插件硬编码（如重新启用 Browser 插件后的浏览器节）。配置中心按键页右下“默认模式”下拉与窗口选择联动，`(跟随默认)` 即删键（完全恢复要重启）。非法值保存时进重启单，不会断启动。
 
 ## 四、托盘与配置中心
 

@@ -140,9 +140,11 @@ Move: `h` parent dir, `j`/`k` up/down, `l` enter (super return), `a` select all;
 
 Typora / console sections exist as match-ready placeholders with no default keys yet — add your own. To permanently disable takeover for a window, set `vim_enable=0` in its window section (survives restart, see above).
 
-### 3.5 Browsers (Chrome / Edge / Firefox, `Browser` plugin)
+### 3.5 Browsers (Chrome / Edge / Firefox, `Browser` plugin — disabled by default)
 
-Scroll: `j/k/h/l`, `d/u` half page, `Ctrl+D/U`, `Ctrl+F/B` full page, `gg/G` top/bottom, `0/$`; tabs: `t` new, `x` close, `X` reopen, `J/K` (`gn/gp` aliases) prev/next, `g1..g8`/`g0` jump; history: `H/L` back/forward, `r` reload, `R` hard reload; `o` address bar, `/` find, `n/N` next/previous match (auto-insert); `zi/zo/z0` zoom, `b` bookmark, `gh` history, `gd` downloads; `i/a` insert, `Esc` normal, `?` help. Starts in insert by default (`[Browser_*] default_mode`, changeable in the config center). `f` is deliberately unmapped and passed through, reserving it for Surfingkeys / Vimium-style link hints (they can coexist).
+Disabled by default (`[Plugins] Browser=0`), so browser keystrokes pass through untouched. To re-enable, set `Browser=1` and add `default_mode=insert` sections for the windows you want.
+
+Scroll: `j/k/h/l`, `d/u` half page, `Ctrl+D/U`, `Ctrl+F/B` full page, `gg/G` top/bottom, `0/$`; tabs: `t` new, `x` close, `X` reopen, `J/K` (`gn/gp` aliases) prev/next, `g1..g8`/`g0` jump; history: `H/L` back/forward, `r` reload, `R` hard reload; `o` address bar, `/` find, `n/N` next/previous match (auto-insert); `zi/zo/z0` zoom, `b` bookmark, `gh` history, `gd` downloads; `i/a` insert, `Esc` normal, `?` help. With `default_mode=insert`, it starts in insert. `f` is deliberately unmapped and passed through, reserving it for Surfingkeys / Vimium-style link hints (they can coexist).
 
 ### 3.6 Excel (`XLMAIN`, `Excel` plugin, VimDesktop key layer replica, no COM)
 
@@ -154,7 +156,7 @@ SumatraPDF matched by class name; Foxit (volatile class names) matched by `Foxit
 
 Customize in the config UI, or as `key=<action>[=mode]` ini lines such as `dd=<deletedLine>[=normal]`. Action names come from the General plugin (arrows/window/tab/mouse actions) and per-app plugins.
 
-Default mode: add `default_mode=insert` (or `normal`) to a window section and it starts in that mode, overriding plugin hardcoding (e.g. Browser insert defaults can be flipped back). The config center key tab has a "Default mode" dropdown following the window selection; `(follow default)` deletes the key (full revert needs a restart). Invalid values land in the restart bucket, never breaking startup.
+Default mode: add `default_mode=insert` (or `normal`) to a window section and it starts in that mode, overriding plugin hardcoding (e.g. a browser section when the Browser plugin is re-enabled). The config center key tab has a "Default mode" dropdown following the window selection; `(follow default)` deletes the key (full revert needs a restart). Invalid values land in the restart bucket, never breaking startup.
 
 ## 4. Tray and Config Center
 

@@ -83,11 +83,18 @@ Assert(InStr(keysSrc, '"kdef"') > 0, "ui-combo")
 Assert(InStr(keysSrc, "VimCfg_KeyDefModeReload()") > 0, "ui-reload")
 Assert(InStr(keysSrc, "VimCfg_KeyDefModeChange") > 0, "ui-change")
 
-; --- 4) 真实配置含首个用户 ---
-iniSrc := ReadNorm(A_ScriptDir . "\..\Conf\rim.ini")
-Assert(InStr(iniSrc, "default_mode=insert") > 0, "ini-value")
-tplSrc := ReadNorm(A_ScriptDir . "\..\Conf\rim.template.ini")
-Assert(InStr(tplSrc, "default_mode=insert") > 0, "tpl-value")
+; --- 4) 真实配置默认模式值合法 (功能默认未启用, 允许零节) ---
+for _, spec in [["ini", A_ScriptDir . "\..\Conf\rim.ini"], ["tpl", A_ScriptDir . "\..\Conf\rim.template.ini"]] {
+    src := ReadNorm(spec[2])
+    bad := 0
+    pos := 1
+    while (pos := RegExMatch(src, "m)^default_mode\s*=\s*(\S+)", &m, pos)) {
+        if (m[1] != "insert" && m[1] != "normal")
+            bad++
+        pos += StrLen(m[0])
+    }
+    Assert(bad = 0, spec[1] . "-default-mode-valid")
+}
 
 ; --- 5) 健康检查: 纯覆盖节不误报, 拼错窗名照样报 ---
 res := VimCfg_CheckConflicts()

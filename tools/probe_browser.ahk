@@ -127,11 +127,15 @@ Assert(!insertMap.Has("j"), "insert-passthrough")
 ; --- 2b) 默认模式走通用 ini (插件内无硬编码; 纯 keymaps 后保持 normal) ---
 for _, bwName in ["Browser_Chrome", "Browser_Edge", "Browser_Firefox"]
     Assert(engine.GetWin(bwName).currentMode = "normal", "no-hardcoded-" . bwName)
-; 真实 rim.ini 三窗 default_mode=insert, 经 VimdApplyDefaultMode 生效
+; 出厂模板默认关闭; 用户 rim.ini 若保留 [Browser_*] 节则继续验证 default_mode
 global g_Conf := EasyIni(A_ScriptDir . "\..\Conf\rim.ini")
-for _, bwName in ["Browser_Chrome", "Browser_Edge", "Browser_Firefox"] {
-    Assert(VimdApplyDefaultMode(bwName) = true, "ini-apply-" . bwName)
-    Assert(engine.GetWin(bwName).currentMode = "insert", "ini-insert-" . bwName)
+tplConf := EasyIni(A_ScriptDir . "\..\Conf\rim.template.ini")
+Assert(tplConf.Get("Plugins", "Browser", "1") = "0", "tpl-browser-disabled")
+if (g_Conf.HasSection("Browser_Chrome")) {
+    for _, bwName in ["Browser_Chrome", "Browser_Edge", "Browser_Firefox"] {
+        Assert(VimdApplyDefaultMode(bwName) = true, "ini-apply-" . bwName)
+        Assert(engine.GetWin(bwName).currentMode = "insert", "ini-insert-" . bwName)
+    }
 }
 
 ; --- 3) 动作↔函数一一对应 (源码扫描) ---
