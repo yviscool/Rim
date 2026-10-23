@@ -273,18 +273,15 @@ SI_OnInputChanged() {
     g_SI["idx"] := 0
     first := SubStr(cur, 1, 1)
     if (cur == "" || first == "@" || first == "|" || first == ";" || first == ":") {
-        g_SI["ghostShown"] := false
-        g_SI["ghostFull"] := ""
+        SI_ForgetGhost()
         SI_ScheduleValidate()
         return
     }
     full := SI_FindGhost(cur)
     if (full != "" && full != cur)
         SI_ShowGhost(full, StrLen(cur))
-    else {
-        g_SI["ghostShown"] := false
-        g_SI["ghostFull"] := ""
-    }
+    else
+        SI_ForgetGhost()
     SI_ScheduleValidate()
 }
 
@@ -344,6 +341,20 @@ SI_PushSearch(newVal) {
 
 ; ---------------- 接受 / 取消 ----------------
 
+; 丢弃 ghost 状态 (不改输入框). 导航/程序改写输入框后必须调, 否则旧补全残留:
+; v2 程序设 Edit.Value 不触发 Change, SI_OnInputChanged 不会自清, 回车/Tab/Right
+; 的 SI_AcceptGhost 会拿上一轮全文重搜, 把用户刚选中的行顶回首行.
+SI_ForgetGhost() {
+    global g_SI
+    try {
+        g_SI["ghostShown"] := false
+        g_SI["ghostFull"] := ""
+        g_SI["expect"] := ""
+        g_SI["expectOn"] := false
+    } catch {
+    }
+}
+
 ; 全接受: 收起选中区 + 显式推搜索 (接受是显式动作, 列表必须跟到接受后的全文)
 ; 注意: 若用户开了 RunIfOnlyOne 且结果唯一, 此处搜索可能直接执行一次,
 ; 外层回车会再执行一次 (默认关闭该选项, 暂接受此边缘行为)
@@ -352,8 +363,13 @@ SI_AcceptGhost() {
     if !g_SI.Get("ghostShown", false)
         return false
     full := g_SI.Get("ghostFull", "")
-    g_SI["ghostShown"] := false
-    g_SI["ghostFull"] := ""
+    ; 兜底: ghost 记录与框内文本脱节 (导航改写后未清的状态) 一律不接受,
+    ; 否则旧补全会覆盖当前选中项 (Ctrl+J 选 B 回车却执行 A 的根因).
+    if (full != "" && SI_CurValue() != full) {
+        SI_ForgetGhost()
+        return false
+    }
+    SI_ForgetGhost()
     if (full != "")
         SI_SetSel(StrLen(full), StrLen(full))
     SI_PushSearch(full)
@@ -372,8 +388,7 @@ SI_CancelGhost() {
     prefix := cur
     if (e > s && e <= StrLen(cur))
         prefix := SubStr(cur, 1, s)
-    g_SI["ghostShown"] := false
-    g_SI["ghostFull"] := ""
+    SI_ForgetGhost()
     SI_FillInput(prefix)
     try {
         g_CurrentInput := prefix
@@ -478,8 +493,7 @@ SI_Backspace(*) {
     if (e > s && e <= StrLen(cur))
         prefix := SubStr(cur, 1, s)
     newVal := SubStr(prefix, 1, StrLen(prefix) - 1)
-    g_SI["ghostShown"] := false
-    g_SI["ghostFull"] := ""
+    SI_ForgetGhost()
     SI_FillInput(newVal)
     try {
         g_CurrentInput := newVal
@@ -513,8 +527,7 @@ SI_CtrlBackspace(*) {
     if (e > s && e <= StrLen(cur))
         prefixLen := s
     newVal := SI_PrevWordPure(cur, prefixLen)
-    g_SI["ghostShown"] := false
-    g_SI["ghostFull"] := ""
+    SI_ForgetGhost()
     SI_FillInput(newVal)
     try {
         g_CurrentInput := newVal
@@ -573,8 +586,7 @@ SI_SubstrNav(step) {
         SI_GetSel(&s, &e)
         if (e > s && e <= StrLen(cur))
             cur := SubStr(cur, 1, s)
-        g_SI["ghostShown"] := false
-        g_SI["ghostFull"] := ""
+        SI_ForgetGhost()
     }
     if !g_SI.Get("histOn", false) {
         g_SI["query"] := cur

@@ -85,6 +85,14 @@ ChangeCommand(step, resetCurrentLine := false) {
 
     g_CurrentCommand := g_CurrentCommandList[g_CurrentLine]
 
+    ; 选中项变了: 旧 ghost 对应上一轮的完整补全. v2 程序设 Value 不触发 Change,
+    ; 不清掉的话回车/Tab/Right 会走 SI_AcceptGhost 用旧全文重搜, 顶回首行.
+    try {
+        if IsSet(SI_ForgetGhost)
+            SI_ForgetGhost()
+    } catch {
+    }
+
     currentChar := Chr(g_FirstChar + g_CurrentLine - 1)
     if (SubStr(g_CurrentInput, 1, 1) = "|")
         newInput := "|@" . currentChar . " "
