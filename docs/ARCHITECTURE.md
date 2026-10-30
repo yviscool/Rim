@@ -180,6 +180,8 @@ Core/Gesture.ahk (主门面 Facade, 保持向后兼容 API 与全局 Map)
    - 线程级消息回调（如 `0x202 WM_LBUTTONUP`）禁止无条件调用 `ReleaseCapture()`，只能释放本窗口捕获的句柄，防止篡改系统其他应用的按钮交互。
 4. **路径解析相对化**：
    - 库与模块内读取数据或配置，严禁使用 `A_ScriptDir` 拼接，统一采用 `A_LineFile` 反查根目录，确保从子目录或测试脚本执行时均不丢失依赖。
+5. **桌面挂件与全屏应用共存**：
+   - 任何 `WS_EX_TOPMOST` 挂件（StatsBall 球/土司/面板）禁止无条件置顶；显示统一走单一出口 `Present()`，并由 `RimWindow.ForegroundFullscreen()` 判定全屏：前台窗口矩形覆盖其 `rcMonitor`（排除 shell/同进程/DWM cloaked/带标题栏最大化）即算全屏，按 `MonitorFromWindow` 归属屏幕，同屏才抑制、退出即恢复；`SHQueryUserNotificationState` 仅作诊断记录（全局状态无法归属屏幕，参与判定会误伤异屏雷达）；全屏中不弹自动提示、不抢焦点。
 
 ---
 
@@ -192,7 +194,7 @@ Core/Gesture.ahk (主门面 Facade, 保持向后兼容 API 与全局 Map)
 
 ### 2. 巨石拆分图（已执行完毕，入口均为 Hybrid 类方法）
 - `Plugins/Misc.ahk (1693)` → 主文件 `MiscPlugin.RegisterCommands`（9 url 直注＋20 功能直注，旧 SearchOn*/Dictionary 别名已删）＋共享 `MiscPipeInput/UriEncode/EvalExpression`，纯实现下沉 `Misc.Search.ahk`（搜索/翻译）/ `Misc.Clip.ahk`（剪贴板日期取色）/ `Misc.Net.ahk`（IP/WiFi/DNS/Ping/公网/环境）/ `Misc.Codec.ahk`（汇率/万年历/URL编解码/RunClipboard/帮助），经主文件 `#Include` 组装。
-- `Plugins/StatsBall.ahk (1793)` → 采样 `StatsBall.Sample.ahk`（CPU/内存/网速/Top进程/Boost数据）＋ 自绘 `StatsBall.Render.ahk`（GDI+三段横条）＋ 主文件（入口/`g_StatsBall`/`StatsBallObj` 类整体保留：方法经 `this` 互调，类内不可再切），经主文件 `#Include` 组装（注册期不建窗的 headless 约束不变）。
+- `Plugins/StatsBall.ahk (1351)` → 采样 `StatsBall.Sample.ahk`（CPU/内存/网速/Top进程/Boost数据）＋ 自绘 `StatsBall.Render.ahk`（GDI+三段横条）＋ 主文件（入口/`g_StatsBall`/`StatsBallObj` 类整体保留：方法经 `this` 互调，类内不可再切），经主文件 `#Include` 组装（注册期不建窗的 headless 约束不变）。全屏抑制：`Show/Hide` 记用户意图，`suppressed` 记环境态，显示只经 `Present()`，`Tick` 每秒复查 `UpdateSuppression()`（抑制期间定时器降到 ≤1s 以便退出即恢复）。
 - `Plugins/TotalCommander.ahk (3798)` → 自造菜单 `TC.Menu.ahk`（定位/级联/字母跳转/回车确认/新建文件对话框，原 1803–2715）独立文件、`#Include` 组装；映射表与动作主体留本文件（`TC_MenuRouteKey` 直调探针覆盖，不走 `Send` 回环）。
 - `Core/Hotkeys.ahk (657)` 已拆：绑定与窗口行为留本文件，rank/历史/文件/配置/帮助/管道迁 `Hotkeys.Commands.ahk`，经 `#Include` 组装（`BindLauncherHotkeys` 引用的函数对象在调用期解析，不受文件位置影响）。
 - `Core/SmartInput.ahk (860)` 已拆：`*Pure` 九函数迁 `SmartInputPure.ahk`（零 GUI/零配置依赖，`smoke_si` 直测；与 `CmdLine_Parse` 同文法，改一处同步另一处）。

@@ -25,15 +25,17 @@ Assert(IsObject(g_Conf), "conf-load")
 ; schema 侧 LockPos 必须是 live (否则保存只攒重启单, 不广播)
 Assert(CfgScope("StatsBall", "LockPos") = "live", "lockpos-scope-live")
 
-; Init 注册 9 键订阅 (抛错即挂, 订阅漏了热应用全死)
+; Init 注册 10 键订阅 (抛错即挂, 订阅漏了热应用全死)
 StatsBallPlugin.Init()
 Assert(g_CfgSubs.Has("StatsBall" . Chr(1) . "LockPos"), "sub-lockpos")
 Assert(g_CfgSubs["StatsBall" . Chr(1) . "LockPos"].Length >= 1, "sub-lockpos-n")
+Assert(g_CfgSubs.Has("StatsBall" . Chr(1) . "HideFullscreen"), "sub-hidefs")
 
-; 构造期从 ini 读值 (现网 ini LockPos=1 → 对象直接锁死)
+; 构造期从 ini 读值 (不写死现网值: LockPos 由用户随时改, 断言与 ini 一致即可)
 global g_StatsBall := StatsBallObj()
 Assert(IsObject(g_StatsBall), "obj-born")
-Assert(g_StatsBall.lockPos = true, "init-lock-from-ini")
+Assert(g_StatsBall.lockPos = (g_Conf.Get("StatsBall", "LockPos", "0") = "1"), "init-lock-from-ini")
+Assert(g_StatsBall.hideFullscreen = (g_Conf.Get("StatsBall", "HideFullscreen", "1") = "1"), "init-hidefs-from-ini")
 
 ; 模拟取消勾选: 内存同步 + 广播 → 对象解锁
 g_Conf.Set("StatsBall", "LockPos", "0")

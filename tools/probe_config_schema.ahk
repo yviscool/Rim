@@ -38,7 +38,7 @@ class ConfStub2 {
 ; ---- 语言固定英文, 断言 label/help 零缺键 (缺键时 T 回落 key 本身) ----
 I18nSetLang("en", false)
 
-Check("schema-count-51", g_CfgSchema.Length = 51)
+Check("schema-count-52", g_CfgSchema.Length = 52)
 seen := Map()
 dupFound := false
 typeOk := true
@@ -204,7 +204,7 @@ Check("guard-validate", CfgValidate("Config", "Language", "zh-CN") = "")
 try g_CfgSchema := savedSchema
 catch {
 }
-Check("guard-restore", IsObject(g_CfgSchema) && g_CfgSchema.Length = 51)
+Check("guard-restore", IsObject(g_CfgSchema) && g_CfgSchema.Length = 52)
 
 if (g_ProbeFails > 0) {
     FileAppend("FAIL total=" . g_ProbeFails . "`n", "*")

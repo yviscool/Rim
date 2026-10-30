@@ -23,6 +23,72 @@ class RimWindow {
         return Map("x", rcLeft, "y", rcTop, "w", rcRight - rcLeft, "h", rcBottom - rcTop, "hMon", hMon)
     }
 
+    ; 前台全屏检测 (StatsBall 等桌面挂件用): 返回 Map 或 ""
+    ; 只认"前台"这一路; 同进程窗口/shell/被 DWM 隐藏的窗口一律不算.
+    static ForegroundFullscreen() {
+        hwnd := DllCall("GetForegroundWindow", "Ptr")
+        if (!hwnd)
+            return ""
+        try {
+            if (WinGetPID("ahk_id " . hwnd) = ProcessExist())
+                return ""
+        } catch {
+        }
+        return RimWindow.ClassifyFullscreen(hwnd)
+    }
+
+    ; 判断指定窗口是否全屏 (不要求它是前台): 供前台检测与探针复用
+    ; useQuns 只控制是否顺带查询系统通知状态 (诊断用, 不参与判定)
+    static ClassifyFullscreen(hwnd, useQuns := true) {
+        if (!hwnd)
+            return ""
+        cls := ""
+        try cls := WinGetClass("ahk_id " . hwnd)
+        if (cls = "Progman" || cls = "WorkerW"
+            || cls = "Shell_TrayWnd" || cls = "Shell_SecondaryTrayWnd")
+            return ""
+        ; DWM 隐藏 (UWP 后台 / 其他虚拟桌面)
+        cloaked := Buffer(4, 0)
+        if (DllCall("dwmapi\DwmGetWindowAttribute", "Ptr", hwnd, "UInt", 14
+            , "Ptr", cloaked, "UInt", 4) = 0 && NumGet(cloaked, 0, "UInt") != 0)
+            return ""
+        ; 通知状态只做诊断记录, 不参与判定: QUNS 是全局状态, 无法归属到具体屏幕,
+        ; 拿它判定会在"游戏在左屏、用户点右屏"时误藏右屏雷达 (双屏要求按屏独立)
+        ; 2=BUSY 3=D3D_FULL_SCREEN 4=PRESENTATION
+        quns := 0
+        if (useQuns) {
+            if (DllCall("shell32\SHQueryUserNotificationState", "Int*", &quns) != 0)
+                quns := 0
+        }
+        rect := Buffer(16, 0)
+        if (!DllCall("GetWindowRect", "Ptr", hwnd, "Ptr", rect))
+            return ""
+        wx := NumGet(rect, 0, "Int"), wy := NumGet(rect, 4, "Int")
+        wr := NumGet(rect, 8, "Int"), wb := NumGet(rect, 12, "Int")
+        hMon := DllCall("MonitorFromWindow", "Ptr", hwnd, "UInt", 2, "Ptr")
+        mi := Buffer(40, 0)
+        NumPut("UInt", 40, mi, 0)
+        if (!DllCall("GetMonitorInfoW", "Ptr", hMon, "Ptr", mi))
+            return ""
+        ml := NumGet(mi, 4, "Int"), mt := NumGet(mi, 8, "Int")
+        mr := NumGet(mi, 12, "Int"), mb := NumGet(mi, 16, "Int")
+        ; 带标题栏且最大化的普通窗口只盖工作区, 不算全屏
+        style := 0
+        try style := WinGetStyle("ahk_id " . hwnd)
+        hasCaption := (style & 0x00C00000) = 0x00C00000
+        if (hasCaption && DllCall("IsZoomed", "Ptr", hwnd))
+            return ""
+        if (!RimWindow.RectCoversMonitor(wx, wy, wr, wb, ml, mt, mr, mb, 4))
+            return ""
+        return Map("hwnd", hwnd, "mon", hMon, "l", ml, "t", mt, "r", mr, "b", mb
+            , "quns", quns, "reason", "geometry")
+    }
+
+    ; 纯几何: 窗口矩形是否覆盖整个监视器 (rcMonitor, 非 rcWork)
+    static RectCoversMonitor(l, t, r, b, ml, mt, mr, mb, tol := 4) {
+        return (l <= ml + tol && t <= mt + tol && r >= mr - tol && b >= mb - tol)
+    }
+
     ; 将窗口铺排到工作区特定位置: "left", "right", "top", "bottom", "center", "max"
     static Tile(target := "A", pos := "left") {
         if (IsInteger(target))

@@ -58,6 +58,7 @@ global g_CfgSchema := [
     Map("sec", "StatsBall", "key", "StripH", "type", "slider", "min", 32, "max", 80, "default", "40", "label", "cfg.opt_statsball_striph", "help", "cfg.help_statsball_striph", "scope", "live"),
     Map("sec", "StatsBall", "key", "Opacity", "type", "slider", "min", 80, "max", 255, "default", "255", "label", "cfg.opt_statsball_opacity", "help", "cfg.help_statsball_opacity", "scope", "live"),
     Map("sec", "StatsBall", "key", "TopMost", "type", "bool", "default", "1", "label", "cfg.opt_statsball_topmost", "help", "cfg.help_statsball_topmost", "scope", "live"),
+    Map("sec", "StatsBall", "key", "HideFullscreen", "type", "bool", "default", "1", "label", "cfg.opt_statsball_hidefs", "help", "cfg.help_statsball_hidefs", "scope", "live"),
     Map("sec", "StatsBall", "key", "LockPos", "type", "bool", "default", "0", "label", "cfg.opt_statsball_lock", "help", "cfg.help_statsball_lock", "scope", "live"),
     Map("sec", "StatsBall", "key", "SnapEdge", "type", "bool", "default", "0", "label", "cfg.opt_statsball_snap", "help", "cfg.help_statsball_snap", "scope", "live"),
     Map("sec", "StatsBall", "key", "AlertThreshold", "type", "slider", "min", 50, "max", 100, "default", "85", "label", "cfg.opt_statsball_alert", "help", "cfg.help_statsball_alert", "scope", "live"),

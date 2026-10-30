@@ -164,7 +164,7 @@ Right-click tray: show launcher, gesture manager, config center, StatsBall toggl
 
 ## 5. StatsBall
 
-Floating desktop radar: CPU / memory / network speed, refreshed every second, alerts past a threshold; refresh interval, opacity, always-on-top, and position lock are adjustable. Toggle from the tray; turn it off if unwanted.
+Floating desktop radar: CPU / memory / network speed, refreshed every second, alerts past a threshold; refresh interval, opacity, always-on-top, and position lock are adjustable. By default it hides while a fullscreen app (including borderless fullscreen games) is on the same monitor and returns on exit; no alerts or focus stealing in fullscreen, and the decision is per monitor (game on one screen, radar on another keeps it visible). Toggle from the tray; turn it off if unwanted.
 
 ## 6. Language
 

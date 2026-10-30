@@ -25,7 +25,7 @@ class StatsBallPlugin extends RimPlugin {
 
     ; 热应用订阅 ([StatsBall] 段 live 档; 回调只做读配置→改对象, 禁阻塞)
     static Init() {
-        for _, sbKey in ["Enable", "RefreshMs", "StripW", "StripH", "Opacity", "TopMost", "LockPos", "SnapEdge", "AlertThreshold"] {
+        for _, sbKey in ["Enable", "RefreshMs", "StripW", "StripH", "Opacity", "TopMost", "LockPos", "SnapEdge", "AlertThreshold", "HideFullscreen"] {
             try CfgSubscribe("StatsBall", sbKey, (*) => StatsBall_ApplyConfig())
         }
     }
@@ -91,6 +91,7 @@ StatsBall_ApplyConfig(*) {
         g_StatsBall.threshold := Integer(StatsBall_Cfg("AlertThreshold", "85"))
         g_StatsBall.topMost := StatsBall_Cfg("TopMost", "1") = "1"
         g_StatsBall.lockPos := StatsBall_Cfg("LockPos", "0") = "1"
+        g_StatsBall.hideFullscreen := StatsBall_Cfg("HideFullscreen", "1") = "1"
         g_StatsBall.ww := Integer(StatsBall_Cfg("StripW", "156"))
         if (g_StatsBall.ww < 120)
             g_StatsBall.ww := 120
@@ -103,15 +104,25 @@ StatsBall_ApplyConfig(*) {
             g_StatsBall.hh := 80
         g_StatsBall.ClampPos()
         if (g_StatsBall.visible) {
+            ; 先过一遍抑制状态机: 配置里刚打开/关闭 HideFullscreen 时也能
+            ; 正确收起面板/土司或立刻恢复显示
+            g_StatsBall.UpdateSuppression()
+            if (g_StatsBall.suppressed)
+                return
             try SetTimer(g_StatsBall.timerFn, g_StatsBall.interval)
-            try g_StatsBall.g.Show("x" . g_StatsBall.x . " y" . g_StatsBall.y . " NoActivate")
-            try WinSetAlwaysOnTop(g_StatsBall.topMost ? true : false, "ahk_id " . g_StatsBall.ballHwnd)
+            g_StatsBall.Present()
             try g_StatsBall.Tick()
         }
     }
 }
 
 ; ---------- 入口 ----------
+; 全屏中用户又点雷达/命令: 只提示, 不弹面板不抢焦点
+StatsBall_HintSuppressed() {
+    try ToolTip(T("statsball.hidden_fullscreen"))
+    try SetTimer(RemoveToolTip, -1200)
+}
+
 StatsBall_Toggle(*) {
     global g_StatsBall
     if (!IsSet(g_StatsBall) || !IsObject(g_StatsBall)) {
@@ -127,6 +138,10 @@ StatsBall_Toggle(*) {
     } else {
         ; 命令/托盘再点 = 开面板 (球体单击=一键加速, 面板走这里/双击/右键菜单);
         ; 隐藏只走右键菜单, 避免"我点了一下球就没了"的误报
+        if (g_StatsBall.suppressed) {
+            StatsBall_HintSuppressed()
+            return
+        }
         g_StatsBall.OpenPanel()
     }
 }
@@ -151,6 +166,10 @@ StatsBall_ShowPanel(*) {
     } else if (!g_StatsBall.visible) {
         g_StatsBall.Show()
     }
+    if (g_StatsBall.suppressed) {
+        StatsBall_HintSuppressed()
+        return
+    }
     g_StatsBall.OpenPanel()
 }
 
@@ -159,6 +178,10 @@ StatsBall_Boost(*) {
     if (!IsSet(g_StatsBall) || !IsObject(g_StatsBall)) {
         g_StatsBall := StatsBallObj()
         g_StatsBall.Show()
+    }
+    if (g_StatsBall.suppressed) {
+        StatsBall_HintSuppressed()
+        return
     }
     g_StatsBall.OpenPanel()
     g_StatsBall.DoBoost()
@@ -183,6 +206,7 @@ class StatsBallObj {
         this.threshold := StatsBall_IntCfg("AlertThreshold", 85)
         this.topMost := StatsBall_Cfg("TopMost", "1") = "1"
         this.lockPos := StatsBall_Cfg("LockPos", "0") = "1"
+        this.hideFullscreen := StatsBall_Cfg("HideFullscreen", "1") = "1"
         ; 挂件几何: 三段横条默认 156x40 (等比对齐原版)
         this.ww := StatsBall_IntCfg("StripW", 156)
         if (this.ww < 120)
@@ -253,6 +277,10 @@ class StatsBallObj {
         this.downTick := 0
         this.lastHoverTick := 0
         this.msgInstalled := false
+        this.panelMsgInstalled := false
+        this.dispMsgInstalled := false
+        this.inPresent := false
+        this.suppressed := false
         this.hoverBoost := false
         this.renderFails := 0
         this.tickCount := 0
@@ -265,21 +293,17 @@ class StatsBallObj {
     Show() {
         if (!this.g)
             this.CreateWidget()
-        this.ClampPos()
         this.visible := true
-        try this.g.Show("x" . this.x . " y" . this.y . " NoActivate")
-        ; 注意: 分层窗 (+E0x80000) 透明度走 UpdateLayeredWindow 的 blend,
-        ; 此处调 WinSetTransparent 会把窗变全透明 (消失主因之一), 已删除
-        try WinSetAlwaysOnTop(this.topMost ? true : false, "ahk_id " . this.ballHwnd)
-        catch {
-        }
-        this.InstallMsg()
-        try SetTimer(this.timerFn, this.interval)
-        this.Tick()
+        this.suppressed := this.ShouldSuppress()
+        this.Present()
+        try SetTimer(this.timerFn, this.suppressed ? Min(this.interval, 1000) : this.interval)
+        if (!this.suppressed)
+            this.Tick()
     }
 
     Hide() {
         this.visible := false
+        this.suppressed := false
         this.downTick := 0
         this.dragging := false
         this.hoverBoost := false
@@ -290,6 +314,7 @@ class StatsBallObj {
         catch {
         }
         try SetTimer(this.timerFn, 0)
+        this.RemoveBallMsg()
         try {
             WinGetPos(&hx, &hy, , , "ahk_id " . this.ballHwnd)
             this.x := hx
@@ -308,6 +333,109 @@ class StatsBallObj {
             this.Hide()
         else
             this.Show()
+    }
+
+    ; ---------- 全屏抑制 + 呈现单点 ----------
+    ; 全屏程序是否在雷达所在屏 (fs 可注入, 供探针确定性断言)
+    FullscreenOnThisMonitor(fs := "") {
+        if (!this.ballHwnd)
+            return false
+        if (!IsObject(fs)) {
+            try fs := RimWindow.ForegroundFullscreen()
+            catch {
+                return false
+            }
+        }
+        if (!IsObject(fs))
+            return false
+        hMon := 0
+        try hMon := DllCall("MonitorFromWindow", "Ptr", this.ballHwnd, "UInt", 2, "Ptr")
+        if (!hMon)
+            return false
+        return (hMon = fs["mon"])
+    }
+
+    ShouldSuppress(fs := "") {
+        return this.hideFullscreen && this.FullscreenOnThisMonitor(fs)
+    }
+
+    ; 只挪窗不重绘: 拖拽/贴边/回弹用 (ULW 位图跟窗走, 不必每帧重画)
+    PlaceWindow() {
+        if (!this.g || !this.visible || this.suppressed)
+            return
+        try this.g.Show("x" . this.x . " y" . this.y . " w" . this.ww . " h" . this.hh . " NoActivate")
+    }
+
+    ; 唯一呈现出口: 显示/置顶/装消息/重绘 全走这里.
+    ; 注意: 分层窗 (+E0x80000) 透明度走 UpdateLayeredWindow 的 blend,
+    ; 此处调 WinSetTransparent 会把窗变全透明 (消失主因之一), 已删除
+    Present() {
+        if (this.inPresent || !this.g)
+            return
+        this.inPresent := true
+        try {
+            if (!this.visible || this.suppressed) {
+                try this.g.Hide()
+                return
+            }
+            this.ClampPos()
+            this.PlaceWindow()
+            this.ApplyTopMost()
+            this.InstallBallMsg()
+            rendered := false
+            try rendered := this.RenderFrame()
+            catch {
+                rendered := false
+            }
+            if (!rendered) {
+                try {
+                    if (StatsBall_FallbackStrip(this.ballHwnd, this.ww, this.hh, this.opacity))
+                        rendered := true
+                } catch {
+                }
+            }
+            this.fancy := rendered ? true : false
+            this.renderFails := 0
+        } finally {
+            this.inPresent := false
+        }
+    }
+
+    ApplyTopMost() {
+        if (!this.ballHwnd)
+            return
+        try WinSetAlwaysOnTop(this.topMost ? true : false, "ahk_id " . this.ballHwnd)
+        catch as e {
+            try RimLog("WARN", "STATSBALL topmost: " . e.Message)
+        }
+    }
+
+    ; 进入/退出全屏抑制: 只藏窗, 不销毁; 定时器降到 <=1s 以便尽快恢复
+    ; fs 可注入, 供探针做确定性状态机断言
+    UpdateSuppression(fs := "") {
+        if (!this.visible)
+            return
+        want := this.ShouldSuppress(fs)
+        if (want = this.suppressed)
+            return
+        this.suppressed := want
+        if (want) {
+            ; 抑制瞬间可能正在拖拽: 先放掉自己持有的 capture, 再清状态
+            if (this.dragging) {
+                try DllCall("User32.dll\ReleaseCapture")
+                catch {
+                }
+            }
+            this.dragging := false
+            this.downTick := 0
+            this.hoverBoost := false
+            this.ClosePanel()
+            this.HideToast()
+            try this.g.Hide()
+        } else {
+            this.Present()
+        }
+        try SetTimer(this.timerFn, want ? Min(this.interval, 1000) : this.interval)
     }
 
     Destroy(*) {
@@ -350,19 +478,18 @@ class StatsBallObj {
 
     CreateWidget() {
         ; 三段模式: 全自绘, 无原生控件
-        this.g := Gui("+ToolWindow -Caption +AlwaysOnTop +E0x80000", "StatsBall")
+        ; 置顶按配置决定, 不再"先 AlwaysOnTop 再 demote" (避免创建瞬间闪一下)
+        opts := "+ToolWindow -Caption +E0x80000 +E0x08000000"
+        if (this.topMost)
+            opts .= " +AlwaysOnTop"
+        this.g := Gui(opts, "StatsBall")
         this.g.BackColor := "1B5E33"
         this.ballHwnd := this.g.Hwnd
         this.g.OnEvent("ContextMenu", this.OnMenu.Bind(this))
         this.g.OnEvent("Close", this.Hide.Bind(this))
-        this.g.Show("x" . this.x . " y" . this.y . " w" . this.ww . " h" . this.hh . " NoActivate")
-        ; GDI+ 自绘 (layered 真透明+抗锯齿)
+        this.InstallDisplayMsg()
+        ; 不在这里 Show/渲染: 统一走 Present()
         this.fancy := false
-        try {
-            if (this.RenderFrame())
-                this.fancy := true
-        } catch {
-        }
     }
 
     ; 画一帧三段横条, 返回是否成功 (悬停时叠加闪电)
@@ -386,25 +513,8 @@ class StatsBallObj {
         this.ballHwnd := 0
         this.fancy := false
         this.CreateWidget()
-        try this.g.Show("x" . this.x . " y" . this.y . " NoActivate")
-        try WinSetAlwaysOnTop(this.topMost ? true : false, "ahk_id " . this.ballHwnd)
-        catch {
-        }
-        this.InstallMsg()
-        ; 重建后立刻画一帧, 失败则纯色兜底, 绝不留透明空窗
-        rendered := false
-        try rendered := this.RenderFrame()
-        catch {
-            rendered := false
-        }
-        if (!rendered) {
-            try {
-                if (StatsBall_FallbackStrip(this.ballHwnd, this.ww, this.hh, this.opacity))
-                    rendered := true
-            } catch {
-            }
-        }
-        this.fancy := rendered ? true : false
+        ; 重建后统一走 Present: 显示/置顶/重绘/纯色兜底一次做完
+        this.Present()
     }
 
     ; 位置存盘 (拖尾/隐藏/销毁/定期调用)
@@ -433,25 +543,101 @@ class StatsBallObj {
     }
 
 
-    ; 全局鼠标消息仅球可见时安装, 按 Hwnd 过滤, 不影响其他窗口
-    ; 注意 0x200 常驻: 无按下时首行即返回, 开销可忽略
-    InstallMsg() {
+    ; 全局鼠标消息仅球可见时安装, 按 Hwnd 过滤, 不影响其他窗口.
+    ; v2 的 OnMessage(msg, fn, 0) 可按同一函数对象解绑, 所以必须存住 Bind 结果.
+    InstallBallMsg() {
         if (this.msgInstalled)
             return
         try {
-            OnMessage(0x200, this.OnMMove.Bind(this))
-            OnMessage(0x201, this.OnLDown.Bind(this))
-            OnMessage(0x202, this.OnLUp.Bind(this))
-            OnMessage(0x203, this.OnLDbl.Bind(this))
-            OnMessage(0x0138, this.OnCtlColor.Bind(this))
+            this.mmFn := this.OnMMove.Bind(this)
+            this.ldFn := this.OnLDown.Bind(this)
+            this.luFn := this.OnLUp.Bind(this)
+            this.ldblFn := this.OnLDbl.Bind(this)
             this.boostFn := this.BoostLater.Bind(this)
+            OnMessage(0x200, this.mmFn)
+            OnMessage(0x201, this.ldFn)
+            OnMessage(0x202, this.luFn)
+            OnMessage(0x203, this.ldblFn)
             this.msgInstalled := true
         } catch {
         }
     }
 
+    RemoveBallMsg() {
+        if (!this.msgInstalled)
+            return
+        try OnMessage(0x200, this.mmFn, 0)
+        try OnMessage(0x201, this.ldFn, 0)
+        try OnMessage(0x202, this.luFn, 0)
+        try OnMessage(0x203, this.ldblFn, 0)
+        this.msgInstalled := false
+    }
+
+    ; 面板单元格着色 (WM_CTLCOLORSTATIC) 跟面板生命周期走, 不跟球窗
+    InstallPanelMsg() {
+        if (this.panelMsgInstalled)
+            return
+        try {
+            this.ccFn := this.OnCtlColor.Bind(this)
+            OnMessage(0x0138, this.ccFn)
+            this.panelMsgInstalled := true
+        } catch {
+        }
+    }
+
+    RemovePanelMsg() {
+        if (!this.panelMsgInstalled)
+            return
+        try OnMessage(0x0138, this.ccFn, 0)
+        this.panelMsgInstalled := false
+    }
+
+    ; 显示变化 / DPI / 工作区变化: 回屏内并重绘 (拔副屏/改分辨率后不再留在屏外)
+    InstallDisplayMsg() {
+        if (this.dispMsgInstalled)
+            return
+        try {
+            this.dispFn := this.OnDisplayChange.Bind(this)
+            OnMessage(0x007E, this.dispFn)   ; WM_DISPLAYCHANGE
+            OnMessage(0x02E0, this.dispFn)   ; WM_DPICHANGED
+            OnMessage(0x001A, this.dispFn)   ; WM_SETTINGCHANGE
+            this.dispMsgInstalled := true
+        } catch {
+        }
+    }
+
+    RemoveDisplayMsg() {
+        if (!this.dispMsgInstalled)
+            return
+        try OnMessage(0x007E, this.dispFn, 0)
+        try OnMessage(0x02E0, this.dispFn, 0)
+        try OnMessage(0x001A, this.dispFn, 0)
+        this.dispMsgInstalled := false
+    }
+
+    OnDisplayChange(wParam, lParam, msg, hwnd) {
+        if (this.ballHwnd && hwnd && hwnd != this.ballHwnd)
+            return
+        if (msg = 0x001A) {
+            ; 只关心任务栏/环境变化, 别被主题/字体广播刷屏
+            area := ""
+            if (wParam > 0x10000)
+                try area := StrGet(wParam, "UTF-16")
+            if (area != "TraySettings" && area != "Environment")
+                return
+        }
+        if (!this.visible)
+            return
+        this.ClampPos()
+        if (this.suppressed)
+            return
+        this.Present()
+    }
+
     RemoveMsg() {
-        ; AHK 未提供按对象解绑,  visibility=false 时靠 Hwnd 过滤直接返回
+        this.RemoveBallMsg()
+        this.RemovePanelMsg()
+        this.RemoveDisplayMsg()
     }
 
     HitBall() {
@@ -466,7 +652,7 @@ class StatsBallObj {
     }
 
     OnLDown(wParam, lParam, msg, hwnd) {
-        if (!this.visible || !this.g)
+        if (!this.visible || this.suppressed || !this.g)
             return
         if (!this.HitBall())
             return
@@ -487,6 +673,8 @@ class StatsBallObj {
     ; 窗体尺寸不变, 不伸黑条
     SetHover(on) {
         on := on ? true : false
+        if (this.suppressed)
+            return
         if (on = this.hoverBoost)
             return
         this.hoverBoost := on
@@ -508,7 +696,7 @@ class StatsBallObj {
     ; 首超 6px 即 SetCapture, cursor 出窗照样收得到 0x200/0x202,
     ; 松手位置=落点, 不会再被甩在 1 秒前的路径上
     OnMMove(wParam, lParam, msg, hwnd) {
-        if (!this.visible || !this.g)
+        if (!this.visible || this.suppressed || !this.g)
             return
         ; 非拖拽态只做悬停追踪, 且 200ms 节流 (此前每条 0x200 都进 HitBall/MouseGetPos)
         if (this.downTick = 0 || this.lockPos) {
@@ -548,7 +736,7 @@ class StatsBallObj {
             }
             this.x := this.downWX + dx
             this.y := this.downWY + dy
-            try this.g.Show("x" . this.x . " y" . this.y . " NoActivate")
+            this.PlaceWindow()
         } catch {
         }
     }
@@ -564,7 +752,7 @@ class StatsBallObj {
             catch {
             }
         }
-        if (!this.visible || !this.g || this.downTick = 0)
+        if (!this.visible || this.suppressed || !this.g || this.downTick = 0)
             return
         wasDrag := this.dragging
         try {
@@ -583,9 +771,7 @@ class StatsBallObj {
         this.dragging := false
         ; 锁定时远距离松手: 立刻弹回记录位 (不等 Tick; 点击加速不受影响)
         if (wasDrag && this.lockPos) {
-            try this.g.Show("x" . this.x . " y" . this.y . " NoActivate")
-            catch {
-            }
+            this.PlaceWindow()
             return
         }
         if (wasDrag) {
@@ -607,7 +793,7 @@ class StatsBallObj {
     }
 
     OnLDbl(wParam, lParam, msg, hwnd) {
-        if (!this.visible)
+        if (!this.visible || this.suppressed)
             return
         if (!this.HitBall())
             return
@@ -619,7 +805,7 @@ class StatsBallObj {
     ; LUp 丢失 (capture 被系统抢走等) 导致 downTick 卡死时, 在此结算/取消,
     ; 避免下次点击行为错乱; 锁定位置时同样要清僵尸态 (点击开面板不受影响)
     PollDrag() {
-        if (this.downTick = 0 || !this.visible)
+        if (this.downTick = 0 || !this.visible || this.suppressed)
             return
         try {
             if (!GetKeyState("LButton", "P")) {
@@ -649,7 +835,7 @@ class StatsBallObj {
             ny := this.downWY + dy
             this.x := nx
             this.y := ny
-            try this.g.Show("x" . nx . " y" . ny . " NoActivate")
+            this.PlaceWindow()
         } catch {
         }
     }
@@ -663,14 +849,12 @@ class StatsBallObj {
                     this.x := mr.r - this.ww - 8
                 else
                     this.x := mr.l + 8
-                try this.g.Show("x" . this.x . " y" . this.y . " NoActivate")
+                this.PlaceWindow()
             } catch {
             }
         }
         this.ClampPos()
-        try this.g.Show("x" . this.x . " y" . this.y . " NoActivate")
-        catch {
-        }
+        this.PlaceWindow()
         try this.SavePos()
         catch {
         }
@@ -691,6 +875,9 @@ class StatsBallObj {
 
     Tick() {
         if (!this.visible)
+            return
+        this.UpdateSuppression()
+        if (this.suppressed)
             return
         this.tickCount++
         ; 窗口被外部销毁 (资源管理器重启/显示切换): 直接重建, 不等 renderFails
@@ -731,7 +918,7 @@ class StatsBallObj {
                     try FileAppend(A_Now . " SB-SNAPBACK from=" . sx . "," . sy . " to=" . this.x . "," . this.y . "`n", A_ScriptDir . "\Rim.error.log")
                     catch {
                     }
-                    try this.g.Show("x" . this.x . " y" . this.y . " NoActivate")
+                    try this.PlaceWindow()
                     catch {
                     }
                 } else {
@@ -863,11 +1050,17 @@ class StatsBallObj {
         return {x: this.x, y: this.y, w: this.ww, h: this.hh}
     }
 
-    ; 自绘土司 (圆角深色, 替代系统 TrayTip): 任务栏上方右侧, 2.5s 自关
+    ; 自绘土司 (圆角深色, 替代系统 TrayTip): 雷达所在屏右下, 2.5s 自关
     ShowToast(title, text) {
+        ; 自动土司永远不在全屏应用上弹 (与 HideFullscreen 解耦)
+        if (this.FullscreenOnThisMonitor())
+            return
         try {
             if (!this.toastG) {
-                this.toastG := Gui("+ToolWindow -Caption +AlwaysOnTop", "StatsBallToast")
+                toastOpts := "+ToolWindow -Caption"
+                if (this.topMost)
+                    toastOpts .= " +AlwaysOnTop"
+                this.toastG := Gui(toastOpts, "StatsBallToast")
                 this.toastG.BackColor := "232323"
                 this.toastG.SetFont("s10 cWhite Bold", "Segoe UI")
                 this.toastTitle := this.toastG.AddText("x14 y8 w292 h22", "")
@@ -881,17 +1074,10 @@ class StatsBallObj {
             tw := 320
             th := 64
             try {
-                sw := SysGet(78)
-                sh := SysGet(79)
-                taskH := 48
-                try {
-                    WinGetPos(, , , &tbh, "ahk_class Shell_TrayWnd")
-                    if (tbh > 0 && tbh < sh // 3)
-                        taskH := tbh
-                } catch {
-                }
-                tx := sw - tw - 12
-                ty := sh - taskH - th - 12
+                br := this.BallRect()
+                mr := StatsBall_MonRect(br.x + br.w // 2, br.y + br.h // 2)
+                tx := mr.r - tw - 12
+                ty := mr.b - th - 12
             } catch {
                 tx := this.x - 260
                 ty := this.y - 80
@@ -919,27 +1105,30 @@ class StatsBallObj {
 
     ; ---------- 加速面板 ----------
     OpenPanel(*) {
+        if (this.suppressed) {
+            StatsBall_HintSuppressed()
+            return
+        }
         if (!this.panelG)
             this.CreatePanel()
         this.panelOpen := true
         try this.panelG.Show("NoActivate")
         ; 面板贴球放置 (按实时矩形): 默认在雷达球正上方居中, 上方空间不够则放下方, 双向钳制
         try {
-            sw := SysGet(78)
-            sh := SysGet(79)
             pw := 300
             ph := 440
             br := this.BallRect()
+            mr := StatsBall_MonRect(br.x + br.w // 2, br.y + br.h // 2)
             px := br.x + (br.w - pw) // 2
-            if (px < 8)
-                px := 8
-            if (px + pw > sw - 8)
-                px := sw - 8 - pw
+            if (px < mr.l + 8)
+                px := mr.l + 8
+            if (px + pw > mr.r - 8)
+                px := mr.r - 8 - pw
             py := br.y - ph - 32
-            if (py < 8)
+            if (py < mr.t + 8)
                 py := br.y + br.h + 12
-            if (py + ph > sh - 48)
-                py := sh - 48 - ph
+            if (py + ph > mr.b - 8)
+                py := mr.b - 8 - ph
             this.panelG.Show("x" . px . " y" . py . " NoActivate")
         } catch {
         }
@@ -962,7 +1151,10 @@ class StatsBallObj {
     }
 
     CreatePanel() {
-        this.panelG := Gui("+ToolWindow +AlwaysOnTop", T("statsball.panel_title"))
+        panelOpts := "+ToolWindow"
+        if (this.topMost)
+            panelOpts .= " +AlwaysOnTop"
+        this.panelG := Gui(panelOpts, T("statsball.panel_title"))
         this.panelG.BackColor := "FFFFFF"
         this.panelG.SetFont("s10 c333333", "Segoe UI")
         this.panelStatus := this.panelG.AddText("x20 y16 w260 h24", T("statsball.loading"))
@@ -998,6 +1190,7 @@ class StatsBallObj {
         this.panelG.OnEvent("Close", this.ClosePanel.Bind(this))
         this.panelG.Show("w300 h440 Hide")
         this.panelHwnd := this.panelG.Hwnd
+        this.InstallPanelMsg()
     }
 
     ToggleSort(key) {
@@ -1109,6 +1302,10 @@ class StatsBallObj {
     }
 
     DoBoost(*) {
+        if (this.suppressed) {
+            StatsBall_HintSuppressed()
+            return
+        }
         if (!this.panelG)
             this.CreatePanel()
         this.panelOpen := true
